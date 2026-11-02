@@ -153,14 +153,14 @@ void CSession::RegisterStateHandler(StateCallback&& cb)
 	m_stateHandlers.emplace_back(std::move(cb));
 }
 
-void CSession::SetResponseCallback(ResponseCallback&& cb)
+void CSession::SetResponseCallback(_TyRequestNotify&& cb)
 {
 	std::lock_guard<std::mutex> lock(m_mtx_callbacks);
 	m_responseCallbacks.clear();
 	m_responseCallbacks.emplace_back(std::move(cb));
 }
 
-void CSession::RegisterResponseHandler(ResponseCallback&& cb)
+void CSession::RegisterResponseHandler(_TyRequestNotify&& cb)
 {
 	std::lock_guard<std::mutex> lock(m_mtx_callbacks);
 	m_responseCallbacks.emplace_back(std::move(cb));
@@ -618,12 +618,12 @@ void CSession::NotifyState(SessionState state, const std::string& message)
 
 void CSession::NotifyResponse(const CRequest& response)
 {
-	std::vector<ResponseCallback> callbacks;
+	std::vector<_TyRequestNotify> callbacks;
 	{
 		std::lock_guard<std::mutex> lock(m_mtx_callbacks);
 		callbacks = m_responseCallbacks;
 	}
-	for (const ResponseCallback& cb : callbacks)
+	for (const _TyRequestNotify& cb : callbacks)
 	{
 		if (nullptr != cb)
 		{

@@ -44,7 +44,6 @@ class CSession final : public ISingleton<CSession>
 	public:
 	using AuthCallback = std::function<void(const AuthEvent&)>;
 	using StateCallback = std::function<void(SessionState, const std::string&)>;
-	using ResponseCallback = std::function<void(const CRequest&)>;
 	using ErrorCallback = std::function<void(const std::string&)>;
 
 	void Authenticate(const CAuthParam& param, AuthCallback&& cb);
@@ -53,8 +52,8 @@ class CSession final : public ISingleton<CSession>
 	bool SendRequest(const CRequest& request);
 	void SetStateCallback(StateCallback&& cb);
 	void RegisterStateHandler(StateCallback&& cb);
-	void SetResponseCallback(ResponseCallback&& cb);
-	void RegisterResponseHandler(ResponseCallback&& cb);
+	void SetResponseCallback(_TyRequestNotify&& cb);
+	void RegisterResponseHandler(_TyRequestNotify&& cb);
 	void SetErrorCallback(ErrorCallback&& cb);
 	bool IsAuthenticated() const noexcept;
 	SessionState GetState() const noexcept;
@@ -117,7 +116,7 @@ class CSession final : public ISingleton<CSession>
 	std::mutex m_mtx_callbacks;
 	StateCallback m_stateCallback;
 	std::vector<StateCallback> m_stateHandlers;
-	std::vector<ResponseCallback> m_responseCallbacks;
+	std::vector<_TyRequestNotify> m_responseCallbacks;
 	ErrorCallback m_errorCallback;
 
 #if defined(_DEBUG)

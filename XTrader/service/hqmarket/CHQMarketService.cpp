@@ -743,13 +743,14 @@ void CHQMarketService::FlushQuotes(std::unordered_map<std::string, CQuote>& quot
 	m_pump_quote_table.Notify(CQuoteTableEvent{ std::move(view), std::move(changes) });
 }
 
-void CHQMarketService::OnRequestReply(const CRequest& req)
+bool CHQMarketService::OnRequestReply(const CRequest& req)
 {
 	const auto mIter = m_request_handler.find(req.GetType());
 	if (m_request_handler.end() != mIter)
 	{
-		mIter->second(req);
+		return mIter->second(req);
 	}
+	return false;
 }
 
 bool CHQMarketService::OnSectorListReply(const CRequest& req)

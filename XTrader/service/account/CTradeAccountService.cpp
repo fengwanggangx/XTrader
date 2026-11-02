@@ -14,61 +14,57 @@ CTradeAccountService::~CTradeAccountService()
 void CTradeAccountService::Initialize()
 {
 	std::call_once(m_initializeFlag, [this]()
+	{
+		CSession::InstanceRef().RegisterResponseHandler(std::bind_front(&CTradeAccountService::OnResponse, this));
+		CSession::InstanceRef().RegisterStateHandler(
+			[this](SessionState, const std::string&)
 		{
-			CSession::InstanceRef().RegisterResponseHandler(
-				[this](const CRequest& response)
+			CResult result;
+			result.m_bSessionReset = true;
+			{
+				std::lock_guard<std::mutex> lock(m_mtx_state);
+				m_pending.clear();
+				m_accounts.clear();
+				m_supported = true;
+				result.m_generation = ++m_generation;
+			}
+			m_results.Notify(result);
+		});
+		m_timeouts = std::jthread([this](std::stop_token stop)
+		{
+			while (!stop.stop_requested())
+			{
+				std::vector<CRequest> expired;
+				{
+					std::unique_lock<std::mutex> lock(m_mtx_state);
+					m_wake.wait_for(lock, std::chrono::seconds(1),
+						[&stop]()
+					{
+						return stop.stop_requested();
+					});
+					if (stop.stop_requested())
+					{
+						return;
+					}
+					for (const auto& item : m_pending)
+					{
+						if (item.second.m_deadline <= std::chrono::steady_clock::now())
+						{
+							CRequest response;
+							response.SetId(item.first);
+							response.SetType(item.second.m_type);
+							response.SetErrorInfo(1203, "账户请求超时");
+							expired.emplace_back(std::move(response));
+						}
+					}
+				}
+				for (const auto& response : expired)
 				{
 					OnResponse(response);
-				});
-			CSession::InstanceRef().RegisterStateHandler(
-				[this](SessionState, const std::string&)
-				{
-					CResult result;
-					result.m_bSessionReset = true;
-					{
-						std::lock_guard<std::mutex> lock(m_mtx_state);
-						m_pending.clear();
-						m_accounts.clear();
-						m_supported = true;
-						result.m_generation = ++m_generation;
-					}
-					m_results.Notify(result);
-				});
-			m_timeouts = std::jthread([this](std::stop_token stop)
-				{
-					while (!stop.stop_requested())
-					{
-						std::vector<CRequest> expired;
-						{
-							std::unique_lock<std::mutex> lock(m_mtx_state);
-							m_wake.wait_for(lock, std::chrono::seconds(1),
-								[&stop]()
-								{
-									return stop.stop_requested();
-								});
-							if (stop.stop_requested())
-							{
-								return;
-							}
-							for (const auto& item : m_pending)
-							{
-								if (item.second.m_deadline <= std::chrono::steady_clock::now())
-								{
-									CRequest response;
-									response.SetId(item.first);
-									response.SetType(item.second.m_type);
-									response.SetErrorInfo(1203, "账户请求超时");
-									expired.emplace_back(std::move(response));
-								}
-							}
-						}
-						for (const auto& response : expired)
-						{
-							OnResponse(response);
-						}
-					}
-				});
+				}
+			}
 		});
+	});
 }
 _TyCallbackId CTradeAccountService::Subscribe(_TyHandler&& handler)
 {
@@ -161,7 +157,7 @@ std::uint64_t CTradeAccountService::Send(
 	m_pending.erase(req.GetId());
 	return 0;
 }
-void CTradeAccountService::OnResponse(const CRequest& response)
+bool CTradeAccountService::OnResponse(const CRequest& response)
 {
 	CResult result;
 	{
@@ -169,11 +165,11 @@ void CTradeAccountService::OnResponse(const CRequest& response)
 		const auto mIter = m_pending.find(response.GetId());
 		if (m_pending.end() == mIter)
 		{
-			return;
+			return false;
 		}
 		if (response.GetType() != mIter->second.m_type)
 		{
-			return;
+			return false;
 		}
 		result.m_accountIndex = mIter->second.m_accountIndex;
 		result.m_type = mIter->second.m_type;
@@ -242,4 +238,5 @@ void CTradeAccountService::OnResponse(const CRequest& response)
 		}
 	}
 	m_results.Notify(result);
+	return true;
 }

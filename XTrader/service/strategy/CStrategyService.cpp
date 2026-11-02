@@ -14,10 +14,7 @@ void CStrategyService::Initialize()
 {
 	std::call_once(m_initializeFlag, [this]()
 	{
-		CSession::InstanceRef().RegisterResponseHandler([this](const CRequest& response)
-		{
-			OnRequestReply(response);
-		});
+		CSession::InstanceRef().RegisterResponseHandler(std::bind_front(&CStrategyService::OnRequestReply, this));
 		CSession::InstanceRef().RegisterStateHandler([this](SessionState state, const std::string&)
 		{
 			if (SessionState::Ready == state)
@@ -215,7 +212,7 @@ bool CStrategyService::ValidateStrategy(const request::StrategyInfo& strategy, s
 	return true;
 }
 
-void CStrategyService::OnRequestReply(const CRequest& response)
+bool CStrategyService::OnRequestReply(const CRequest& response)
 {
 	_TyRequest type = response.GetType();
 	std::optional<std::pair<int, std::string>> errorInfo = response.GetErrorInfo();
@@ -226,7 +223,7 @@ void CStrategyService::OnRequestReply(const CRequest& response)
 		std::uint64_t expected = response.GetId();
 		if ((0 == expected) || !m_queryRequestId.compare_exchange_strong(expected, 0))
 		{
-			return;
+			return false;
 		}
 		_TyStrategyList strategies;
 		if (strError.empty() && !message.has_strategy_list())
@@ -266,7 +263,7 @@ void CStrategyService::OnRequestReply(const CRequest& response)
 			handler(strategies, strError);
 		}
 		m_queryPump.Notify({ std::move(strategies), std::move(strError) });
-		return;
+		return true;
 	}
 
 	if (_TyRequest::STRATEGY_RUNTIME_QUERY == type)
@@ -274,7 +271,7 @@ void CStrategyService::OnRequestReply(const CRequest& response)
 		std::uint64_t expected = response.GetId();
 		if ((0 == expected) || !m_runtimeRequestId.compare_exchange_strong(expected, 0))
 		{
-			return;
+			return false;
 		}
 		_TyRuntimeMap runtimes;
 		if (strError.empty() && (!message.has_strategy_runtime_list() || (10000 < message.strategy_runtime_list().runtimes_size())))
@@ -304,12 +301,12 @@ void CStrategyService::OnRequestReply(const CRequest& response)
 			}
 		}
 		m_runtimePump.Notify({ std::move(runtimes), std::move(strError) });
-		return;
+		return true;
 	}
 
 	if ((_TyRequest::STRATEGY_ADD != type) && (_TyRequest::STRATEGY_MODIFY != type) && (_TyRequest::STRATEGY_DELETE != type) && (_TyRequest::STRATEGY_START != type) && (_TyRequest::STRATEGY_PAUSE != type) && (_TyRequest::STRATEGY_STOP != type))
 	{
-		return;
+		return false;
 	}
 	request::StrategyInfo strategy;
 	if (message.has_strategy())
@@ -341,4 +338,5 @@ void CStrategyService::OnRequestReply(const CRequest& response)
 		}
 		QueryRuntime();
 	}
+	return true;
 }

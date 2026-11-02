@@ -35,7 +35,7 @@ public:
 	std::uint64_t GetGeneration() const;
 
 private:
-	void OnResponse(const CRequest& response);
+	bool OnResponse(const CRequest& response);
 	struct CPending
 	{
 		_TyAccountIndex m_accountIndex{};

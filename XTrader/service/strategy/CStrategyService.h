@@ -64,7 +64,7 @@ class CStrategyService final : public ISingleton<CStrategyService>
 	static bool ValidateStrategy(const request::StrategyInfo& strategy, std::string& error);
 
 	private:
-	void OnRequestReply(const CRequest& response);
+		bool OnRequestReply(const CRequest& response);
 
 	private:
 	std::once_flag m_initializeFlag;
