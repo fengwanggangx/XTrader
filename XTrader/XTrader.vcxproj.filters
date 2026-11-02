@@ -290,7 +290,7 @@
     <ClCompile Include="thirty\qwt\QwtPlot.cpp">
       <Filter>Source Files\thirty\qwt</Filter>
     </ClCompile>
-    <ClCompile Include="database\CAccountStorager.cpp">
+    <ClCompile Include="database\CUserStorager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="components\CViewTradingAccounts.cpp">
@@ -592,7 +592,7 @@
     <ClInclude Include="service\hqmarket\defines_hqmarket.h">
       <Filter>Source Files\service\hqmarket</Filter>
     </ClInclude>
-    <ClInclude Include="database\CAccountStorager.h">
+    <ClInclude Include="database\CUserStorager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="components\CViewTradingAccounts.h">

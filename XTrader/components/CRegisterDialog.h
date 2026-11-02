@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ui_CRegisterDialog.h"
 #include "../system/CLoginService.h"
+#include "ui_CRegisterDialog.h"
 
 #include <QDialog>
 
@@ -13,8 +13,8 @@ public:
 	explicit CRegisterDialog(QWidget* parent = nullptr);
 	~CRegisterDialog() override;
 
-	void SetAccount(const QString& account);
-	QString Account() const;
+	void SetUser(const QString& user);
+	QString User() const;
 
 private slots:
 	void Register();

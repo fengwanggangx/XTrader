@@ -1,9 +1,9 @@
 #pragma once
 
+#include "../database/CUserStorager.h"
+#include "../system/CLoginService.h"
 #include <QDialog>
 #include <memory>
-#include "../system/CLoginService.h"
-#include "../database/CAccountStorager.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui
@@ -30,15 +30,15 @@ class LoginWindow : public QDialog
 	void OnRegisterBtnClicked();
 	void OnCloseBtnClicked();
 	void OnSettingsBtnClicked();
-	void OnAccountChanged(int nIndex);
-	void OnAccountEdited(const QString& strAccount);
+	void OnUserChanged(int nIndex);
+	void OnUserEdited(const QString& strUser);
 
-  private:
+private:
 	void ConnectSlots();
-	void LoadAccounts();
+	void LoadUsers();
 	void FillPassword(int nIndex);
-	void SavePendingAccount();
-	void DeleteAccount(int nIndex);
+	void SavePendingUser();
+	void DeleteUser(int nIndex);
 	void ClearPendingCredentials();
 
   private:
@@ -48,8 +48,8 @@ class LoginWindow : public QDialog
 	QPoint m_dragPosition;
 	bool m_isDragging{ false };
 	_TyCallbackId m_loginCallbackId{ 0 };
-	CAccountStorager m_accountRepository;
-	std::vector<CAccountInfo> m_accounts;
-	std::string m_strPendingAccount;
+	CUserStorager m_userRepository;
+	std::vector<CUserInfo> m_users;
+	std::string m_strPendingUser;
 	std::string m_strPendingPassword;
 };

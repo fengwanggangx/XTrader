@@ -24,11 +24,11 @@ namespace request
 			return req;
 		}
 	}
-	CRequest Auth(AuthAction action, const std::string& strAccount, const std::string& strPassword)
+	CRequest Auth(AuthAction action, const std::string& strUser, const std::string& strPassword)
 	{
 		CRequest req;
 		req.SetType(AuthAction::Login == action ? _TyRequest::AUTH_LOGIN : _TyRequest::AUTH_REGISTER);
-		req.SetExtraData("user", strAccount);
+		req.SetExtraData("user", strUser);
 		req.SetExtraData("password", strPassword);
 		return req;
 	}

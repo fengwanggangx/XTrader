@@ -46,7 +46,7 @@ XTrader、XEngine、HQMarket 使用相同 RequestData 定义，必须一起升�
 
 ## 认证
 
-AUTH_LOGIN 的请求 ExtraData 使用 user/password，或者 token。成功响应 ExtraData 返回 user_id、account、token。Token 再认证成功时允许不返回新 token，此时客户端保留原令牌。失败响应只返回状态，不回传密码或 token。AUTH_REGISTER 使用 user/password，成功后仍需登录。
+AUTH_LOGIN 的请求 ExtraData 使用 user/password，或者 token。成功响应 ExtraData 返回 user_id、user、token。Token 再认证成功时允许不返回新 token，此时客户端保留原令牌。失败响应只返回状态，不回传密码或 token。AUTH_REGISTER 使用 user/password，成功后仍需登录。
 
 ## 交易账户
 

@@ -22,12 +22,12 @@ void CLoginService::Unsubscribe(_TyCallbackId id)
 
 bool CLoginInfo::Valid() const noexcept
 {
-	return !m_strAccount.empty() && !m_strToken.empty() && m_host.Valid();
+	return !m_strUser.empty() && !m_strToken.empty() && m_host.Valid();
 }
 
 bool CLoginService::Authenticate(const CAuthParam& param)
 {
-	if (param.m_strAccount.empty() || param.m_strPassword.empty())
+	if (param.m_strUser.empty() || param.m_strPassword.empty())
 	{
 		m_dispatcher_auth.Notify({ param.m_operation, AuthState::Failed, AuthError::InvalidInput, false, "账号和密码不能为空" });
 		return false;

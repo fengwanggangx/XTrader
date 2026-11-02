@@ -79,14 +79,14 @@
 					<item>
 						<layout class="QFormLayout" name="formLayout">
 							<item row="0" column="0">
-								<widget class="QLabel" name="label_account">
+								<widget class="QLabel" name="label_user">
 									<property name="text">
 										<string>账号</string>
 									</property>
 								</widget>
 							</item>
 							<item row="0" column="1">
-								<widget class="QComboBox" name="comboBox_account">
+								<widget class="QComboBox" name="comboBox_user">
 									<property name="editable">
 										<bool>true</bool>
 									</property>

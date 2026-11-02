@@ -1,8 +1,8 @@
 #ifndef XTRADER_SERVER_REQUESTCENTER_H
 #define XTRADER_SERVER_REQUESTCENTER_H
 
-#include "request.h"
 #include "MarketTypes.h"
+#include "request.h"
 
 #include <string>
 #include <unordered_map>
@@ -18,7 +18,7 @@ namespace request
 		Register
 	};
 
-	CRequest Auth(AuthAction action, const std::string& strAccount, const std::string& strPassword);
+	CRequest Auth(AuthAction action, const std::string& strUser, const std::string& strPassword);
 	CRequest Auth(const std::string& strToken);
 	CRequest Subscription(const _TyParams& param);
 	CRequest UnSubscription(const _TyParams& param);

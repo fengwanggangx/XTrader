@@ -12,7 +12,7 @@ QDialog#LoginWindowClass
 	font-weight: bold;
 }
 
-#label_account
+#label_user
 {
 	color: white;
 }

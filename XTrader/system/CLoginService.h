@@ -17,14 +17,14 @@ enum class AuthOperation
 struct CAuthParam
 {
 	AuthOperation m_operation{ AuthOperation::Login };
-	std::string m_strAccount;
+	std::string m_strUser;
 	std::string m_strPassword;
 	CHostInfo m_host;
 };
 
 struct CLoginInfo
 {
-	std::string m_strAccount;
+	std::string m_strUser;
 	std::string m_strToken;
 	CHostInfo m_host;
 

@@ -64,6 +64,15 @@ int main()
 	{
 		return 1;
 	}
+	if (!Check("user" == auth.GetExtraData("user") && auth.GetExtraData("account").empty(), "login metadata must name the system user"))
+	{
+		return 1;
+	}
+	CRequest registration = request::Auth(request::AuthAction::Register, "new-user", "secret");
+	if (!Check(_TyRequest::AUTH_REGISTER == registration.GetType() && "new-user" == registration.GetExtraData("user") && registration.GetExtraData("account").empty(), "registration metadata must name the system user"))
+	{
+		return 1;
+	}
 	for (bool bSubscribe : { true, false })
 	{
 		std::vector<CSecurity> securities{ CSecurity("600000", Exchange::sse), CSecurity("000001", Exchange::szse) };
@@ -77,11 +86,16 @@ int main()
 	CRequest response;
 	response.SetType(_TyRequest::AUTH_LOGIN);
 	response.SetId(auth.GetId());
+	response.SetExtraData("user", std::string("user"));
 	response.SetExtraData("token", std::string("test-token"));
 	response.SetErrorInfo(1001, "");
 	std::string strWire;
 	CRequest decoded;
 	if (!Check(response.Serialize(&strWire) && decoded.Deserialize(strWire) && decoded.GetErrorInfo().has_value() && (1001 == decoded.GetErrorInfo()->first) && (response.GetType() == decoded.GetType()) && (response.GetId() == decoded.GetId()), "typed response or empty-message error lost in serialization"))
+	{
+		return 1;
+	}
+	if (!Check("user" == decoded.GetExtraData("user") && decoded.GetExtraData("account").empty(), "auth response must preserve user without account alias"))
 	{
 		return 1;
 	}

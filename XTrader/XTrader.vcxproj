@@ -159,7 +159,7 @@
     <ClCompile Include="system\CHostMgr.cpp" />
     <ClCompile Include="cryption\Cryption.cpp" />
     <ClCompile Include="database\CDBEngine.cpp" />
-    <ClCompile Include="database\CAccountStorager.cpp" />
+    <ClCompile Include="database\CUserStorager.cpp" />
     <ClCompile Include="database\common_db.cpp" />
     <ClCompile Include="database\CMySQL.cpp" />
     <ClCompile Include="database\CODBC.cpp" />
@@ -300,7 +300,7 @@
     <ClInclude Include="system\CHostMgr.h" />
     <ClInclude Include="cryption\Cryption.h" />
     <ClInclude Include="database\CDBEngine.h" />
-    <ClInclude Include="database\CAccountStorager.h" />
+    <ClInclude Include="database\CUserStorager.h" />
     <ClInclude Include="database\common_db.h" />
     <ClInclude Include="database\CMySQL.h" />
     <ClInclude Include="database\CODBC.h" />

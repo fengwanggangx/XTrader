@@ -406,7 +406,7 @@ void CSession::HandleResponse(const CRequest& response)
 			if (authParam.has_value())
 			{
 				CLoginInfo info;
-				info.m_strAccount = authParam->m_strAccount;
+				info.m_strUser = authParam->m_strUser;
 				info.m_strToken = response.GetExtraData("token");
 				info.m_host = authParam->m_host;
 				std::lock_guard<std::mutex> lock(m_mtx_auth);
@@ -457,7 +457,7 @@ void CSession::SendAuthentication()
 			hasAuthContext = true;
 			operation = m_authContext->m_param.m_operation;
 			request::AuthAction action = AuthOperation::Login == operation ? request::AuthAction::Login : request::AuthAction::Register;
-			request = request::Auth(action, m_authContext->m_param.m_strAccount, m_authContext->m_param.m_strPassword);
+			request = request::Auth(action, m_authContext->m_param.m_strUser, m_authContext->m_param.m_strPassword);
 		}
 		else if (m_loginInfo.has_value() && m_loginInfo->Valid())
 		{

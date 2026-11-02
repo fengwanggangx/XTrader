@@ -1,16 +1,16 @@
 #include "CLoginWindow.h"
-#include "ui_CLoginWindow.h"
-#include "CUIStyle.h"
-#include "CServerSettingsDialog.h"
-#include "CRegisterDialog.h"
 #include "../cryption/Cryption.h"
 #include "../system/CHostMgr.h"
+#include "CRegisterDialog.h"
+#include "CServerSettingsDialog.h"
+#include "CUIStyle.h"
+#include "ui_CLoginWindow.h"
 #include <QComboBox>
 #include <QDateTime>
 #include <QLineEdit>
-#include <QMouseEvent>
 #include <QMessageBox>
 #include <QMetaObject>
+#include <QMouseEvent>
 #include <QPainter>
 #include <QPointer>
 #include <QSettings>
@@ -20,12 +20,12 @@
 
 namespace
 {
-	class CAccountItemDelegate final : public QStyledItemDelegate
+	class CUserItemDelegate final : public QStyledItemDelegate
 	{
 	  public:
 		using _TyDeleteCallback = std::function<void(int)>;
 
-		CAccountItemDelegate(_TyDeleteCallback&& callback, QObject* pParent) : QStyledItemDelegate(pParent), m_callback(std::move(callback))
+		CUserItemDelegate(_TyDeleteCallback&& callback, QObject* pParent) : QStyledItemDelegate(pParent), m_callback(std::move(callback))
 		{
 		}
 
@@ -68,12 +68,11 @@ LoginWindow::LoginWindow(QWidget* pParent) : QDialog(pParent), m_ui(std::make_un
 	setWindowFlag(Qt::FramelessWindowHint);
 	ConnectSlots();
 	m_ui->checkBox_remember->setChecked(QSettings("Mary", "Mary").value("Login/RememberPassword", true).toBool());
-	m_ui->comboBox_account->setItemDelegate(new CAccountItemDelegate([this](int nIndex)
-																	 {
-																		 DeleteAccount(nIndex);
-																	 },
-																	 m_ui->comboBox_account));
-	LoadAccounts();
+	m_ui->comboBox_user->setItemDelegate(new CUserItemDelegate([this](int nIndex)
+	{
+		DeleteUser(nIndex);
+	}, m_ui->comboBox_user));
+	LoadUsers();
 	QPointer<LoginWindow> safeThis(this);
 	m_loginCallbackId = CLoginService::InstanceRef().Subscribe([safeThis](const AuthEvent& event)
 															   {
@@ -89,7 +88,7 @@ LoginWindow::LoginWindow(QWidget* pParent) : QDialog(pParent), m_ui(std::make_un
 																								 }
 																								 if (AuthState::Success == event.m_state)
 																								 {
-																									 safeThis->SavePendingAccount();
+																									 safeThis->SavePendingUser();
 																									 safeThis->ClearPendingCredentials();
 																									 safeThis->accept();
 																								 }
@@ -121,8 +120,8 @@ void LoginWindow::ConnectSlots()
 	QObject::connect(m_ui->pushButton_register, &QPushButton::clicked, this, &LoginWindow::OnRegisterBtnClicked);
 	QObject::connect(m_ui->pushButton_close, &QPushButton::clicked, this, &LoginWindow::OnCloseBtnClicked);
 	QObject::connect(m_ui->pushButton_settings, &QPushButton::clicked, this, &LoginWindow::OnSettingsBtnClicked);
-	QObject::connect(m_ui->comboBox_account, &QComboBox::currentIndexChanged, this, &LoginWindow::OnAccountChanged);
-	QObject::connect(m_ui->comboBox_account->lineEdit(), &QLineEdit::textEdited, this, &LoginWindow::OnAccountEdited);
+	QObject::connect(m_ui->comboBox_user, &QComboBox::currentIndexChanged, this, &LoginWindow::OnUserChanged);
+	QObject::connect(m_ui->comboBox_user->lineEdit(), &QLineEdit::textEdited, this, &LoginWindow::OnUserEdited);
 	QObject::connect(m_ui->checkBox_remember, &QCheckBox::toggled, this, [](bool bChecked)
 					 {
 						 QSettings("Mary", "Mary").setValue("Login/RememberPassword", bChecked);
@@ -177,10 +176,10 @@ void LoginWindow::OnLoginBtnClicked()
 
 	CAuthParam param;
 	param.m_operation = AuthOperation::Login;
-	param.m_strAccount = m_ui->comboBox_account->currentText().toStdString();
+	param.m_strUser = m_ui->comboBox_user->currentText().toStdString();
 	param.m_strPassword = m_ui->lineEdit_passwd->text().toStdString();
 	param.m_host = std::move(*site);
-	m_strPendingAccount = param.m_strAccount;
+	m_strPendingUser = param.m_strUser;
 	m_strPendingPassword = param.m_strPassword;
 	CLoginService::InstanceRef().Authenticate(param);
 }
@@ -188,10 +187,10 @@ void LoginWindow::OnLoginBtnClicked()
 void LoginWindow::OnRegisterBtnClicked()
 {
 	CRegisterDialog dialog(this);
-	dialog.SetAccount(m_ui->comboBox_account->currentText());
+	dialog.SetUser(m_ui->comboBox_user->currentText());
 	if (QDialog::Accepted == dialog.exec())
 	{
-		m_ui->comboBox_account->setCurrentText(dialog.Account());
+		m_ui->comboBox_user->setCurrentText(dialog.User());
 		m_ui->lineEdit_passwd->clear();
 		m_ui->lineEdit_passwd->setFocus();
 	}
@@ -209,20 +208,20 @@ void LoginWindow::OnSettingsBtnClicked()
 	dialog.exec();
 }
 
-void LoginWindow::LoadAccounts()
+void LoginWindow::LoadUsers()
 {
-	m_accounts = m_accountRepository.LoadAccounts();
+	m_users = m_userRepository.LoadUsers();
 	m_ui->lineEdit_passwd->clear();
-	m_ui->comboBox_account->blockSignals(true);
-	m_ui->comboBox_account->clear();
-	for (const auto& account : m_accounts)
+	m_ui->comboBox_user->blockSignals(true);
+	m_ui->comboBox_user->clear();
+	for (const auto& user : m_users)
 	{
-		m_ui->comboBox_account->addItem(QString::fromStdString(account.m_strAccount));
+		m_ui->comboBox_user->addItem(QString::fromStdString(user.m_strUser));
 	}
-	m_ui->comboBox_account->blockSignals(false);
-	if (!m_accounts.empty())
+	m_ui->comboBox_user->blockSignals(false);
+	if (!m_users.empty())
 	{
-		m_ui->comboBox_account->setCurrentIndex(0);
+		m_ui->comboBox_user->setCurrentIndex(0);
 		FillPassword(0);
 	}
 }
@@ -230,35 +229,35 @@ void LoginWindow::LoadAccounts()
 void LoginWindow::FillPassword(int nIndex)
 {
 	m_ui->lineEdit_passwd->clear();
-	if ((0 > nIndex) || (static_cast<std::size_t>(nIndex) >= m_accounts.size()))
+	if ((0 > nIndex) || (static_cast<std::size_t>(nIndex) >= m_users.size()))
 	{
 		return;
 	}
 	std::vector<std::uint8_t> password;
 	std::string strError;
-	if (crypto::CCryptor::InstanceRef().UnprotectCurrentUser(m_accounts[static_cast<std::size_t>(nIndex)].m_password, password, strError))
+	if (crypto::CCryptor::InstanceRef().UnprotectCurrentUser(m_users[static_cast<std::size_t>(nIndex)].m_password, password, strError))
 	{
 		m_ui->lineEdit_passwd->setText(QString::fromUtf8(reinterpret_cast<const char*>(password.data()), static_cast<qsizetype>(password.size())));
 	}
 }
 
-void LoginWindow::OnAccountChanged(int nIndex)
+void LoginWindow::OnUserChanged(int nIndex)
 {
 	FillPassword(nIndex);
 }
 
-void LoginWindow::OnAccountEdited(const QString& strAccount)
+void LoginWindow::OnUserEdited(const QString& strUser)
 {
-	int nIndex = m_ui->comboBox_account->findText(strAccount, Qt::MatchExactly);
+	int nIndex = m_ui->comboBox_user->findText(strUser, Qt::MatchExactly);
 	if (0 > nIndex)
 	{
 		m_ui->lineEdit_passwd->clear();
 	}
 }
 
-void LoginWindow::SavePendingAccount()
+void LoginWindow::SavePendingUser()
 {
-	if (!m_ui->checkBox_remember->isChecked() || m_strPendingAccount.empty() || m_strPendingPassword.empty())
+	if (!m_ui->checkBox_remember->isChecked() || m_strPendingUser.empty() || m_strPendingPassword.empty())
 	{
 		return;
 	}
@@ -272,26 +271,26 @@ void LoginWindow::SavePendingAccount()
 		return;
 	}
 	std::int64_t nTimestamp = QDateTime::currentMSecsSinceEpoch();
-	if (m_accountRepository.SaveAccount(m_strPendingAccount, protectedData, nTimestamp))
+	if (m_userRepository.SaveUser(m_strPendingUser, protectedData, nTimestamp))
 	{
-		LoadAccounts();
+		LoadUsers();
 	}
 }
 
-void LoginWindow::DeleteAccount(int nIndex)
+void LoginWindow::DeleteUser(int nIndex)
 {
-	if ((0 > nIndex) || (static_cast<std::size_t>(nIndex) >= m_accounts.size()))
+	if ((0 > nIndex) || (static_cast<std::size_t>(nIndex) >= m_users.size()))
 	{
 		return;
 	}
-	QString strAccount = QString::fromStdString(m_accounts[static_cast<std::size_t>(nIndex)].m_strAccount);
-	if (QMessageBox::Yes != QMessageBox::question(this, "删除账号", QString("确定删除已保存账号“%1”吗？").arg(strAccount), QMessageBox::Yes | QMessageBox::No, QMessageBox::No))
+	QString strUser = QString::fromStdString(m_users[static_cast<std::size_t>(nIndex)].m_strUser);
+	if (QMessageBox::Yes != QMessageBox::question(this, "删除账号", QString("确定删除已保存账号“%1”吗？").arg(strUser), QMessageBox::Yes | QMessageBox::No, QMessageBox::No))
 	{
 		return;
 	}
-	if (m_accountRepository.DeleteAccount(strAccount.toStdString()))
+	if (m_userRepository.DeleteUser(strUser.toStdString()))
 	{
-		LoadAccounts();
+		LoadUsers();
 	}
 }
 
@@ -299,5 +298,5 @@ void LoginWindow::ClearPendingCredentials()
 {
 	std::fill(m_strPendingPassword.begin(), m_strPendingPassword.end(), '\0');
 	m_strPendingPassword.clear();
-	m_strPendingAccount.clear();
+	m_strPendingUser.clear();
 }

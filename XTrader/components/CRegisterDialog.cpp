@@ -49,21 +49,21 @@ CRegisterDialog::~CRegisterDialog()
 	}
 }
 
-void CRegisterDialog::SetAccount(const QString& account)
+void CRegisterDialog::SetUser(const QString& user)
 {
-	m_ui.accountEdit->setText(account);
+	m_ui.userEdit->setText(user);
 }
 
-QString CRegisterDialog::Account() const
+QString CRegisterDialog::User() const
 {
-	return m_ui.accountEdit->text().trimmed();
+	return m_ui.userEdit->text().trimmed();
 }
 
 void CRegisterDialog::Register()
 {
-	QString account = Account();
+	QString user = User();
 	QString password = m_ui.passwordEdit->text();
-	if (account.isEmpty() || password.isEmpty())
+	if (user.isEmpty() || password.isEmpty())
 	{
 		QMessageBox::warning(this, "注册失败", "账号和密码不能为空。");
 		return;
@@ -84,7 +84,7 @@ void CRegisterDialog::Register()
 	m_ui.registerButton->setEnabled(false);
 	CAuthParam param;
 	param.m_operation = AuthOperation::Register;
-	param.m_strAccount = account.toStdString();
+	param.m_strUser = user.toStdString();
 	param.m_strPassword = password.toStdString();
 	param.m_host = std::move(*site);
 	m_registrationPending = CLoginService::InstanceRef().Authenticate(param);
