@@ -25,7 +25,7 @@ void CStrategyEditDialog::InitializeUI()
 {
 	m_accounts = new QComboBox(this);
 	for (const auto& account :
-		CTradeAccountService::InstanceRef().GetAccounts())
+		 CTradeAccountService::InstanceRef().GetAccounts())
 	{
 		m_accounts->addItem(
 			QString::fromStdString(account.name()),
@@ -58,17 +58,17 @@ void CStrategyEditDialog::SetStrategy(const request::StrategyInfo& strategy)
 {
 	m_strategyId = strategy.strategy_id();
 	_TyAccountIndex account = AccountIndex(strategy);
-	int accountIndex =
+	int selectedIndex =
 		m_accounts->findData(QString::fromStdString(EncodeAccount(account)));
-	if ((0 > accountIndex) && CTradeAccountService::InstanceRef().IsSupported())
+	if ((0 > selectedIndex) && CTradeAccountService::InstanceRef().IsSupported())
 	{
 		m_accounts->addItem("账户 #" + QString::fromStdString(std::get<2>(account)),
-			QString::fromStdString(EncodeAccount(account)));
-		accountIndex = m_accounts->count() - 1;
+							QString::fromStdString(EncodeAccount(account)));
+		selectedIndex = m_accounts->count() - 1;
 	}
-	if (0 <= accountIndex)
+	if (0 <= selectedIndex)
 	{
-		m_accounts->setCurrentIndex(accountIndex);
+		m_accounts->setCurrentIndex(selectedIndex);
 	}
 	ui->nameEdit->setText(QString::fromStdString(strategy.strategy_name()));
 	ui->typeCombo->setCurrentText(
@@ -110,7 +110,7 @@ request::StrategyInfo CStrategyEditDialog::GetStrategy() const
 	strategy.set_strategy_id(m_strategyId);
 	_TyAccountIndex account;
 	if (DecodeAccount(m_accounts->currentData().toString().toStdString(),
-			account))
+					  account))
 	{
 		SetAccountIdentity(account, strategy);
 	}

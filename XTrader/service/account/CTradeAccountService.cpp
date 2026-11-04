@@ -92,7 +92,7 @@ std::uint64_t CTradeAccountService::GetGeneration() const
 	return m_generation;
 }
 std::uint64_t CTradeAccountService::Send(
-	_TyRequest type, const _TyAccountIndex& accountIndex,
+	_TyRequest type, const _TyAccountIndex& account,
 	const std::unordered_map<std::string, std::string>& extra)
 {
 	Initialize();
@@ -101,7 +101,7 @@ std::uint64_t CTradeAccountService::Send(
 		return 0;
 	}
 	if ((_TyRequest::TRADE_ACCOUNT_LIST_QUERY == type) &&
-		((IsAccountValid(accountIndex)) || !extra.empty()))
+		((IsAccountValid(account)) || !extra.empty()))
 	{
 		return 0;
 	}
@@ -119,13 +119,13 @@ std::uint64_t CTradeAccountService::Send(
 		return 0;
 	}
 	if (_TyRequest::TRADE_FUNDS_QUERY == type &&
-		(!IsAccountValid(accountIndex) || extra.contains("account_ids")))
+		(!IsAccountValid(account) || extra.contains("account_ids")))
 	{
 		return 0;
 	}
-	if (IsAccountValid(accountIndex))
+	if (IsAccountValid(account))
 	{
-		WriteAccountIdentity(accountIndex, req);
+		WriteAccountIdentity(account, req);
 	}
 	for (const auto& item : extra)
 	{
@@ -140,14 +140,14 @@ std::uint64_t CTradeAccountService::Send(
 		for (const auto& item : m_pending)
 		{
 			if ((type == item.second.m_type) &&
-				(accountIndex == item.second.m_accountIndex))
+				(account == item.second.m_accountIndex))
 			{
 				return 0;
 			}
 		}
-		m_pending.emplace(req.GetId(), CPending{ accountIndex, type,
-										   std::chrono::steady_clock::now() +
-											   std::chrono::seconds(_TyRequest::TRADE_ACCOUNT_LOGIN == type ? 75 : 20) });
+		m_pending.emplace(req.GetId(), CPending{ account, type,
+												 std::chrono::steady_clock::now() +
+													 std::chrono::seconds(_TyRequest::TRADE_ACCOUNT_LOGIN == type ? 75 : 20) });
 	}
 	if (CSession::InstanceRef().SendRequest(req))
 	{

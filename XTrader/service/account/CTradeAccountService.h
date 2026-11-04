@@ -28,8 +28,8 @@ public:
 	_TyCallbackId Subscribe(_TyHandler&& handler);
 	void Unsubscribe(_TyCallbackId token);
 	std::uint64_t
-	Send(_TyRequest type, const _TyAccountIndex& accountIndex = {},
-		const std::unordered_map<std::string, std::string>& extra = {});
+	Send(_TyRequest type, const _TyAccountIndex& account = {},
+		 const std::unordered_map<std::string, std::string>& extra = {});
 	std::vector<request::TradeAccountRecord> GetAccounts() const;
 	bool IsSupported() const;
 	std::uint64_t GetGeneration() const;
