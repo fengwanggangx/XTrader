@@ -5,6 +5,9 @@
 #include <algorithm>
 #include <cctype>
 #include <utility>
+#include <charconv>
+#include <set>
+#include "../../request/MarketTypes.h"
 
 CStrategyService::CStrategyService() = default;
 
@@ -17,9 +20,11 @@ void CStrategyService::Initialize()
 		CSession::InstanceRef().RegisterResponseHandler(std::bind_front(&CStrategyService::OnRequestReply, this));
 		CSession::InstanceRef().RegisterStateHandler([this](SessionState state, const std::string&)
 		{
+			Invalidate(true);
 			if (SessionState::Ready == state)
 			{
 				QueryStrategies();
+				QueryRuntime();
 			}
 		});
 	});
@@ -73,21 +78,45 @@ void CStrategyService::RemoveRuntimeHandler(_TyCallbackId nToken)
 	m_runtimePump.Unsubscribe(nToken);
 }
 
+void CStrategyService::Invalidate(bool bResetPending)
+{
+	std::unique_lock<std::shared_mutex> lock(m_mtx_strategies);
+	++m_generation;
+	m_bCacheValid = false;
+	m_bRuntimeValid = false;
+	m_configError = "配置等待刷新";
+	m_runtimeError = "运行状态等待刷新";
+	m_bQueryDirty = !bResetPending && (0 != m_queryRequestId);
+	m_bRuntimeDirty = !bResetPending && (0 != m_runtimeRequestId);
+	if (bResetPending)
+	{
+		m_queryRequestId = 0;
+		m_runtimeRequestId = 0;
+	}
+}
+
 bool CStrategyService::QueryStrategies()
 {
 	Initialize();
 	CRequest req = request::QueryStrategies();
-	std::uint64_t expected = 0;
-	if (!m_queryRequestId.compare_exchange_strong(expected, req.GetId()))
 	{
-		return true;
+		std::unique_lock<std::shared_mutex> lock(m_mtx_strategies);
+		if (0 != m_queryRequestId)
+		{
+			return true;
+		}
+		m_queryRequestId = req.GetId();
+		m_bQueryDirty = false;
 	}
 	if (CSession::InstanceRef().SendRequest(req))
 	{
 		return true;
 	}
-	expected = req.GetId();
-	m_queryRequestId.compare_exchange_strong(expected, 0);
+	std::unique_lock<std::shared_mutex> lock(m_mtx_strategies);
+	if (req.GetId() == m_queryRequestId)
+	{
+		m_queryRequestId = 0;
+	}
 	return false;
 }
 
@@ -95,17 +124,68 @@ bool CStrategyService::QueryRuntime()
 {
 	Initialize();
 	CRequest req = request::QueryStrategyRuntime();
-	std::uint64_t expected = 0;
-	if (!m_runtimeRequestId.compare_exchange_strong(expected, req.GetId()))
 	{
-		return true;
+		std::unique_lock<std::shared_mutex> lock(m_mtx_strategies);
+		if (0 != m_runtimeRequestId)
+		{
+			return true;
+		}
+		m_runtimeRequestId = req.GetId();
+		m_bRuntimeDirty = false;
 	}
 	if (CSession::InstanceRef().SendRequest(req))
 	{
 		return true;
 	}
-	expected = req.GetId();
-	m_runtimeRequestId.compare_exchange_strong(expected, 0);
+	std::unique_lock<std::shared_mutex> lock(m_mtx_strategies);
+	if (req.GetId() == m_runtimeRequestId)
+	{
+		m_runtimeRequestId = 0;
+	}
+	return false;
+}
+
+bool CStrategyService::IsRuntimeValid() const
+{
+	std::shared_lock<std::shared_mutex> lock(m_mtx_strategies);
+	return m_bRuntimeValid;
+}
+
+std::uint64_t CStrategyService::GetGeneration() const
+{
+	std::shared_lock<std::shared_mutex> lock(m_mtx_strategies);
+	return m_generation;
+}
+
+std::uint64_t CStrategyService::GetSnapshot(_TyStrategyList& strategies, _TyRuntimeMap& runtimes, std::string& configError, std::string& runtimeError) const
+{
+	std::shared_lock<std::shared_mutex> lock(m_mtx_strategies);
+	strategies = m_strategies;
+	runtimes = m_runtimes;
+	configError = m_configError;
+	runtimeError = m_runtimeError;
+	return m_generation;
+}
+
+bool CStrategyService::CanModifyStrategy(std::uint64_t id) const
+{
+	std::shared_lock<std::shared_mutex> lock(m_mtx_strategies);
+	if (!m_bCacheValid || !m_bRuntimeValid)
+	{
+		return false;
+	}
+	for (const auto& strategy : m_strategies)
+	{
+		if (id == strategy.strategy_id())
+		{
+			const auto mIter = m_runtimes.find(id);
+			if (m_runtimes.end() == mIter)
+			{
+				return !strategy.enabled();
+			}
+			return (0 == mIter->second.m_activeOrders) && ((1 == mIter->second.m_state) || (7 == mIter->second.m_state));
+		}
+	}
 	return false;
 }
 
@@ -124,7 +204,7 @@ std::uint64_t CStrategyService::AddStrategy(const request::StrategyInfo& strateg
 std::uint64_t CStrategyService::ModifyStrategy(const request::StrategyInfo& strategy)
 {
 	std::string error;
-	if ((0 == strategy.strategy_id()) || !ValidateStrategy(strategy, error))
+	if ((0 == strategy.strategy_id()) || !CanModifyStrategy(strategy.strategy_id()) || !ValidateStrategy(strategy, error))
 	{
 		return 0;
 	}
@@ -209,6 +289,55 @@ bool CStrategyService::ValidateStrategy(const request::StrategyInfo& strategy, s
 			return false;
 		}
 	}
+	if (!IsAccountValid(AccountIndex(strategy)) || ("moving_average" != strategy.strategy_type()))
+	{
+		error = "请选择有效交易账户及支持的策略类型 moving_average";
+		return false;
+	}
+	if (1000000 < strategy.event_queue_limit())
+	{
+		error = "事件队列上限不能超过 1000000";
+		return false;
+	}
+	std::size_t shortWindow = 5;
+	std::size_t longWindow = 20;
+	for (const auto& [key, value] : strategy.parameters())
+	{
+		std::size_t parsed = 0;
+		std::from_chars_result result = std::from_chars(value.data(), value.data() + value.size(), parsed);
+		if ((("short_window" != key) && ("long_window" != key)) || (std::errc() != result.ec) || (value.data() + value.size() != result.ptr) || (0 == parsed))
+		{
+			error = "参数 " + key + " 无效：仅支持 short_window、long_window，值必须为正整数";
+			return false;
+		}
+		("short_window" == key ? shortWindow : longWindow) = parsed;
+	}
+	if (shortWindow >= longWindow)
+	{
+		error = "short_window 必须小于 long_window";
+		return false;
+	}
+	std::set<std::tuple<std::string, std::string, std::string>> subscriptions;
+	bool hasQuote = false;
+	for (const auto& subscription : strategy.subscriptions())
+	{
+		if ((Exchange::unknown == ParseMarket(subscription.exchange())) || (("quote" != subscription.channel()) && ("depth" != subscription.channel())))
+		{
+			error = "订阅交易所无效，通道仅支持 quote、depth";
+			return false;
+		}
+		if (!subscriptions.emplace(subscription.security(), subscription.exchange(), subscription.channel()).second)
+		{
+			error = "订阅标的重复";
+			return false;
+		}
+		hasQuote = hasQuote || ("quote" == subscription.channel());
+	}
+	if (!hasQuote)
+	{
+		error = "均线策略至少需要一个 quote 订阅";
+		return false;
+	}
 	return true;
 }
 
@@ -220,10 +349,18 @@ bool CStrategyService::OnRequestReply(const CRequest& response)
 	const _TyReqData& message = response.GetData();
 	if (_TyRequest::STRATEGY_QUERY == type)
 	{
-		std::uint64_t expected = response.GetId();
-		if ((0 == expected) || !m_queryRequestId.compare_exchange_strong(expected, 0))
+		std::unique_lock<std::shared_mutex> cacheLock(m_mtx_strategies);
+		if ((0 == response.GetId()) || (response.GetId() != m_queryRequestId))
 		{
 			return false;
+		}
+		m_queryRequestId = 0;
+		if (m_bQueryDirty)
+		{
+			m_bQueryDirty = false;
+			cacheLock.unlock();
+			QueryStrategies();
+			return true;
 		}
 		_TyStrategyList strategies;
 		if (strError.empty() && !message.has_strategy_list())
@@ -240,19 +377,19 @@ bool CStrategyService::OnRequestReply(const CRequest& response)
 		}
 		if (strError.empty())
 		{
-			std::unique_lock<std::shared_mutex> lock(m_mtx_strategies);
 			m_strategies = strategies;
 			m_bCacheValid = true;
 		}
 		else
 		{
-			std::unique_lock<std::shared_mutex> lock(m_mtx_strategies);
 			m_bCacheValid = false;
 		}
 		if (!strError.empty())
 		{
-			strategies = GetStrategies();
+			strategies = m_strategies;
 		}
+		m_configError = strError;
+		cacheLock.unlock();
 		_TyQueryHandler handler;
 		{
 			std::lock_guard<std::mutex> lock(m_mtx_handlers);
@@ -268,10 +405,18 @@ bool CStrategyService::OnRequestReply(const CRequest& response)
 
 	if (_TyRequest::STRATEGY_RUNTIME_QUERY == type)
 	{
-		std::uint64_t expected = response.GetId();
-		if ((0 == expected) || !m_runtimeRequestId.compare_exchange_strong(expected, 0))
+		std::unique_lock<std::shared_mutex> cacheLock(m_mtx_strategies);
+		if ((0 == response.GetId()) || (response.GetId() != m_runtimeRequestId))
 		{
 			return false;
+		}
+		m_runtimeRequestId = 0;
+		if (m_bRuntimeDirty)
+		{
+			m_bRuntimeDirty = false;
+			cacheLock.unlock();
+			QueryRuntime();
+			return true;
 		}
 		_TyRuntimeMap runtimes;
 		if (strError.empty() && (!message.has_strategy_runtime_list() || (10000 < message.strategy_runtime_list().runtimes_size())))
@@ -300,6 +445,13 @@ bool CStrategyService::OnRequestReply(const CRequest& response)
 				strError = "运行快照含重复策略";
 			}
 		}
+		m_bRuntimeValid = strError.empty();
+		m_runtimeError = strError;
+		if (m_bRuntimeValid)
+		{
+			m_runtimes = runtimes;
+		}
+		cacheLock.unlock();
 		m_runtimePump.Notify({ std::move(runtimes), std::move(strError) });
 		return true;
 	}
@@ -313,12 +465,9 @@ bool CStrategyService::OnRequestReply(const CRequest& response)
 	{
 		strategy.CopyFrom(message.strategy());
 	}
-	if (strError.empty() && ((_TyRequest::STRATEGY_ADD == type) || (_TyRequest::STRATEGY_MODIFY == type) || (_TyRequest::STRATEGY_DELETE == type)))
+	if (strError.empty())
 	{
-		// Mutation acknowledgements may omit the complete configuration or deleted ID.
-		// Keep the last list, but require a fresh query before treating it as current.
-		std::unique_lock<std::shared_mutex> lock(m_mtx_strategies);
-		m_bCacheValid = false;
+		Invalidate();
 	}
 	_TyOperationHandler handler;
 	{
@@ -332,10 +481,7 @@ bool CStrategyService::OnRequestReply(const CRequest& response)
 	m_operationPump.Notify({ response.GetId(), type, strError.empty(), strError });
 	if (strError.empty())
 	{
-		if ((_TyRequest::STRATEGY_ADD == type) || (_TyRequest::STRATEGY_MODIFY == type) || (_TyRequest::STRATEGY_DELETE == type))
-		{
-			QueryStrategies();
-		}
+		QueryStrategies();
 		QueryRuntime();
 	}
 	return true;

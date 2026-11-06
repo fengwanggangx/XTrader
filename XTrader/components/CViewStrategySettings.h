@@ -22,16 +22,15 @@ class QTableWidget;
 class CViewStrategySettings final : public QWidget
 {
 	Q_OBJECT
-	public:
+public:
 	explicit CViewStrategySettings(QWidget* pParent = nullptr);
 	~CViewStrategySettings() override;
 
-	private:
+private:
 	std::unique_ptr<Ui::CViewStrategySettingsClass> m_ui;
 	void RefreshFilter();
 	void RefreshDetails();
-	void RefreshStrategies(const CStrategyService::_TyStrategyList& strategies, const std::string& strError);
-	void RefreshRuntime(const CStrategyService::_TyRuntimeMap& runtimes, const std::string& strError);
+	void RefreshSnapshot();
 	void RefreshRows();
 	void HandleOperation(const CStrategyService::COperationResult& result);
 	void EditStrategy(bool bNew);
@@ -50,6 +49,7 @@ class CViewStrategySettings final : public QWidget
 	bool m_bWasConnected{ false };
 	int m_refreshTicks{ 0 };
 	std::uint64_t m_selectedStrategyId{ 0 };
+	std::uint64_t m_snapshotGeneration{ 0 };
 	QTableWidget* m_pInstances{ nullptr };
 	QLabel* m_pDetails{ nullptr };
 	QLineEdit* m_pSearch{ nullptr };

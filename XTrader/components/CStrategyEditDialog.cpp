@@ -1,7 +1,10 @@
-﻿#include "CStrategyEditDialog.h"
+#include "CStrategyEditDialog.h"
 #include "../service/account/CTradeAccountService.h"
 #include <QComboBox>
 #include <QFormLayout>
+#include <QPointer>
+#include <QSet>
+#include "../service/strategy/CStrategyService.h"
 
 #include "ui_CStrategyEditDialog.h"
 
@@ -10,97 +13,95 @@
 #include <QTableWidgetItem>
 
 CStrategyEditDialog::CStrategyEditDialog(QWidget* pParent)
-	: QDialog(pParent), ui(new Ui::CStrategyEditDialogClass())
+	: QDialog(pParent), m_ui(std::make_unique<Ui::CStrategyEditDialogClass>())
 {
-	ui->setupUi(this);
+	m_ui->setupUi(this);
 	InitializeUI();
 }
 
 CStrategyEditDialog::~CStrategyEditDialog()
 {
-	delete ui;
+	CTradeAccountService::InstanceRef().Unsubscribe(m_accountToken);
 }
 
 void CStrategyEditDialog::InitializeUI()
 {
 	m_accounts = new QComboBox(this);
-	for (const auto& account :
-		 CTradeAccountService::InstanceRef().GetAccounts())
+	RefreshAccounts();
+	QPointer<CStrategyEditDialog> safeThis(this);
+	m_accountToken = CTradeAccountService::InstanceRef().Subscribe([safeThis](const CTradeAccountService::CResult&)
 	{
-		m_accounts->addItem(
-			QString::fromStdString(account.name()),
-			QString::fromStdString(EncodeAccount(AccountIndex(account))));
-	}
-	if (0 == m_accounts->count())
-	{
-		m_accounts->addItem(CTradeAccountService::InstanceRef().IsSupported()
-								? "请先加载或新增交易账户"
-								: "默认账户（旧版 XEngine）",
-			QVariant::fromValue<qulonglong>(0));
-	}
-	ui->basicLayout->addRow("交易账户", m_accounts);
-	ui->parameterTable->horizontalHeader()->setStretchLastSection(true);
-	ui->subscriptionTable->horizontalHeader()->setStretchLastSection(true);
-	connect(ui->addParameterButton, &QPushButton::clicked, this,
+		if (!safeThis.isNull())
+		{
+			QMetaObject::invokeMethod(safeThis.data(), [safeThis]()
+			{
+				if (!safeThis.isNull())
+				{
+					safeThis->RefreshAccounts();
+				}
+			}, Qt::QueuedConnection);
+		}
+	});
+	m_ui->typeCombo->setEditable(false);
+	m_ui->queueLimitSpin->setMinimum(1);
+	m_ui->parameterTable->setRowCount(2);
+	m_ui->parameterTable->setItem(0, 0, new QTableWidgetItem("short_window"));
+	m_ui->parameterTable->setItem(0, 1, new QTableWidgetItem("5"));
+	m_ui->parameterTable->setItem(1, 0, new QTableWidgetItem("long_window"));
+	m_ui->parameterTable->setItem(1, 1, new QTableWidgetItem("20"));
+	m_ui->basicLayout->addRow("交易账户", m_accounts);
+	m_ui->parameterTable->horizontalHeader()->setStretchLastSection(true);
+	m_ui->subscriptionTable->horizontalHeader()->setStretchLastSection(true);
+	connect(m_ui->addParameterButton, &QPushButton::clicked, this,
 		&CStrategyEditDialog::OnAddParameter);
-	connect(ui->removeParameterButton, &QPushButton::clicked, this,
+	connect(m_ui->removeParameterButton, &QPushButton::clicked, this,
 		&CStrategyEditDialog::OnRemoveParameter);
-	connect(ui->addSubscriptionButton, &QPushButton::clicked, this,
+	connect(m_ui->addSubscriptionButton, &QPushButton::clicked, this,
 		&CStrategyEditDialog::OnAddSubscription);
-	connect(ui->removeSubscriptionButton, &QPushButton::clicked, this,
+	connect(m_ui->removeSubscriptionButton, &QPushButton::clicked, this,
 		&CStrategyEditDialog::OnRemoveSubscription);
-	connect(ui->buttonBox, &QDialogButtonBox::accepted, this,
+	connect(m_ui->buttonBox, &QDialogButtonBox::accepted, this,
 		&CStrategyEditDialog::OnAccept);
-	connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
+	connect(m_ui->buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
 }
 
 void CStrategyEditDialog::SetStrategy(const request::StrategyInfo& strategy)
 {
 	m_strategyId = strategy.strategy_id();
-	_TyAccountIndex account = AccountIndex(strategy);
-	int selectedIndex =
-		m_accounts->findData(QString::fromStdString(EncodeAccount(account)));
-	if ((0 > selectedIndex) && CTradeAccountService::InstanceRef().IsSupported())
+	m_originalAccount = AccountIndex(strategy);
+	m_accounts->setCurrentIndex(-1);
+	RefreshAccounts();
+	m_accounts->setCurrentIndex(m_accounts->findData(QString::fromStdString(EncodeAccount(m_originalAccount))));
+	m_ui->nameEdit->setText(QString::fromStdString(strategy.strategy_name()));
+	if (0 > m_ui->typeCombo->findText(QString::fromStdString(strategy.strategy_type())))
 	{
-		m_accounts->addItem("账户 #" + QString::fromStdString(std::get<2>(account)),
-							QString::fromStdString(EncodeAccount(account)));
-		selectedIndex = m_accounts->count() - 1;
+		m_ui->typeCombo->addItem(QString::fromStdString(strategy.strategy_type()));
 	}
-	if (0 <= selectedIndex)
-	{
-		m_accounts->setCurrentIndex(selectedIndex);
-	}
-	ui->nameEdit->setText(QString::fromStdString(strategy.strategy_name()));
-	ui->typeCombo->setCurrentText(
+	m_ui->typeCombo->setCurrentText(
 		QString::fromStdString(strategy.strategy_type()));
-	ui->queueLimitSpin->setValue(static_cast<int>(strategy.event_queue_limit()));
-	ui->enabledCheck->setChecked(strategy.enabled());
-	ui->autoStartCheck->setChecked(strategy.auto_start());
-	ui->parameterTable->setRowCount(0);
+	m_ui->queueLimitSpin->setValue(static_cast<int>(0 == strategy.event_queue_limit() ? 4096 : strategy.event_queue_limit()));
+	m_ui->enabledCheck->setChecked(strategy.enabled());
+	m_ui->autoStartCheck->setChecked(strategy.auto_start());
+	m_ui->parameterTable->setRowCount(0);
 	for (const auto& [strKey, strValue] : strategy.parameters())
 	{
-		int row = ui->parameterTable->rowCount();
-		ui->parameterTable->insertRow(row);
-		ui->parameterTable->setItem(
+		int row = m_ui->parameterTable->rowCount();
+		m_ui->parameterTable->insertRow(row);
+		m_ui->parameterTable->setItem(
 			row, 0, new QTableWidgetItem(QString::fromStdString(strKey)));
-		ui->parameterTable->setItem(
+		m_ui->parameterTable->setItem(
 			row, 1, new QTableWidgetItem(QString::fromStdString(strValue)));
 	}
-	ui->subscriptionTable->setRowCount(0);
+	m_ui->subscriptionTable->setRowCount(0);
 	for (const request::StrategySubscription& subscription :
 		strategy.subscriptions())
 	{
-		int row = ui->subscriptionTable->rowCount();
-		ui->subscriptionTable->insertRow(row);
-		ui->subscriptionTable->setItem(
+		int row = m_ui->subscriptionTable->rowCount();
+		m_ui->subscriptionTable->insertRow(row);
+		m_ui->subscriptionTable->setItem(
 			row, 0,
 			new QTableWidgetItem(QString::fromStdString(subscription.security())));
-		ui->subscriptionTable->setItem(
-			row, 1,
-			new QTableWidgetItem(QString::fromStdString(subscription.exchange())));
-		ui->subscriptionTable->setItem(
-			row, 2,
-			new QTableWidgetItem(QString::fromStdString(subscription.channel())));
+		SetSubscriptionChoices(row, QString::fromStdString(subscription.exchange()), QString::fromStdString(subscription.channel()));
 	}
 }
 
@@ -110,21 +111,21 @@ request::StrategyInfo CStrategyEditDialog::GetStrategy() const
 	strategy.set_strategy_id(m_strategyId);
 	_TyAccountIndex account;
 	if (DecodeAccount(m_accounts->currentData().toString().toStdString(),
-					  account))
+			account))
 	{
 		SetAccountIdentity(account, strategy);
 	}
-	strategy.set_strategy_name(ui->nameEdit->text().trimmed().toStdString());
+	strategy.set_strategy_name(m_ui->nameEdit->text().trimmed().toStdString());
 	strategy.set_strategy_type(
-		ui->typeCombo->currentText().trimmed().toStdString());
+		m_ui->typeCombo->currentText().trimmed().toStdString());
 	strategy.set_event_queue_limit(
-		static_cast<std::uint32_t>(ui->queueLimitSpin->value()));
-	strategy.set_enabled(ui->enabledCheck->isChecked());
-	strategy.set_auto_start(ui->autoStartCheck->isChecked());
-	for (int row = 0; row < ui->parameterTable->rowCount(); ++row)
+		static_cast<std::uint32_t>(m_ui->queueLimitSpin->value()));
+	strategy.set_enabled(m_ui->enabledCheck->isChecked());
+	strategy.set_auto_start(m_ui->autoStartCheck->isChecked());
+	for (int row = 0; row < m_ui->parameterTable->rowCount(); ++row)
 	{
-		QTableWidgetItem* pKey = ui->parameterTable->item(row, 0);
-		QTableWidgetItem* pValue = ui->parameterTable->item(row, 1);
+		QTableWidgetItem* pKey = m_ui->parameterTable->item(row, 0);
+		QTableWidgetItem* pValue = m_ui->parameterTable->item(row, 1);
 		if ((nullptr != pKey) && !pKey->text().trimmed().isEmpty())
 		{
 			(*strategy.mutable_parameters())[pKey->text().trimmed().toStdString()] =
@@ -132,11 +133,11 @@ request::StrategyInfo CStrategyEditDialog::GetStrategy() const
 								  : pValue->text().trimmed().toStdString();
 		}
 	}
-	for (int row = 0; row < ui->subscriptionTable->rowCount(); ++row)
+	for (int row = 0; row < m_ui->subscriptionTable->rowCount(); ++row)
 	{
-		QTableWidgetItem* pSecurity = ui->subscriptionTable->item(row, 0);
-		QTableWidgetItem* pExchange = ui->subscriptionTable->item(row, 1);
-		QTableWidgetItem* pChannel = ui->subscriptionTable->item(row, 2);
+		QTableWidgetItem* pSecurity = m_ui->subscriptionTable->item(row, 0);
+		QComboBox* pExchange = qobject_cast<QComboBox*>(m_ui->subscriptionTable->cellWidget(row, 1));
+		QComboBox* pChannel = qobject_cast<QComboBox*>(m_ui->subscriptionTable->cellWidget(row, 2));
 		if ((nullptr == pSecurity) || pSecurity->text().trimmed().isEmpty())
 		{
 			continue;
@@ -145,52 +146,80 @@ request::StrategyInfo CStrategyEditDialog::GetStrategy() const
 		pSubscription->set_security(pSecurity->text().trimmed().toStdString());
 		pSubscription->set_exchange(
 			nullptr == pExchange ? std::string()
-								 : pExchange->text().trimmed().toStdString());
+								 : pExchange->currentText().trimmed().toStdString());
 		pSubscription->set_channel(nullptr == pChannel
 									   ? std::string()
-									   : pChannel->text().trimmed().toStdString());
+									   : pChannel->currentText().trimmed().toStdString());
 	}
 	return strategy;
 }
 
 void CStrategyEditDialog::OnAddParameter()
 {
-	ui->parameterTable->insertRow(ui->parameterTable->rowCount());
+	m_ui->parameterTable->insertRow(m_ui->parameterTable->rowCount());
 }
 
 void CStrategyEditDialog::OnRemoveParameter()
 {
-	ui->parameterTable->removeRow(ui->parameterTable->currentRow());
+	m_ui->parameterTable->removeRow(m_ui->parameterTable->currentRow());
 }
 
 void CStrategyEditDialog::OnAddSubscription()
 {
-	int row = ui->subscriptionTable->rowCount();
-	ui->subscriptionTable->insertRow(row);
-	ui->subscriptionTable->setItem(row, 1, new QTableWidgetItem("sse"));
-	ui->subscriptionTable->setItem(row, 2, new QTableWidgetItem("quote"));
+	int row = m_ui->subscriptionTable->rowCount();
+	m_ui->subscriptionTable->insertRow(row);
+	SetSubscriptionChoices(row, "SSE", "quote");
 }
 
 void CStrategyEditDialog::OnRemoveSubscription()
 {
-	ui->subscriptionTable->removeRow(ui->subscriptionTable->currentRow());
+	m_ui->subscriptionTable->removeRow(m_ui->subscriptionTable->currentRow());
 }
 
 void CStrategyEditDialog::OnAccept()
 {
-	request::StrategyInfo strategy = GetStrategy();
-	if (CTradeAccountService::InstanceRef().IsSupported() &&
-		(!IsAccountValid(AccountIndex(strategy))))
+	QSet<QString> keys;
+	for (int row = 0; row < m_ui->parameterTable->rowCount(); ++row)
 	{
-		QMessageBox::warning(this, "缺少交易账户",
-			"请先在交易账户页加载或新增账户");
+		QTableWidgetItem* key = m_ui->parameterTable->item(row, 0);
+		QTableWidgetItem* value = m_ui->parameterTable->item(row, 1);
+		if ((nullptr == key) || key->text().trimmed().isEmpty() || (nullptr == value) || value->text().trimmed().isEmpty() || keys.contains(key->text().trimmed()))
+		{
+			m_ui->parameterTable->setCurrentCell(row, 0);
+			QMessageBox::warning(this, "参数校验", QString("参数第 %1 行：名称和值不能为空，名称不能重复").arg(row + 1));
+			return;
+		}
+		keys.insert(key->text().trimmed());
+	}
+	for (int row = 0; row < m_ui->subscriptionTable->rowCount(); ++row)
+	{
+		QTableWidgetItem* security = m_ui->subscriptionTable->item(row, 0);
+		if ((nullptr == security) || security->text().trimmed().isEmpty())
+		{
+			m_ui->subscriptionTable->setCurrentCell(row, 0);
+			QMessageBox::warning(this, "参数校验", QString("订阅第 %1 行：证券代码不能为空").arg(row + 1));
+			return;
+		}
+	}
+	request::StrategyInfo strategy = GetStrategy();
+	bool accountAvailable = false;
+	for (const auto& account : CTradeAccountService::InstanceRef().GetAccounts())
+	{
+		if (AccountIndex(account) == AccountIndex(strategy))
+		{
+			accountAvailable = (request::ACCOUNT_CONNECTED == account.state()) || ((0 != m_strategyId) && (m_originalAccount == AccountIndex(strategy)));
+			break;
+		}
+	}
+	if (!accountAvailable)
+	{
+		QMessageBox::warning(this, "交易账户不可用", "请在交易账户页登录账户；修改时可保留已有的离线账户绑定");
 		return;
 	}
-	if (strategy.strategy_name().empty() || strategy.strategy_type().empty() ||
-		(0 == strategy.subscriptions_size()))
+	std::string error;
+	if (!CStrategyService::ValidateStrategy(strategy, error))
 	{
-		QMessageBox::warning(this, "参数校验",
-			"请填写策略名称、策略类型，并至少添加一个订阅标的。");
+		QMessageBox::warning(this, "参数校验", QString::fromStdString(error));
 		return;
 	}
 	accept();
@@ -200,4 +229,77 @@ void CStrategyEditDialog::SetAccountLocked(bool locked)
 {
 	m_accounts->setEnabled(!locked);
 	m_accounts->setToolTip(locked ? "运行期间不能更换交易账户" : "");
+}
+
+void CStrategyEditDialog::RefreshAccounts()
+{
+	QString selected = m_accounts->currentData().toString();
+	if (selected.isEmpty() && IsAccountValid(m_originalAccount))
+	{
+		selected = QString::fromStdString(EncodeAccount(m_originalAccount));
+	}
+	m_accounts->clear();
+	for (const auto& account : CTradeAccountService::InstanceRef().GetAccounts())
+	{
+		QString state;
+		switch (account.state())
+		{
+		case request::ACCOUNT_CONNECTED:
+			state = "已连接";
+			break;
+		case request::ACCOUNT_CONNECTING:
+			state = "连接中";
+			break;
+		case request::ACCOUNT_SYNCHRONIZING:
+			state = "同步中";
+			break;
+		case request::ACCOUNT_RECONNECTING:
+			state = "重连中";
+			break;
+		case request::ACCOUNT_ERROR:
+			state = "连接失败";
+			break;
+		default:
+			state = "未连接";
+			break;
+		}
+		QString label = QString("%1 (#%2) / %3 / %4（%5） [%6]").arg(QString::fromStdString(account.broker_name())).arg(account.broker_id()).arg(QString::fromStdString(account.site()), QString::fromStdString(account.account()), QString::fromStdString(account.name()), state);
+		m_accounts->addItem(label, QString::fromStdString(EncodeAccount(AccountIndex(account))));
+	}
+	int index = m_accounts->findData(selected);
+	if (!selected.isEmpty() && (0 > index))
+	{
+		_TyAccountIndex identity;
+		DecodeAccount(selected.toStdString(), identity);
+		m_accounts->addItem(QString("账户 %1 / %2 / %3 [不可用]").arg(std::get<0>(identity)).arg(QString::fromStdString(std::get<1>(identity)), QString::fromStdString(std::get<2>(identity))), selected);
+		index = m_accounts->count() - 1;
+	}
+	if (0 == m_accounts->count())
+	{
+		m_accounts->addItem("请先在交易账户页登录账户");
+	}
+	if (0 <= index)
+	{
+		m_accounts->setCurrentIndex(index);
+	}
+}
+
+void CStrategyEditDialog::SetSubscriptionChoices(int row, const QString& exchange, const QString& channel)
+{
+	QComboBox* exchanges = new QComboBox(m_ui->subscriptionTable);
+	exchanges->addItems({ "SSE", "SZSE", "BSE", "HKEX", "CFFEX", "SHFE", "DCE", "CZCE", "INE", "GFEX", "NASDAQ", "NYSE", "CRYPTO" });
+	if (0 > exchanges->findText(exchange))
+	{
+		exchanges->addItem(exchange);
+	}
+	exchanges->setCurrentText(exchange);
+	m_ui->subscriptionTable->setCellWidget(row, 1, exchanges);
+	QComboBox* channels = new QComboBox(m_ui->subscriptionTable);
+	channels->addItems({ "quote", "depth" });
+	if (0 > channels->findText(channel))
+	{
+		channels->addItem(channel);
+	}
+	channels->setCurrentText(channel);
+	m_ui->subscriptionTable->setCellWidget(row, 2, channels);
 }

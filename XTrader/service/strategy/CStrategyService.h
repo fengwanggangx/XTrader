@@ -6,7 +6,6 @@
 #include "../../basic/TMessagePump.h"
 
 #include <functional>
-#include <atomic>
 #include <cstdint>
 #include <mutex>
 #include <shared_mutex>
@@ -20,7 +19,7 @@ class CStrategyService final : public ISingleton<CStrategyService>
 {
 	DECLARE_SINGLE_DFAULT(CStrategyService)
 
-	public:
+public:
 	using _TyStrategyList = std::vector<request::StrategyInfo>;
 	using _TyQueryHandler = std::function<void(const _TyStrategyList&, const std::string&)>;
 	using _TyOperationHandler = std::function<void(_TyRequest, bool, const request::StrategyInfo&, const std::string&)>;
@@ -53,6 +52,11 @@ class CStrategyService final : public ISingleton<CStrategyService>
 	_TyCallbackId AddRuntimeHandler(_TyRuntimeHandler&& handler);
 	void RemoveRuntimeHandler(_TyCallbackId nToken);
 	bool QueryStrategies();
+	void Invalidate(bool bResetPending = false);
+	bool CanModifyStrategy(std::uint64_t id) const;
+	bool IsRuntimeValid() const;
+	std::uint64_t GetGeneration() const;
+	std::uint64_t GetSnapshot(_TyStrategyList& strategies, _TyRuntimeMap& runtimes, std::string& configError, std::string& runtimeError) const;
 	bool QueryRuntime();
 	std::uint64_t AddStrategy(const request::StrategyInfo& strategy);
 	std::uint64_t ModifyStrategy(const request::StrategyInfo& strategy);
@@ -63,10 +67,10 @@ class CStrategyService final : public ISingleton<CStrategyService>
 	bool IsCacheValid() const;
 	static bool ValidateStrategy(const request::StrategyInfo& strategy, std::string& error);
 
-	private:
-		bool OnRequestReply(const CRequest& response);
+private:
+	bool OnRequestReply(const CRequest& response);
 
-	private:
+private:
 	std::once_flag m_initializeFlag;
 	std::mutex m_mtx_handlers;
 	_TyQueryHandler m_queryHandler;
@@ -74,8 +78,15 @@ class CStrategyService final : public ISingleton<CStrategyService>
 	TMessagePump<COperationResult> m_operationPump;
 	TMessagePump<std::pair<_TyRuntimeMap, std::string>> m_runtimePump;
 	_TyOperationHandler m_operationHandler;
-	std::atomic<std::uint64_t> m_queryRequestId{ 0 };
-	std::atomic<std::uint64_t> m_runtimeRequestId{ 0 };
+	std::uint64_t m_queryRequestId{ 0 };
+	std::uint64_t m_runtimeRequestId{ 0 };
+	std::uint64_t m_generation{ 0 };
+	bool m_bQueryDirty{ false };
+	bool m_bRuntimeDirty{ false };
+	bool m_bRuntimeValid{ false };
+	_TyRuntimeMap m_runtimes;
+	std::string m_configError{ "配置等待刷新" };
+	std::string m_runtimeError{ "运行状态等待刷新" };
 	mutable std::shared_mutex m_mtx_strategies;
 	_TyStrategyList m_strategies;
 	bool m_bCacheValid{ false };
