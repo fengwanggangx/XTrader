@@ -174,6 +174,13 @@ int main(int argc, char** argv)
 	(*strategy.mutable_parameters())["short_window"] = "18446744073709551616";
 	Check(!CStrategyService::ValidateStrategy(strategy, error), "Overflow window accepted");
 	strategy.clear_parameters();
+	(*strategy.mutable_parameters())["long_window"] = "100001";
+	Check(!CStrategyService::ValidateStrategy(strategy, error),
+		"Unsupported indicator window accepted");
+	(*strategy.mutable_parameters())["long_window"] = "100000";
+	Check(CStrategyService::ValidateStrategy(strategy, error),
+		"Maximum indicator window rejected");
+	strategy.clear_parameters();
 	(*strategy.mutable_parameters())["typo"] = "5";
 	Check(!CStrategyService::ValidateStrategy(strategy, error), "Unknown parameter accepted");
 	strategy.clear_parameters();

@@ -305,9 +305,14 @@ bool CStrategyService::ValidateStrategy(const request::StrategyInfo& strategy, s
 	{
 		std::size_t parsed = 0;
 		std::from_chars_result result = std::from_chars(value.data(), value.data() + value.size(), parsed);
-		if ((("short_window" != key) && ("long_window" != key)) || (std::errc() != result.ec) || (value.data() + value.size() != result.ptr) || (0 == parsed))
+		if ((("short_window" != key) && ("long_window" != key)) ||
+			(std::errc() != result.ec) ||
+			(value.data() + value.size() != result.ptr) ||
+			(0 == parsed) || (100000 < parsed))
 		{
-			error = "参数 " + key + " 无效：仅支持 short_window、long_window，值必须为正整数";
+			error = "参数 " + key +
+					" 无效：仅支持 short_window、long_window，值必须为 "
+					"1～100000 的整数";
 			return false;
 		}
 		("short_window" == key ? shortWindow : longWindow) = parsed;
