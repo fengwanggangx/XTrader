@@ -12,9 +12,10 @@
 #include <QSettings>
 #include <QWindow>
 
-CTradeAccountLoginDialog::CTradeAccountLoginDialog(QWidget* pParent)
+CTradeAccountLoginDialog::CTradeAccountLoginDialog(CTraderServices& services, QWidget* pParent)
 	: QDialog(pParent), m_ui(std::make_unique<Ui::CTradeAccountLoginDialog>())
 {
+	m_pServices = &services;
 	setWindowFlags(Qt::Dialog | Qt::FramelessWindowHint |
 				   Qt::NoDropShadowWindowHint);
 	m_ui->setupUi(this);
@@ -81,25 +82,25 @@ CTradeAccountLoginDialog::CTradeAccountLoginDialog(QWidget* pParent)
 	connect(m_ui->passwordEdit, &QLineEdit::returnPressed, this,
 		&CTradeAccountLoginDialog::Login);
 	QPointer<CTradeAccountLoginDialog> self(this);
-	m_nToken = CTradeAccountService::InstanceRef().Subscribe(
+	m_nToken = m_pServices->m_account.Subscribe(
 		[self](const CTradeAccountService::CResult& result)
+	{
+		if (nullptr != self)
 		{
-			if (nullptr != self)
+			QMetaObject::invokeMethod(
+				self,
+				[self, result]()
 			{
-				QMetaObject::invokeMethod(
-					self,
-					[self, result]()
-					{
-						if (nullptr != self)
-						{
-							self->HandleResult(result);
-						}
-					},
-					Qt::QueuedConnection);
-			}
-		});
+				if (nullptr != self)
+				{
+					self->HandleResult(result);
+				}
+			},
+				Qt::QueuedConnection);
+		}
+	});
 	m_directoryId =
-		CTradeAccountService::InstanceRef().Send(_TyRequest::SUPPORTED_BROKER_QUERY);
+		m_pServices->m_account.Send(_TyRequest::SUPPORTED_BROKER_QUERY);
 	if (0 == m_directoryId)
 	{
 		ShowError("无法加载券商目录，请重新打开登录窗口");
@@ -109,7 +110,7 @@ CTradeAccountLoginDialog::CTradeAccountLoginDialog(QWidget* pParent)
 
 CTradeAccountLoginDialog::~CTradeAccountLoginDialog()
 {
-	CTradeAccountService::InstanceRef().Unsubscribe(m_nToken);
+	m_pServices->m_account.Unsubscribe(m_nToken);
 	m_ui->passwordEdit->clear();
 }
 
@@ -137,7 +138,7 @@ void CTradeAccountLoginDialog::Login()
 		ShowError("请选择券商、站点，并输入账户和密码");
 		return;
 	}
-	m_nRequestId = CTradeAccountService::InstanceRef().Send(
+	m_nRequestId = m_pServices->m_account.Send(
 		_TyRequest::TRADE_ACCOUNT_LOGIN, {},
 		{ { "broker_id", m_ui->brokerCombo->currentData().toString().toStdString() },
 			{ "site", m_ui->siteCombo->currentData().toString().toStdString() },

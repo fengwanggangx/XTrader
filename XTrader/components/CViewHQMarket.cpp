@@ -17,7 +17,19 @@
 
 CViewHQMarket::CViewHQMarket(QWidget* pParent) : QWidget(pParent), m_ui(std::make_unique<Ui::CViewHQMarketClass>())
 {
+}
+
+void CViewHQMarket::Initialize(CTraderServices& services)
+{
+	if (nullptr != m_pServices)
+	{
+		return;
+	}
+	m_pServices = &services;
 	m_ui->setupUi(this);
+	m_ui->watchlistPage->Initialize(services);
+	m_ui->asharePage->Initialize(services);
+	m_ui->constituentsPage->Initialize(services);
 	m_ui->marketTabs->tabBar()->setDrawBase(false);
 	m_ui->marketTabs->tabBar()->setExpanding(false);
 	m_ui->marketTabs->tabBar()->setUsesScrollButtons(true);
@@ -40,7 +52,7 @@ CViewHQMarket::CViewHQMarket(QWidget* pParent) : QWidget(pParent), m_ui(std::mak
 	m_ui->rankingTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 	m_ui->rankingTable->horizontalHeader()->setFixedHeight(24);
 
-	CHQMarketService& service = CHQMarketService::InstanceRef();
+	CHQMarketService& service = m_pServices->m_market;
 	service.Initialize();
 
 	RefreshQuotes(service.GetQuoteTableView());
@@ -66,7 +78,7 @@ CViewHQMarket::CViewHQMarket(QWidget* pParent) : QWidget(pParent), m_ui(std::mak
 	pQuoteTimer->start();
 	m_nSectorListToken = service.AddSectorListHandler(std::bind_front(&CViewHQMarket::OnSectorListUpdate, pInstance));
 	m_nSectorConstituentsToken = service.AddSectorConstituentsHandler(std::bind_front(&CViewHQMarket::OnSectorConstituentsUpdate, pInstance));
-	CSession::InstanceRef().RegisterStateHandler(std::bind_front(&CViewHQMarket::OnSessionStateChanged, pInstance));
+	m_pServices->m_login.RegisterStateHandler(std::bind_front(&CViewHQMarket::OnSessionStateChanged, pInstance));
 
 	connect(m_ui->marketTabs, &QTabWidget::currentChanged, this, &CViewHQMarket::OnTabChanged);
 	connect(m_ui->rankingTable, &QTableWidget::cellClicked, this, &CViewHQMarket::OnRankingCellClicked);
@@ -120,32 +132,34 @@ void CViewHQMarket::OnSessionStateChanged(QPointer<CViewHQMarket> pInstance, Ses
 
 CViewHQMarket::~CViewHQMarket()
 {
-	CHQMarketService::InstanceRef().RemoveQuoteTableHandler(m_nQuoteTableToken);
-	CHQMarketService::InstanceRef().RemoveSectorListHandler(m_nSectorListToken);
-	CHQMarketService::InstanceRef().RemoveSectorConstituentsHandler(m_nSectorConstituentsToken);
+	if (nullptr == m_pServices)
+	{
+		return;
+	}
+	m_pServices->m_market.RemoveQuoteTableHandler(m_nQuoteTableToken);
+	m_pServices->m_market.RemoveSectorListHandler(m_nSectorListToken);
+	m_pServices->m_market.RemoveSectorConstituentsHandler(m_nSectorConstituentsToken);
 }
 
 void CViewHQMarket::OnTabChanged(int idx)
 {
 	if (0 == idx)	//概览
 	{
-		static bool bRequested = false;
-		if (!bRequested)
+		if (!m_bIndicesRequested)
 		{
-			bRequested = true;
-			CHQMarketService::InstanceRef().SubscribeQuote(CSecurity("000001", Exchange::sse));
-			CHQMarketService::InstanceRef().SubscribeQuote(CSecurity("399001", Exchange::szse));
-			CHQMarketService::InstanceRef().SubscribeQuote(CSecurity("399006", Exchange::szse));
+			m_bIndicesRequested = true;
+			m_pServices->m_market.SubscribeQuote(CSecurity("000001", Exchange::sse));
+			m_pServices->m_market.SubscribeQuote(CSecurity("399001", Exchange::szse));
+			m_pServices->m_market.SubscribeQuote(CSecurity("399006", Exchange::szse));
 			RequestSectors();
 		}
 	}
 	else if ((1 == idx) || (3 == idx))	//自选股、A股
 	{
-		static bool bRequested = false;
-		if (!bRequested)
+		if (!m_bSecuritiesRequested)
 		{
-			bRequested = true;
-			CHQMarketService::InstanceRef().QuerySecurities();
+			m_bSecuritiesRequested = true;
+			m_pServices->m_market.QuerySecurities();
 		}
 	}
 	else
@@ -178,14 +192,14 @@ void CViewHQMarket::RequestSectors()
 	{
 		return;
 	}
-	if (!CSession::InstanceRef().IsAuthenticated())
+	if (!m_pServices->m_login.IsAuthenticated())
 	{
 		m_ui->sectorState->setText("等待行情服务连接");
 		return;
 	}
 	m_bOverviewRequested = true;
 	m_ui->sectorState->setText("正在加载行业板块…");
-	CHQMarketService::InstanceRef().QuerySectors(SectorType::industry);
+	m_pServices->m_market.QuerySectors(SectorType::industry);
 }
 
 void CViewHQMarket::RefreshSectors(const CSectorListEvent& ev)
@@ -254,7 +268,7 @@ void CViewHQMarket::SelectSector(const QString& strSectorCode)
 		}
 	}
 	m_ui->sectorState->setText("正在加载成分股…");
-	CHQMarketService::InstanceRef().QuerySectorConstituents(SectorType::industry, strSectorCode.toStdString());
+	m_pServices->m_market.QuerySectorConstituents(SectorType::industry, strSectorCode.toStdString());
 }
 
 void CViewHQMarket::RefreshConstituents(const CSectorConstituentsEvent& ev)

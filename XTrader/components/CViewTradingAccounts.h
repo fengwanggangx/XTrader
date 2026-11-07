@@ -1,4 +1,5 @@
 #pragma once
+#include "../system/CTraderServices.h"
 #include "../service/account/CTradeAccountService.h"
 #include <QWidget>
 #include <array>
@@ -17,7 +18,7 @@ class CViewTradingAccounts final : public QWidget
 	friend class CTradingAccountUiTests;
 
 public:
-	explicit CViewTradingAccounts(QWidget* parent = nullptr);
+	explicit CViewTradingAccounts(CTraderServices& services, QWidget* parent = nullptr);
 	~CViewTradingAccounts() override;
 	void SetStrategyNavigation(std::function<void(std::uint64_t)>&& handler);
 
@@ -48,4 +49,7 @@ private:
 	std::uint64_t m_snapshotId{ 0 };
 	_TyCallbackId m_accountToken{ 0 };
 	std::function<void(std::uint64_t)> m_navigate;
+
+private:
+	CTraderServices* m_pServices{ nullptr };
 };

@@ -12,16 +12,17 @@
 #include <QMessageBox>
 #include <QTableWidgetItem>
 
-CStrategyEditDialog::CStrategyEditDialog(QWidget* pParent)
+CStrategyEditDialog::CStrategyEditDialog(CTraderServices& services, QWidget* pParent)
 	: QDialog(pParent), m_ui(std::make_unique<Ui::CStrategyEditDialogClass>())
 {
+	m_pServices = &services;
 	m_ui->setupUi(this);
 	InitializeUI();
 }
 
 CStrategyEditDialog::~CStrategyEditDialog()
 {
-	CTradeAccountService::InstanceRef().Unsubscribe(m_accountToken);
+	m_pServices->m_account.Unsubscribe(m_accountToken);
 }
 
 void CStrategyEditDialog::InitializeUI()
@@ -29,7 +30,7 @@ void CStrategyEditDialog::InitializeUI()
 	m_accounts = new QComboBox(this);
 	RefreshAccounts();
 	QPointer<CStrategyEditDialog> safeThis(this);
-	m_accountToken = CTradeAccountService::InstanceRef().Subscribe([safeThis](const CTradeAccountService::CResult&)
+	m_accountToken = m_pServices->m_account.Subscribe([safeThis](const CTradeAccountService::CResult&)
 	{
 		if (!safeThis.isNull())
 		{
@@ -203,7 +204,7 @@ void CStrategyEditDialog::OnAccept()
 	}
 	request::StrategyInfo strategy = GetStrategy();
 	bool accountAvailable = false;
-	for (const auto& account : CTradeAccountService::InstanceRef().GetAccounts())
+	for (const auto& account : m_pServices->m_account.GetAccounts())
 	{
 		if (AccountIndex(account) == AccountIndex(strategy))
 		{
@@ -239,7 +240,7 @@ void CStrategyEditDialog::RefreshAccounts()
 		selected = QString::fromStdString(EncodeAccount(m_originalAccount));
 	}
 	m_accounts->clear();
-	for (const auto& account : CTradeAccountService::InstanceRef().GetAccounts())
+	for (const auto& account : m_pServices->m_account.GetAccounts())
 	{
 		QString state;
 		switch (account.state())

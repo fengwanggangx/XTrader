@@ -10,13 +10,14 @@
 #include <optional>
 #include <utility>
 
-CRegisterDialog::CRegisterDialog(QWidget* parent) : QDialog(parent)
+CRegisterDialog::CRegisterDialog(CTraderServices& services, QWidget* parent) : QDialog(parent)
 {
+	m_pServices = &services;
 	m_ui.setupUi(this);
 	UIStyle::Apply(*this, ":/styles/register.qss");
 	connect(m_ui.registerButton, &QPushButton::clicked, this, &CRegisterDialog::Register);
 	connect(m_ui.cancelButton, &QPushButton::clicked, this, &QDialog::reject);
-	m_callbackId = CLoginService::InstanceRef().Subscribe([this](const AuthEvent& event)
+	m_callbackId = m_pServices->m_login.Subscribe([this](const AuthEvent& event)
 	{
 		if (AuthOperation::Register != event.m_operation)
 		{
@@ -42,10 +43,10 @@ CRegisterDialog::CRegisterDialog(QWidget* parent) : QDialog(parent)
 
 CRegisterDialog::~CRegisterDialog()
 {
-	CLoginService::InstanceRef().Unsubscribe(m_callbackId);
+	m_pServices->m_login.Unsubscribe(m_callbackId);
 	if (m_registrationPending)
 	{
-		CLoginService::InstanceRef().Cancel();
+		m_pServices->m_login.Cancel();
 	}
 }
 
@@ -87,5 +88,5 @@ void CRegisterDialog::Register()
 	param.m_strUser = user.toStdString();
 	param.m_strPassword = password.toStdString();
 	param.m_host = std::move(*site);
-	m_registrationPending = CLoginService::InstanceRef().Authenticate(param);
+	m_registrationPending = m_pServices->m_login.Authenticate(param);
 }

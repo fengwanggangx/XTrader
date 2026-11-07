@@ -1,7 +1,6 @@
 #ifndef XTRADER_SERVER_CSESSION_H
 #define XTRADER_SERVER_CSESSION_H
 
-#include "../common/ISingleton.h"
 #include "../request/request.pb.h"
 #include "CLoginService.h"
 #include "../request/RequestCenter.h"
@@ -36,30 +35,34 @@ enum class SessionState
 	Stopping
 };
 
-class CSession final : public ISingleton<CSession>
+class CSession final
 {
 	friend class CReviewRegressionTests;
-	DECLARE_SINGLE_DFAULT(CSession)
 
-	public:
-	using AuthCallback = std::function<void(const AuthEvent&)>;
-	using StateCallback = std::function<void(SessionState, const std::string&)>;
-	using ErrorCallback = std::function<void(const std::string&)>;
+public:
+	CSession();
+	~CSession();
+	CSession(const CSession& arg) = delete;
+	CSession& operator=(const CSession& arg) = delete;
 
-	void Authenticate(const CAuthParam& param, AuthCallback&& cb);
+public:
+	using _TyAuthCallback = std::function<void(const AuthEvent&)>;
+	using _TyStateCallback = std::function<void(SessionState, const std::string&)>;
+	using _TyErrorCallback = std::function<void(const std::string&)>;
+
+	void Authenticate(const CAuthParam& param, _TyAuthCallback&& cb);
 	void CancelAuthentication();
 	void Stop();
 	bool SendRequest(const CRequest& request);
-	void SetStateCallback(StateCallback&& cb);
-	void RegisterStateHandler(StateCallback&& cb);
+	void SetStateCallback(_TyStateCallback&& cb);
+	void RegisterStateHandler(_TyStateCallback&& cb);
 	void SetResponseCallback(_TyRequestNotify&& cb);
-	void RegisterResponseHandler(_TyRequestNotify&& cb);
-	void SetErrorCallback(ErrorCallback&& cb);
+	void SetErrorCallback(_TyErrorCallback&& cb);
 	bool IsAuthenticated() const noexcept;
 	SessionState GetState() const noexcept;
 	std::optional<CLoginInfo> GetLoginInfo() const;
 
-	private:
+private:
 	struct PendingRequest
 	{
 		_TyRequest m_type{ _TyRequest::UNKNOWN };
@@ -69,7 +72,7 @@ class CSession final : public ISingleton<CSession>
 	struct AuthContext
 	{
 		CAuthParam m_param;
-		AuthCallback m_callback;
+		_TyAuthCallback m_callback;
 	};
 
 	struct AuthRequest
@@ -92,11 +95,11 @@ class CSession final : public ISingleton<CSession>
 	void NotifyResponse(const CRequest& response);
 	void NotifyError(const std::string& error);
 
-	private:
+private:
 	mutable std::mutex m_mtx_client;
 	std::unique_ptr<net::CTcpClient> m_client;
 
-	private:
+private:
 	std::atomic_bool m_stopping{ false };
 	std::atomic<SessionState> m_state{ SessionState::Disconnected };
 
@@ -114,10 +117,10 @@ class CSession final : public ISingleton<CSession>
 	std::mutex m_mtx_pending;
 	std::unordered_map<_TyRequestId, PendingRequest> m_reqs_sendout;
 	std::mutex m_mtx_callbacks;
-	StateCallback m_stateCallback;
-	std::vector<StateCallback> m_stateHandlers;
-	std::vector<_TyRequestNotify> m_responseCallbacks;
-	ErrorCallback m_errorCallback;
+	_TyStateCallback m_stateCallback;
+	std::vector<_TyStateCallback> m_stateHandlers;
+	_TyRequestNotify m_responseCallback;
+	_TyErrorCallback m_errorCallback;
 
 #if defined(_DEBUG)
 	int m_heartbeatSeconds{ 7200 };

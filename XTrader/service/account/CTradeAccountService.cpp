@@ -1,5 +1,5 @@
 #include "CTradeAccountService.h"
-#include "../../system/CSession.h"
+#include "../../system/CTraderCenter.h"
 #include <algorithm>
 CTradeAccountService::CTradeAccountService() = default;
 CTradeAccountService::~CTradeAccountService()
@@ -13,10 +13,13 @@ CTradeAccountService::~CTradeAccountService()
 }
 void CTradeAccountService::Initialize()
 {
+	if (nullptr == m_pTraderCenter)
+	{
+		return;
+	}
 	std::call_once(m_initializeFlag, [this]()
 	{
-		CSession::InstanceRef().RegisterResponseHandler(std::bind_front(&CTradeAccountService::OnResponse, this));
-		CSession::InstanceRef().RegisterStateHandler(
+		m_pTraderCenter->RegisterStateHandler(
 			[this](SessionState, const std::string&)
 		{
 			CResult result;
@@ -96,7 +99,7 @@ std::uint64_t CTradeAccountService::Send(
 	const std::unordered_map<std::string, std::string>& extra)
 {
 	Initialize();
-	if (!CSession::InstanceRef().IsAuthenticated())
+	if (!IsAuthenticated())
 	{
 		return 0;
 	}
@@ -149,7 +152,7 @@ std::uint64_t CTradeAccountService::Send(
 												 std::chrono::steady_clock::now() +
 													 std::chrono::seconds(_TyRequest::TRADE_ACCOUNT_LOGIN == type ? 75 : 20) });
 	}
-	if (CSession::InstanceRef().SendRequest(req))
+	if (SendRequest(req))
 	{
 		return req.GetId();
 	}
@@ -239,4 +242,19 @@ bool CTradeAccountService::OnResponse(const CRequest& response)
 	}
 	m_results.Notify(result);
 	return true;
+}
+
+void CTradeAccountService::SetTraderCenter(CTraderCenter* pCenter)
+{
+	m_pTraderCenter = pCenter;
+}
+
+bool CTradeAccountService::IsAuthenticated() const noexcept
+{
+	return (nullptr != m_pTraderCenter) && m_pTraderCenter->IsAuthenticated();
+}
+
+bool CTradeAccountService::SendRequest(const CRequest& request)
+{
+	return (nullptr != m_pTraderCenter) && m_pTraderCenter->SendRequest(request);
 }

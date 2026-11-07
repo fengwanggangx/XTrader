@@ -13,7 +13,7 @@ CSession::~CSession()
 	Stop();
 }
 
-void CSession::Authenticate(const CAuthParam& param, AuthCallback&& cb)
+void CSession::Authenticate(const CAuthParam& param, _TyAuthCallback&& cb)
 {
 	bool bRestart = false;
 	{
@@ -54,7 +54,7 @@ void CSession::Authenticate(const CAuthParam& param, AuthCallback&& cb)
 
 void CSession::CancelAuthentication()
 {
-	AuthCallback cb;
+	_TyAuthCallback cb;
 	AuthEvent ev;
 	{
 		std::lock_guard<std::mutex> lock(m_mtx_auth);
@@ -141,13 +141,13 @@ std::optional<CLoginInfo> CSession::GetLoginInfo() const
 	return m_loginInfo;
 }
 
-void CSession::SetStateCallback(StateCallback&& cb)
+void CSession::SetStateCallback(_TyStateCallback&& cb)
 {
 	std::lock_guard<std::mutex> lock(m_mtx_callbacks);
 	m_stateCallback = std::move(cb);
 }
 
-void CSession::RegisterStateHandler(StateCallback&& cb)
+void CSession::RegisterStateHandler(_TyStateCallback&& cb)
 {
 	std::lock_guard<std::mutex> lock(m_mtx_callbacks);
 	m_stateHandlers.emplace_back(std::move(cb));
@@ -156,17 +156,10 @@ void CSession::RegisterStateHandler(StateCallback&& cb)
 void CSession::SetResponseCallback(_TyRequestNotify&& cb)
 {
 	std::lock_guard<std::mutex> lock(m_mtx_callbacks);
-	m_responseCallbacks.clear();
-	m_responseCallbacks.emplace_back(std::move(cb));
+	m_responseCallback = std::move(cb);
 }
 
-void CSession::RegisterResponseHandler(_TyRequestNotify&& cb)
-{
-	std::lock_guard<std::mutex> lock(m_mtx_callbacks);
-	m_responseCallbacks.emplace_back(std::move(cb));
-}
-
-void CSession::SetErrorCallback(ErrorCallback&& cb)
+void CSession::SetErrorCallback(_TyErrorCallback&& cb)
 {
 	std::lock_guard<std::mutex> lock(m_mtx_callbacks);
 	m_errorCallback = std::move(cb);
@@ -363,7 +356,7 @@ void CSession::HandleResponse(const CRequest& response)
 	{
 		AuthOperation op = _TyRequest::AUTH_LOGIN == t ? AuthOperation::Login : AuthOperation::Register;
 		std::optional<CAuthParam> authParam;
-		AuthCallback authCallback;
+		_TyAuthCallback authCallback;
 		{
 			std::lock_guard<std::mutex> lock(m_mtx_auth);
 			if (!m_authRequest.has_value() || (id != m_authRequest->m_id) || (response.GetType() != m_authRequest->m_type))
@@ -571,7 +564,7 @@ void CSession::FailPending(const std::string& strReson)
 
 void CSession::NotifyAuthentication(AuthEvent ev)
 {
-	AuthCallback cb;
+	_TyAuthCallback cb;
 	{
 		std::lock_guard<std::mutex> lock(m_mtx_auth);
 		if (!m_authContext.has_value())
@@ -596,8 +589,8 @@ void CSession::NotifyAuthentication(AuthEvent ev)
 
 void CSession::NotifyState(SessionState state, const std::string& message)
 {
-	StateCallback cb;
-	std::vector<StateCallback> handlers;
+	_TyStateCallback cb;
+	std::vector<_TyStateCallback> handlers;
 	{
 		std::lock_guard<std::mutex> lock(m_mtx_callbacks);
 		cb = m_stateCallback;
@@ -607,7 +600,7 @@ void CSession::NotifyState(SessionState state, const std::string& message)
 	{
 		cb(state, message);
 	}
-	for (const StateCallback& handler : handlers)
+	for (const _TyStateCallback& handler : handlers)
 	{
 		if (nullptr != handler)
 		{
@@ -618,23 +611,20 @@ void CSession::NotifyState(SessionState state, const std::string& message)
 
 void CSession::NotifyResponse(const CRequest& response)
 {
-	std::vector<_TyRequestNotify> callbacks;
+	_TyRequestNotify callback;
 	{
 		std::lock_guard<std::mutex> lock(m_mtx_callbacks);
-		callbacks = m_responseCallbacks;
+		callback = m_responseCallback;
 	}
-	for (const _TyRequestNotify& cb : callbacks)
+	if (nullptr != callback)
 	{
-		if (nullptr != cb)
-		{
-			cb(response);
-		}
+		callback(response);
 	}
 }
 
 void CSession::NotifyError(const std::string& error)
 {
-	ErrorCallback cb;
+	_TyErrorCallback cb;
 	{
 		std::lock_guard<std::mutex> lock(m_mtx_callbacks);
 		cb = m_errorCallback;

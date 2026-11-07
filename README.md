@@ -9,3 +9,13 @@ XTrade 的桌面交易终端，原项目名 Mary。配合 XEngine 策略服务�
 共享协议采用 protoc 29.3 生成；四端协议检查可运行 `tests/test_trade_account_protocol.py`，通过 PROTOC 指定编译器路径。
 
 系统登录身份使用 `user`，登录参数为 `m_strUser`，本地保存用户由 `CUserStorager` 读写 SQLite 的 `user` 表及 `user` 列；认证成功响应返回 `user_id/user/token`。交易账户继续使用 `account`。旧登录用户存储不迁移、不回退读取。
+
+
+### 客户端请求收发分层
+
+`CBootLoader` 通过裸指针独占管理 `CSession`、`CTraderCenter`、服务引用集合以及登录、策略、行情、账户 Service，在 `Initialize` 中创建，在 `Finalize` 中按依赖顺序释放并置空。Center 和 Service 通过显式注入建立关联，不再使用单例。界面通过 `CTraderServices` 借用这些服务；Qt Designer 创建的页面在创建后调用 `Initialize` 注入依赖。
+业务请求统一经过 `Service → CTraderCenter → CSession → CTcpClient`。
+业务回包经过 `CSession → CTraderCenter::OnRequest`，按协议类型路由到行情、账户或策略 Service，不再广播给全部业务处理器。
+认证、心跳、重连与待处理请求超时仍由 Session 管理；业务解析、缓存和界面通知仍由各 Service 管理。
+退出时先停止并等待会话线程及网络分发任务，再销毁界面及其订阅，解除 Center 和 Service 的关联，最后清理网络环境。
+本次仅执行静态检查，未编译或运行测试。

@@ -141,9 +141,10 @@ class CMarketFilterProxyModel final : public QSortFilterProxyModel
 	}
 };
 
-CMarketPageController::CMarketPageController(MarketTableMode mode, CUITable* pTable, QObject* pParent)
+CMarketPageController::CMarketPageController(CTraderServices& services, MarketTableMode mode, CUITable* pTable, QObject* pParent)
 	: QObject(pParent), m_mode(mode), m_table(pTable)
 {
+	m_pServices = &services;
 	m_model = new CDataTableModel(this);
 	m_proxy = new CMarketFilterProxyModel(this);
 	m_proxy->setSourceModel(m_model);
@@ -199,7 +200,7 @@ CMarketPageController::CMarketPageController(MarketTableMode mode, CUITable* pTa
 
 CMarketPageController::~CMarketPageController()
 {
-	CHQMarketService& service = CHQMarketService::InstanceRef();
+	CHQMarketService& service = m_pServices->m_market;
 	if (0 != m_quoteTableToken)
 	{
 		service.RemoveQuoteTableHandler(m_quoteTableToken);
@@ -379,7 +380,7 @@ QString CMarketPageController::RemoveSelectedWatchlist()
 
 void CMarketPageController::BindService()
 {
-	CHQMarketService& service = CHQMarketService::InstanceRef();
+	CHQMarketService& service = m_pServices->m_market;
 	service.Initialize();
 	std::shared_ptr<CQuoteTableUpdateState> quoteUpdateState = m_quoteUpdateState;
 	m_quoteTableToken = service.AddQuoteTableHandler([quoteUpdateState](const CDataTableView& view, const CDataChangeSet& changes)
@@ -402,7 +403,7 @@ void CMarketPageController::BindService()
 		}, Qt::QueuedConnection);
 	});
 	OnQuoteTableUpdate(service.GetQuoteTableView(), CDataChangeSet{});
-	CSession::InstanceRef().RegisterStateHandler([safeThis](SessionState state, const std::string& strMessage)
+	m_pServices->m_login.RegisterStateHandler([safeThis](SessionState state, const std::string& strMessage)
 	{
 		if (!safeThis.isNull())
 		{
@@ -512,7 +513,7 @@ void CMarketPageController::RefreshSelection()
 		m_stockTitle->setText("没有匹配的证券");
 		m_selectedSecurity.clear();
 		m_price->setText("--");
-		m_chartState->setText(CSession::InstanceRef().IsAuthenticated() ? "暂无证券数据" : "连接不可用");
+		m_chartState->setText(m_pServices->m_login.IsAuthenticated() ? "暂无证券数据" : "连接不可用");
 		m_intraday->Clear();
 		m_candles->Clear();
 		m_minuteBars.clear();
@@ -526,7 +527,7 @@ void CMarketPageController::RefreshSelection()
 	double fPercent = current.siblingAtColumn(4).data().toDouble();
 	CQuote quote;
 	double fReferencePrice = 0.0;
-	if (CHQMarketService::InstanceRef().FindQuote(security, quote))
+	if (m_pServices->m_market.FindQuote(security, quote))
 	{
 		fReferencePrice = quote.m_fPreClose;
 	}
@@ -590,7 +591,7 @@ void CMarketPageController::RequestHistory(CurveMode mode)
 	m_dayRequestId = 0;
 	QDateTime now = QDateTime::currentDateTime();
 	std::int64_t nBegin = now.addYears(-10).toMSecsSinceEpoch();
-	if (!CHQMarketService::InstanceRef().QueryHistory(security, MarketBarPeriod::Day, nBegin, now.toMSecsSinceEpoch(), &m_dayRequestId))
+	if (!m_pServices->m_market.QueryHistory(security, MarketBarPeriod::Day, nBegin, now.toMSecsSinceEpoch(), &m_dayRequestId))
 	{
 		m_chartState->setText("历史查询未发送，请检查连接");
 	}
@@ -614,7 +615,7 @@ void CMarketPageController::RequestMinuteHistory(bool bIncremental)
 		nBegin = m_minuteBars.back().m_nBeginTime + 1;
 	}
 	m_bMinuteIncrementalRequest = bIncremental;
-	if (!CHQMarketService::InstanceRef().QueryHistory(security, MarketBarPeriod::Minute, nBegin, now.toMSecsSinceEpoch(), &m_minuteRequestId))
+	if (!m_pServices->m_market.QueryHistory(security, MarketBarPeriod::Minute, nBegin, now.toMSecsSinceEpoch(), &m_minuteRequestId))
 	{
 		m_minuteRequestId = 0;
 		m_bMinuteIncrementalRequest = false;

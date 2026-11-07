@@ -125,6 +125,7 @@
     <ClCompile Include="basic\CDatable.cpp" />
     <ClCompile Include="basic\CDistributor.cpp" />
     <ClCompile Include="system\CSession.cpp" />
+    <ClCompile Include="system\CTraderCenter.cpp" />
     <ClCompile Include="system\CLoginService.cpp" />
     <ClCompile Include="request\RequestCenter.cpp" />
     <ClCompile Include="request\MarketTypes.cpp" />
@@ -273,6 +274,8 @@
     <ClInclude Include="components\CViewAShare.h" />
     <ClInclude Include="system\CLoginService.h" />
     <ClInclude Include="system\CSession.h" />
+    <ClInclude Include="system\CTraderCenter.h" />
+    <ClInclude Include="system\CTraderServices.h" />
     <ClInclude Include="request\RequestCenter.h" />
     <ClInclude Include="request\MarketTypes.h" />
     <ClInclude Include="components\CViewTradingAccounts.h" />

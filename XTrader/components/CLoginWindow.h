@@ -1,4 +1,5 @@
 #pragma once
+#include "../system/CTraderServices.h"
 
 #include "../database/CUserStorager.h"
 #include "../system/CLoginService.h"
@@ -16,16 +17,16 @@ class LoginWindow : public QDialog
 {
 	Q_OBJECT
 
-  public:
-	LoginWindow(QWidget* pParent = nullptr);
+public:
+	LoginWindow(CTraderServices& services, QWidget* pParent = nullptr);
 	~LoginWindow();
 
-  protected:
+protected:
 	void mousePressEvent(QMouseEvent* event) override;
 	void mouseMoveEvent(QMouseEvent* event) override;
 	void mouseReleaseEvent(QMouseEvent* event) override;
 
-  private slots:
+private slots:
 	void OnLoginBtnClicked();
 	void OnRegisterBtnClicked();
 	void OnCloseBtnClicked();
@@ -41,10 +42,10 @@ private:
 	void DeleteUser(int nIndex);
 	void ClearPendingCredentials();
 
-  private:
+private:
 	std::unique_ptr<Ui::LoginWindowClass> m_ui;
 
-  private:
+private:
 	QPoint m_dragPosition;
 	bool m_isDragging{ false };
 	_TyCallbackId m_loginCallbackId{ 0 };
@@ -52,4 +53,7 @@ private:
 	std::vector<CUserInfo> m_users;
 	std::string m_strPendingUser;
 	std::string m_strPendingPassword;
+
+private:
+	CTraderServices* m_pServices{ nullptr };
 };

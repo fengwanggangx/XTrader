@@ -1,7 +1,6 @@
 #ifndef XTRADER_SERVER_CSTRATEGYSERVICE_H
 #define XTRADER_SERVER_CSTRATEGYSERVICE_H
 
-#include "../../common/ISingleton.h"
 #include "../../request/request.pb.h"
 #include "../../basic/TMessagePump.h"
 
@@ -15,11 +14,21 @@
 
 #include "../../request/request.h"
 
-class CStrategyService final : public ISingleton<CStrategyService>
+class CTraderCenter;
+
+class CStrategyService final
 {
-	DECLARE_SINGLE_DFAULT(CStrategyService)
+	friend class CTraderCenter;
 
 public:
+	CStrategyService();
+	~CStrategyService();
+	CStrategyService(const CStrategyService& arg) = delete;
+	CStrategyService& operator=(const CStrategyService& arg) = delete;
+
+	void SetTraderCenter(CTraderCenter* pCenter);
+	bool IsAuthenticated() const noexcept;
+
 	using _TyStrategyList = std::vector<request::StrategyInfo>;
 	using _TyQueryHandler = std::function<void(const _TyStrategyList&, const std::string&)>;
 	using _TyOperationHandler = std::function<void(_TyRequest, bool, const request::StrategyInfo&, const std::string&)>;
@@ -68,6 +77,7 @@ public:
 	static bool ValidateStrategy(const request::StrategyInfo& strategy, std::string& error);
 
 private:
+	bool SendRequest(const CRequest& request);
 	bool OnRequestReply(const CRequest& response);
 
 private:
@@ -90,6 +100,8 @@ private:
 	mutable std::shared_mutex m_mtx_strategies;
 	_TyStrategyList m_strategies;
 	bool m_bCacheValid{ false };
+	// Borrowed from CBootLoader; detached after network callbacks drain.
+	CTraderCenter* m_pTraderCenter{ nullptr };
 };
 
 #endif

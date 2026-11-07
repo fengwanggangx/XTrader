@@ -1,7 +1,6 @@
 #ifndef XTRADER_SYSTEM_CHQMARKETSERVICE_H
 #define XTRADER_SYSTEM_CHQMARKETSERVICE_H
 
-#include "../../common/ISingleton.h"
 #include "../../basic/TMessagePump.h"
 #include "../../basic/CDatable.h"
 #include "../../request/RequestCenter.h"
@@ -21,12 +20,22 @@
 
 class CRequest;
 
-class CHQMarketService final : public ISingleton<CHQMarketService>
-{
-	friend class CReviewRegressionTests;
-	DECLARE_SINGLE_DFAULT(CHQMarketService)
+class CTraderCenter;
 
-	public:
+class CHQMarketService final
+{
+	friend class CTraderCenter;
+	friend class CReviewRegressionTests;
+
+public:
+	CHQMarketService();
+	~CHQMarketService();
+	CHQMarketService(const CHQMarketService& arg) = delete;
+	CHQMarketService& operator=(const CHQMarketService& arg) = delete;
+
+	void SetTraderCenter(CTraderCenter* pCenter);
+	bool IsAuthenticated() const noexcept;
+
 	using _TyHandlerToken = _TyCallbackId;
 	using _TyQuoteHandler = std::function<void(const CQuote&)>;
 	using _TyDepthHandler = std::function<void(const CMarketDepth&)>;
@@ -79,27 +88,28 @@ class CHQMarketService final : public ISingleton<CHQMarketService>
 
 	void SetPendingQuoteLimit(std::size_t count);
 
-	private:
-		bool OnRequestReply(const CRequest& req);
-		bool OnSectorListReply(const CRequest& req);
-		bool OnSectorConstituentsReply(const CRequest& req);
-		bool OnSecurityListReply(const CRequest& req);
-		bool OnDepthReply(const CRequest& req);
-		bool OnHistoryReply(const CRequest& req);
-		bool OnQuoteReply(const CRequest& req);
-		bool OnSubscriptionAck(const CRequest& req);
+private:
+	bool SendRequest(const CRequest& request);
+	bool OnRequestReply(const CRequest& req);
+	bool OnSectorListReply(const CRequest& req);
+	bool OnSectorConstituentsReply(const CRequest& req);
+	bool OnSecurityListReply(const CRequest& req);
+	bool OnDepthReply(const CRequest& req);
+	bool OnHistoryReply(const CRequest& req);
+	bool OnQuoteReply(const CRequest& req);
+	bool OnSubscriptionAck(const CRequest& req);
 
-		bool Subscribe(const std::string& strKey, const request::_TyParams& param);
-		bool Unsubscribe(const std::string& strKey, const request::_TyParams& param);
-		void RestoreSubscriptions();
+	bool Subscribe(const std::string& strKey, const request::_TyParams& param);
+	bool Unsubscribe(const std::string& strKey, const request::_TyParams& param);
+	void RestoreSubscriptions();
 
-		bool AcceptQuoteSequence(std::uint64_t sequence);
+	bool AcceptQuoteSequence(std::uint64_t sequence);
 
-		void EnqueueQuote(const CQuote& quote);
-		void QuoteWorkerLoop();
-		void FlushQuotes(std::unordered_map<std::string, CQuote>& quotes);
+	void EnqueueQuote(const CQuote& quote);
+	void QuoteWorkerLoop();
+	void FlushQuotes(std::unordered_map<std::string, CQuote>& quotes);
 
-	private:
+private:
 	bool m_bInitialized{ false }; // 服务是否已初始化
 	std::unordered_map<_TyRequest, _TyRequestNotify> m_request_handler;
 
@@ -147,7 +157,7 @@ class CHQMarketService final : public ISingleton<CHQMarketService>
 
 	_TyDataRowId m_nextQuoteRowId{ 1 }; // 下一个行情表行号
 
-	private:
+private:
 	TMessagePump<CQuote> m_pump_quote;					   // 最新行情事件分发器
 	TMessagePump<CMarketDepth> m_pump_depth;			   // 盘口深度事件分发器
 	TMessagePump<CMarketHistoryEvent> m_pump_history;	   // 历史行情事件分发器
@@ -155,6 +165,8 @@ class CHQMarketService final : public ISingleton<CHQMarketService>
 	TMessagePump<CSecurityListEvent> m_pump_security_list; // 证券列表事件分发器
 	TMessagePump<CSectorListEvent> m_pump_sector_list;
 	TMessagePump<CSectorConstituentsEvent> m_pump_sector_constituents;
+	// Borrowed from CBootLoader; detached after network callbacks drain.
+	CTraderCenter* m_pTraderCenter{ nullptr };
 };
 
 #endif

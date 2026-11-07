@@ -5,9 +5,10 @@ namespace net
 	{
 	};
 } // namespace net
-#include "system/CSession.h"
+#include "system/CTraderCenter.h"
 #include "service/strategy/CStrategyService.h"
 #include "service/account/CTradeAccountService.h"
+#include "service/hqmarket/CHQMarketService.h"
 #include "components/CStrategyEditDialog.h"
 #include "components/CViewStrategySettings.h"
 #include "components/CViewTradingAccounts.h"
@@ -24,9 +25,10 @@ namespace net
 
 namespace
 {
+	CTraderCenter center;
+	CStrategyService* pStrategyService{ nullptr };
 	std::vector<CRequest> requests;
-	std::vector<_TyRequestNotify> responseHandlers;
-	std::vector<CSession::StateCallback> stateHandlers;
+	std::vector<CSession::_TyStateCallback> stateHandlers;
 	std::vector<request::TradeAccountRecord> accounts;
 	TMessagePump<CTradeAccountService::CResult> accountEvents;
 	bool sendSuccess = true;
@@ -42,10 +44,7 @@ namespace
 
 	void Reply(const CRequest& response)
 	{
-		for (const auto& handler : responseHandlers)
-		{
-			handler(response);
-		}
+		center.OnRequest(response);
 	}
 
 	CRequest Last(_TyRequest type)
@@ -115,26 +114,28 @@ namespace
 	}
 } // namespace
 
-CSession::CSession() = default;
-CSession::~CSession() = default;
-bool CSession::SendRequest(const CRequest& request)
+CTraderCenter::CTraderCenter() = default;
+
+CTraderCenter::~CTraderCenter() = default;
+
+bool CTraderCenter::OnRequest(const CRequest& response)
+{
+	return (nullptr != pStrategyService) && pStrategyService->OnRequestReply(response);
+}
+bool CTraderCenter::SendRequest(const CRequest& request)
 {
 	requests.emplace_back(request);
 	return sendSuccess;
 }
-void CSession::RegisterResponseHandler(_TyRequestNotify&& handler)
-{
-	responseHandlers.emplace_back(std::move(handler));
-}
-void CSession::RegisterStateHandler(StateCallback&& handler)
+void CTraderCenter::RegisterStateHandler(CSession::_TyStateCallback&& handler)
 {
 	stateHandlers.emplace_back(std::move(handler));
 }
-bool CSession::IsAuthenticated() const noexcept
+bool CTraderCenter::IsAuthenticated() const noexcept
 {
 	return true;
 }
-CViewTradingAccounts::CViewTradingAccounts(QWidget* parent) : QWidget(parent)
+CViewTradingAccounts::CViewTradingAccounts(CTraderServices& services, QWidget* parent) : QWidget(parent)
 {
 }
 CViewTradingAccounts::~CViewTradingAccounts() = default;
@@ -146,7 +147,16 @@ void CViewTradingAccounts::SetStrategyNavigation(std::function<void(std::uint64_
 {
 	m_navigate = std::move(handler);
 }
+CLoginService::CLoginService() = default;
+
+CLoginService::~CLoginService() = default;
+
+CHQMarketService::CHQMarketService() = default;
+
+CHQMarketService::~CHQMarketService() = default;
+
 CTradeAccountService::CTradeAccountService() = default;
+
 CTradeAccountService::~CTradeAccountService() = default;
 std::vector<request::TradeAccountRecord> CTradeAccountService::GetAccounts() const
 {
@@ -191,7 +201,13 @@ int main(int argc, char** argv)
 	Check(!CStrategyService::ValidateStrategy(strategy, error), "Duplicate subscription accepted");
 	strategy = Strategy();
 
-	CStrategyService& service = CStrategyService::InstanceRef();
+	CLoginService loginService;
+	CStrategyService service;
+	CHQMarketService marketService;
+	CTradeAccountService accountService;
+	CTraderServices services{ loginService, service, marketService, accountService };
+	pStrategyService = &service;
+	service.SetTraderCenter(&center);
 	service.Initialize();
 	service.QueryStrategies();
 	service.QueryRuntime();
@@ -255,7 +271,7 @@ int main(int argc, char** argv)
 	account.set_broker_id(2);
 	account.set_broker_name("Broker B");
 	accounts.emplace_back(account);
-	CStrategyEditDialog dialog;
+	CStrategyEditDialog dialog(services);
 	dialog.SetStrategy(strategy);
 	Check("000123" == dialog.GetStrategy().account(), "Account leading zeros lost");
 	Check(1 == dialog.GetStrategy().broker_id(), "Wrong broker selected");
@@ -296,6 +312,7 @@ int main(int argc, char** argv)
 	QMetaObject::invokeMethod(&dialog, "OnAccept", Qt::DirectConnection);
 	Check(QDialog::Accepted == dialog.result(), "Valid dialog did not accept");
 	CViewStrategySettings view;
+	view.Initialize(services);
 	view.show();
 	view.findChild<QTabWidget*>("strategyTabs")->setCurrentIndex(1);
 	ConfigReply(Last(_TyRequest::STRATEGY_QUERY), strategy);

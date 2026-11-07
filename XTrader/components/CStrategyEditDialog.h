@@ -1,6 +1,8 @@
 #ifndef XTRADER_COMPONENTS_CSTRATEGYEDITDIALOG_H
 #define XTRADER_COMPONENTS_CSTRATEGYEDITDIALOG_H
 
+#include "../system/CTraderServices.h"
+
 #include "../request/request.pb.h"
 
 #include <QDialog>
@@ -22,7 +24,7 @@ class CStrategyEditDialog final : public QDialog
 	Q_OBJECT
 
 public:
-	explicit CStrategyEditDialog(QWidget* pParent = nullptr);
+	explicit CStrategyEditDialog(CTraderServices& services, QWidget* pParent = nullptr);
 	~CStrategyEditDialog() override;
 	void SetStrategy(const request::StrategyInfo& strategy);
 	void SetAccountLocked(bool locked);
@@ -46,6 +48,9 @@ private:
 	_TyAccountIndex m_originalAccount{};
 	std::uint64_t m_strategyId{ 0 };
 	QComboBox* m_accounts{ nullptr };
+
+private:
+	CTraderServices* m_pServices{ nullptr };
 };
 
 #endif

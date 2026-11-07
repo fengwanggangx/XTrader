@@ -209,6 +209,9 @@
     <ClCompile Include="system\CSession.cpp">
       <Filter>Source Files\system</Filter>
     </ClCompile>
+    <ClCompile Include="system\CTraderCenter.cpp">
+      <Filter>Source Files\system</Filter>
+    </ClCompile>
     <ClCompile Include="cryption\Cryption.cpp">
       <Filter>Source Files\cryption</Filter>
     </ClCompile>
@@ -405,6 +408,12 @@
       <Filter>Source Files\system</Filter>
     </ClInclude>
     <ClInclude Include="system\CSession.h">
+      <Filter>Source Files\system</Filter>
+    </ClInclude>
+    <ClInclude Include="system\CTraderCenter.h">
+      <Filter>Source Files\system</Filter>
+    </ClInclude>
+    <ClInclude Include="system\CTraderServices.h">
       <Filter>Source Files\system</Filter>
     </ClInclude>
     <ClInclude Include="request\RequestCenter.h">

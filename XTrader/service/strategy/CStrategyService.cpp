@@ -1,6 +1,6 @@
 #include "CStrategyService.h"
 
-#include "../../system/CSession.h"
+#include "../../system/CTraderCenter.h"
 
 #include <algorithm>
 #include <cctype>
@@ -15,10 +15,13 @@ CStrategyService::~CStrategyService() = default;
 
 void CStrategyService::Initialize()
 {
+	if (nullptr == m_pTraderCenter)
+	{
+		return;
+	}
 	std::call_once(m_initializeFlag, [this]()
 	{
-		CSession::InstanceRef().RegisterResponseHandler(std::bind_front(&CStrategyService::OnRequestReply, this));
-		CSession::InstanceRef().RegisterStateHandler([this](SessionState state, const std::string&)
+		m_pTraderCenter->RegisterStateHandler([this](SessionState state, const std::string&)
 		{
 			Invalidate(true);
 			if (SessionState::Ready == state)
@@ -108,7 +111,7 @@ bool CStrategyService::QueryStrategies()
 		m_queryRequestId = req.GetId();
 		m_bQueryDirty = false;
 	}
-	if (CSession::InstanceRef().SendRequest(req))
+	if (SendRequest(req))
 	{
 		return true;
 	}
@@ -133,7 +136,7 @@ bool CStrategyService::QueryRuntime()
 		m_runtimeRequestId = req.GetId();
 		m_bRuntimeDirty = false;
 	}
-	if (CSession::InstanceRef().SendRequest(req))
+	if (SendRequest(req))
 	{
 		return true;
 	}
@@ -198,7 +201,7 @@ std::uint64_t CStrategyService::AddStrategy(const request::StrategyInfo& strateg
 	}
 	Initialize();
 	CRequest req = request::AddStrategy(strategy);
-	return CSession::InstanceRef().SendRequest(req) ? req.GetId() : 0;
+	return SendRequest(req) ? req.GetId() : 0;
 }
 
 std::uint64_t CStrategyService::ModifyStrategy(const request::StrategyInfo& strategy)
@@ -210,7 +213,7 @@ std::uint64_t CStrategyService::ModifyStrategy(const request::StrategyInfo& stra
 	}
 	Initialize();
 	CRequest req = request::ModifyStrategy(strategy);
-	return CSession::InstanceRef().SendRequest(req) ? req.GetId() : 0;
+	return SendRequest(req) ? req.GetId() : 0;
 }
 
 std::uint64_t CStrategyService::DeleteStrategy(std::uint64_t id)
@@ -221,7 +224,7 @@ std::uint64_t CStrategyService::DeleteStrategy(std::uint64_t id)
 	}
 	Initialize();
 	CRequest req = request::DeleteStrategy(id);
-	return CSession::InstanceRef().SendRequest(req) ? req.GetId() : 0;
+	return SendRequest(req) ? req.GetId() : 0;
 }
 
 std::uint64_t CStrategyService::ControlStrategy(_TyRequest type, std::uint64_t id)
@@ -232,7 +235,7 @@ std::uint64_t CStrategyService::ControlStrategy(_TyRequest type, std::uint64_t i
 	}
 	Initialize();
 	CRequest req = request::ControlStrategy(type, id);
-	return CSession::InstanceRef().SendRequest(req) ? req.GetId() : 0;
+	return SendRequest(req) ? req.GetId() : 0;
 }
 
 CStrategyService::_TyStrategyList CStrategyService::GetStrategies() const
@@ -490,4 +493,19 @@ bool CStrategyService::OnRequestReply(const CRequest& response)
 		QueryRuntime();
 	}
 	return true;
+}
+
+void CStrategyService::SetTraderCenter(CTraderCenter* pCenter)
+{
+	m_pTraderCenter = pCenter;
+}
+
+bool CStrategyService::IsAuthenticated() const noexcept
+{
+	return (nullptr != m_pTraderCenter) && m_pTraderCenter->IsAuthenticated();
+}
+
+bool CStrategyService::SendRequest(const CRequest& request)
+{
+	return (nullptr != m_pTraderCenter) && m_pTraderCenter->SendRequest(request);
 }

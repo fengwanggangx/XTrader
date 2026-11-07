@@ -31,6 +31,15 @@ namespace
 
 CViewWatchlist::CViewWatchlist(QWidget* pParent) : QWidget(pParent), m_ui(std::make_unique<Ui::CViewWatchlistClass>())
 {
+}
+
+void CViewWatchlist::Initialize(CTraderServices& services)
+{
+	if (nullptr != m_pServices)
+	{
+		return;
+	}
+	m_pServices = &services;
 	m_ui->setupUi(this);
 	m_ui->table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 	m_ui->table->sortByColumn(-1, Qt::AscendingOrder);
@@ -48,7 +57,7 @@ CViewWatchlist::CViewWatchlist(QWidget* pParent) : QWidget(pParent), m_ui(std::m
 	{
 		m_ui->countLabel->setText(QString("共%1只").arg(nCount));
 	});
-	m_controller = std::make_unique<CMarketPageController>(MarketTableMode::Watchlist, m_ui->table, this);
+	m_controller = std::make_unique<CMarketPageController>(*m_pServices, MarketTableMode::Watchlist, m_ui->table, this);
 	m_controller->SetCharts(m_ui->stockTitle, m_ui->priceLabel, m_ui->chartState, m_ui->intradayCurve, m_ui->candleCurve);
 	m_ui->intradayLabel->hide();
 	m_ui->intradayFrameLayout->insertWidget(1, m_controller->CreateIntradayControls(m_ui->intradayFrame));
@@ -119,6 +128,10 @@ CViewWatchlist::~CViewWatchlist() = default;
 void CViewWatchlist::showEvent(QShowEvent* pEvent)
 {
 	QWidget::showEvent(pEvent);
+	if (nullptr == m_pServices)
+	{
+		return;
+	}
 	if (!m_bLayoutInitialized)
 	{
 		m_bLayoutInitialized = true;

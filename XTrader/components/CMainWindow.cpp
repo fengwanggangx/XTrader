@@ -47,9 +47,12 @@ namespace
 
 }
 
-CMainWindow::CMainWindow(QWidget* pParent) : QMainWindow(pParent), m_ui(std::make_unique<Ui::CMainWindowClass>())
+CMainWindow::CMainWindow(CTraderServices& services, QWidget* pParent) : QMainWindow(pParent), m_ui(std::make_unique<Ui::CMainWindowClass>())
 {
+	m_pServices = &services;
 	m_ui->setupUi(this);
+	m_ui->marketPage->Initialize(services);
+	m_ui->strategyPage->Initialize(services);
 	setWindowFlags(Qt::Window | Qt::FramelessWindowHint);
 	setWindowIcon(QIcon(":/branding/xtrader-app-icon.png"));
 	UIInitialized();
@@ -57,7 +60,7 @@ CMainWindow::CMainWindow(QWidget* pParent) : QMainWindow(pParent), m_ui(std::mak
 	m_pKeyboardSprite = new CKeyboardSprite(this);
 	m_pKeyboardSprite->setProperty("darkTheme", m_bDarkTheme);
 	QPointer<CKeyboardSprite> safeSprite(m_pKeyboardSprite);
-	m_nSecurityListToken = CHQMarketService::InstanceRef().AddSecurityListHandler([safeSprite](const CSecurityListEvent& ev)
+	m_nSecurityListToken = m_pServices->m_market.AddSecurityListHandler([safeSprite](const CSecurityListEvent& ev)
 	{
 		if (!safeSprite.isNull())
 		{
@@ -70,7 +73,7 @@ CMainWindow::CMainWindow(QWidget* pParent) : QMainWindow(pParent), m_ui(std::mak
 			}, Qt::QueuedConnection);
 		}
 	});
-	m_pKeyboardSprite->SetSecurities(CHQMarketService::InstanceRef().GetSecurities());
+	m_pKeyboardSprite->SetSecurities(m_pServices->m_market.GetSecurities());
 	connect(m_pKeyboardSprite, &CKeyboardSprite::SecuritySelected, this, [this](const CSecurity& security)
 	{
 		m_ui->treeWidget->setCurrentItem(m_ui->treeWidget->topLevelItem(0));
@@ -83,8 +86,8 @@ CMainWindow::CMainWindow(QWidget* pParent) : QMainWindow(pParent), m_ui(std::mak
 CMainWindow::~CMainWindow()
 {
 	qApp->removeEventFilter(this);
-	CHQMarketService::InstanceRef().RemoveSecurityListHandler(m_nSecurityListToken);
-	CSession::InstanceRef().SetStateCallback({});
+	m_pServices->m_market.RemoveSecurityListHandler(m_nSecurityListToken);
+	m_pServices->m_login.SetStateCallback({});
 }
 
 void CMainWindow::UIInitialized()
@@ -114,7 +117,7 @@ void CMainWindow::UIInitialized()
 	pTimer->start(1000);
 
 	QPointer<CMainWindow> safeThis(this);
-	CSession::InstanceRef().SetStateCallback([safeThis](SessionState state, const std::string& strMessage)
+	m_pServices->m_login.SetStateCallback([safeThis](SessionState state, const std::string& strMessage)
 	{
 		QMetaObject::invokeMethod(safeThis.data(), [safeThis, state, strMessage]()
 		{
@@ -124,7 +127,7 @@ void CMainWindow::UIInitialized()
 			}
 		}, Qt::QueuedConnection);
 	});
-	UpdateConnectionState(static_cast<int>(CSession::InstanceRef().GetState()), QString());
+	UpdateConnectionState(static_cast<int>(m_pServices->m_login.GetState()), QString());
 }
 
 void CMainWindow::ConnectSlots()

@@ -15,7 +15,8 @@ add_executable(StrategyManagementTests StrategyManagementTests.cpp
  "${taskRoot}/request/request.pb.cc"
  "${taskRoot}/request/v1/market.pb.cc"
  "${taskRoot}/request/RequestCenter.cpp"
- "${taskRoot}/request/MarketTypes.cpp")
+ "${taskRoot}/request/MarketTypes.cpp"
+ "${taskRoot}/basic/CDatable.cpp")
 target_compile_definitions(StrategyManagementTests PRIVATE PROTOBUF_USE_DLLS NOMINMAX)
 target_compile_options(StrategyManagementTests PRIVATE /utf-8 /w)
 target_include_directories(StrategyManagementTests PRIVATE "${taskRoot}" "${taskRoot}/request" "${taskRoot}/include/debug/protobuf" "${taskRoot}/include/debug/libevent" "${taskRoot}/include/debug/rapidjson")

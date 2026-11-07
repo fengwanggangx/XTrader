@@ -6,6 +6,15 @@
 
 CViewConstituents::CViewConstituents(QWidget* pParent) : QWidget(pParent), m_ui(std::make_unique<Ui::CViewConstituentsClass>())
 {
+}
+
+void CViewConstituents::Initialize(CTraderServices& services)
+{
+	if (nullptr != m_pServices)
+	{
+		return;
+	}
+	m_pServices = &services;
 	m_ui->setupUi(this);
 	m_ui->table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 	m_ui->table->sortByColumn(-1, Qt::AscendingOrder);
@@ -17,8 +26,7 @@ CViewConstituents::CViewConstituents(QWidget* pParent) : QWidget(pParent), m_ui(
 			{ m_ui->table->Search(m_ui->searchEdit->text()); });
 	connect(m_ui->table, &CUITable::ResultsChanged, this, [this](int nCount)
 			{ m_ui->countLabel->setText((m_strSector.isEmpty() ? QString() : m_strSector + " · ") + QString("共%1只").arg(nCount)); });
-	m_controller = std::make_unique<CMarketPageController>(MarketTableMode::Constituents, m_ui->table, this);
-
+	m_controller = std::make_unique<CMarketPageController>(*m_pServices, MarketTableMode::Constituents, m_ui->table, this);
 }
 
 CViewConstituents::~CViewConstituents() = default;

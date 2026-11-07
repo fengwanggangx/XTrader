@@ -1,4 +1,5 @@
 #pragma once
+#include "../system/CTraderServices.h"
 #include "../service/account/CTradeAccountService.h"
 #include <QDialog>
 #include <memory>
@@ -9,7 +10,7 @@ namespace Ui
 class CTradeAccountLoginDialog final : public QDialog
 {
 public:
-	explicit CTradeAccountLoginDialog(QWidget* pParent = nullptr);
+	explicit CTradeAccountLoginDialog(CTraderServices& services, QWidget* pParent = nullptr);
 	~CTradeAccountLoginDialog() override;
 
 protected:
@@ -25,4 +26,7 @@ private:
 	std::unique_ptr<Ui::CTradeAccountLoginDialog> m_ui;
 	_TyCallbackId m_nToken{ 0 };
 	std::uint64_t m_nRequestId{ 0 };
+
+private:
+	CTraderServices* m_pServices{ nullptr };
 };

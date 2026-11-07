@@ -14,8 +14,9 @@
 #include <QTimer>
 #include <QVBoxLayout>
 
-CViewTradingAccounts::CViewTradingAccounts(QWidget* parent) : QWidget(parent)
+CViewTradingAccounts::CViewTradingAccounts(CTraderServices& services, QWidget* parent) : QWidget(parent)
 {
+	m_pServices = &services;
 	setObjectName("tradingAccountsPage");
 	QVBoxLayout* layout = new QVBoxLayout(this);
 	QHBoxLayout* actions = new QHBoxLayout();
@@ -75,23 +76,23 @@ CViewTradingAccounts::CViewTradingAccounts(QWidget* parent) : QWidget(parent)
 			}
 		});
 	QPointer<CViewTradingAccounts> self(this);
-	m_accountToken = CTradeAccountService::InstanceRef().Subscribe(
+	m_accountToken = m_pServices->m_account.Subscribe(
 		[self](const CTradeAccountService::CResult& result)
+	{
+		if (nullptr != self)
 		{
-			if (nullptr != self)
+			QMetaObject::invokeMethod(
+				self,
+				[self, result]()
 			{
-				QMetaObject::invokeMethod(
-					self,
-					[self, result]()
-					{
-						if (nullptr != self)
-						{
-							self->HandleResult(result);
-						}
-					},
-					Qt::QueuedConnection);
-			}
-		});
+				if (nullptr != self)
+				{
+					self->HandleResult(result);
+				}
+			},
+				Qt::QueuedConnection);
+		}
+	});
 	QTimer* timer = new QTimer(this);
 	connect(timer, &QTimer::timeout, this, [this]()
 		{
@@ -105,7 +106,7 @@ CViewTradingAccounts::CViewTradingAccounts(QWidget* parent) : QWidget(parent)
 
 CViewTradingAccounts::~CViewTradingAccounts()
 {
-	CTradeAccountService::InstanceRef().Unsubscribe(m_accountToken);
+	m_pServices->m_account.Unsubscribe(m_accountToken);
 }
 
 void CViewTradingAccounts::SetStrategyNavigation(
@@ -122,7 +123,7 @@ void CViewTradingAccounts::showEvent(QShowEvent* event)
 
 void CViewTradingAccounts::Refresh()
 {
-	CTradeAccountService::InstanceRef().Send(_TyRequest::TRADE_ACCOUNT_LIST_QUERY);
+	m_pServices->m_account.Send(_TyRequest::TRADE_ACCOUNT_LIST_QUERY);
 }
 
 void CViewTradingAccounts::RefreshRows()
@@ -189,7 +190,7 @@ void CViewTradingAccounts::RefreshSelection()
 	m_heading->setText(QString::fromStdString(m_accounts[row].broker_name() +
 											  " / " + m_accounts[row].site() +
 											  " / " + m_accounts[row].account()));
-	m_snapshotId = CTradeAccountService::InstanceRef().Send(
+	m_snapshotId = m_pServices->m_account.Send(
 		_TyRequest::TRADE_FUNDS_QUERY, m_selectedIndex);
 	RefreshStrategies();
 	RefreshButtons();
@@ -231,7 +232,7 @@ void CViewTradingAccounts::HandleResult(
 	if (_TyRequest::TRADE_ACCOUNT_LIST_QUERY == result.m_type &&
 		result.m_error.empty())
 	{
-		m_accounts = CTradeAccountService::InstanceRef().GetAccounts();
+		m_accounts = m_pServices->m_account.GetAccounts();
 		RefreshRows();
 	}
 	if (m_selectedIndex == result.m_accountIndex &&
@@ -256,7 +257,7 @@ void CViewTradingAccounts::HandleResult(
 void CViewTradingAccounts::RefreshStrategies()
 {
 	m_strategies->setRowCount(0);
-	for (const auto& strategy : CStrategyService::InstanceRef().GetStrategies())
+	for (const auto& strategy : m_pServices->m_strategy.GetStrategies())
 	{
 		if (m_selectedIndex != AccountIndex(strategy))
 		{
@@ -278,13 +279,13 @@ void CViewTradingAccounts::RefreshStrategies()
 void CViewTradingAccounts::Operate(_TyRequest type)
 {
 	m_operationId =
-		CTradeAccountService::InstanceRef().Send(type, m_selectedIndex);
+		m_pServices->m_account.Send(type, m_selectedIndex);
 	RefreshButtons();
 }
 
 void CViewTradingAccounts::EditAccount(bool)
 {
-	CTradeAccountLoginDialog dialog(this);
+	CTradeAccountLoginDialog dialog(*m_pServices, this);
 	if (QDialog::Accepted == dialog.exec())
 	{
 		Refresh();

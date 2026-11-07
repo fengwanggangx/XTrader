@@ -1,6 +1,5 @@
 #pragma once
 #include "../../basic/TMessagePump.h"
-#include "../../common/ISingleton.h"
 #include "../../request/request.h"
 #include "../../request/request.pb.h"
 #include <chrono>
@@ -9,10 +8,21 @@
 #include <thread>
 #include <unordered_map>
 #include <vector>
-class CTradeAccountService final : public ISingleton<CTradeAccountService>
+class CTraderCenter;
+
+class CTradeAccountService final
 {
-	DECLARE_SINGLE_DFAULT(CTradeAccountService)
+	friend class CTraderCenter;
+
 public:
+	CTradeAccountService();
+	~CTradeAccountService();
+	CTradeAccountService(const CTradeAccountService& arg) = delete;
+	CTradeAccountService& operator=(const CTradeAccountService& arg) = delete;
+
+	void SetTraderCenter(CTraderCenter* pCenter);
+	bool IsAuthenticated() const noexcept;
+
 	struct CResult
 	{
 		bool m_bSessionReset{ false };
@@ -27,14 +37,13 @@ public:
 	void Initialize();
 	_TyCallbackId Subscribe(_TyHandler&& handler);
 	void Unsubscribe(_TyCallbackId token);
-	std::uint64_t
-	Send(_TyRequest type, const _TyAccountIndex& account = {},
-		 const std::unordered_map<std::string, std::string>& extra = {});
+	std::uint64_t Send(_TyRequest type, const _TyAccountIndex& account = {}, const std::unordered_map<std::string, std::string>& extra = {});
 	std::vector<request::TradeAccountRecord> GetAccounts() const;
 	bool IsSupported() const;
 	std::uint64_t GetGeneration() const;
 
 private:
+	bool SendRequest(const CRequest& request);
 	bool OnResponse(const CRequest& response);
 	struct CPending
 	{
@@ -51,4 +60,6 @@ private:
 	TMessagePump<CResult> m_results;
 	std::condition_variable m_wake;
 	std::jthread m_timeouts;
+	// Borrowed from CBootLoader; detached after network callbacks drain.
+	CTraderCenter* m_pTraderCenter{ nullptr };
 };

@@ -1,6 +1,8 @@
-#include "../request/request.h"
 #ifndef XTRADER_COMPONENTS_CVIEWSTRATEGYSETTINGS_H
 #define XTRADER_COMPONENTS_CVIEWSTRATEGYSETTINGS_H
+
+#include "../system/CTraderServices.h"
+#include "../request/request.h"
 
 #include "../service/strategy/CStrategyService.h"
 #include <QString>
@@ -23,6 +25,7 @@ class CViewStrategySettings final : public QWidget
 {
 	Q_OBJECT
 public:
+	void Initialize(CTraderServices& services);
 	explicit CViewStrategySettings(QWidget* pParent = nullptr);
 	~CViewStrategySettings() override;
 
@@ -54,5 +57,8 @@ private:
 	QLabel* m_pDetails{ nullptr };
 	QLineEdit* m_pSearch{ nullptr };
 	QComboBox* m_pStatus{ nullptr };
+
+private:
+	CTraderServices* m_pServices{ nullptr };
 };
 #endif

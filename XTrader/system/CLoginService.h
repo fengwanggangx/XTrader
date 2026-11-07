@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../basic/TMessagePump.h"
-#include "../common/ISingleton.h"
 #include "CHostMgr.h"
 
 #include <atomic>
@@ -61,11 +60,24 @@ struct AuthEvent
 	std::string m_message;
 };
 
-class CLoginService final : public ISingleton<CLoginService>
+enum class SessionState;
+class CTraderCenter;
+
+class CLoginService final
 {
-	DECLARE_SINGLE_DFAULT(CLoginService)
 
 public:
+	CLoginService();
+	~CLoginService();
+	CLoginService(const CLoginService& arg) = delete;
+	CLoginService& operator=(const CLoginService& arg) = delete;
+
+	void SetTraderCenter(CTraderCenter* pCenter);
+	bool IsAuthenticated() const noexcept;
+	SessionState GetState() const noexcept;
+	void SetStateCallback(std::function<void(SessionState, const std::string&)>&& callback);
+	void RegisterStateHandler(std::function<void(SessionState, const std::string&)>&& callback);
+
 	using _TyCallback = std::function<void(const AuthEvent&)>;
 
 	_TyCallbackId Subscribe(_TyCallback&& callback);
@@ -77,4 +89,6 @@ public:
 private:
 	TMessagePump<AuthEvent> m_dispatcher_auth;
 	std::atomic_bool m_busy{ false };
+	// Borrowed from CBootLoader; detached after network callbacks drain.
+	CTraderCenter* m_pTraderCenter{ nullptr };
 };

@@ -1,6 +1,8 @@
 #ifndef XTRADER_COMPONENTS_CMARKETPAGECONTROLLER_H
 #define XTRADER_COMPONENTS_CMARKETPAGECONTROLLER_H
 
+#include "../system/CTraderServices.h"
+
 #include "../service/hqmarket/CHQMarketService.h"
 #include <QObject>
 #include <QString>
@@ -27,8 +29,8 @@ enum class MarketTableMode
 // Shared page-side market logic, with no layout or search controls.
 class CMarketPageController final : public QObject
 {
-	public:
-	CMarketPageController(MarketTableMode mode, CUITable* pTable, QObject* pParent);
+public:
+	CMarketPageController(CTraderServices& services, MarketTableMode mode, CUITable* pTable, QObject* pParent);
 	~CMarketPageController() override;
 	void SetConstituents(const std::vector<CSecurity>& securities);
 	void SetMarket(int nIndex);
@@ -39,7 +41,7 @@ class CMarketPageController final : public QObject
 	void SetIntradayDays(int nDays);
 	void RequestHistory(CurveMode mode);
 
-	private:
+private:
 	void BindService();
 	void EnsureSelection();
 	void RefreshSelection();
@@ -74,6 +76,9 @@ class CMarketPageController final : public QObject
 	QTimer* m_pHistoryTimer{ nullptr };
 	int m_nIntradayDays{ 1 };
 	bool m_bMinuteIncrementalRequest{ false };
+
+private:
+	CTraderServices* m_pServices{ nullptr };
 };
 
 #endif

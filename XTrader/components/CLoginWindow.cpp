@@ -61,8 +61,9 @@ namespace
 	};
 } // namespace
 
-LoginWindow::LoginWindow(QWidget* pParent) : QDialog(pParent), m_ui(std::make_unique<Ui::LoginWindowClass>())
+LoginWindow::LoginWindow(CTraderServices& services, QWidget* pParent) : QDialog(pParent), m_ui(std::make_unique<Ui::LoginWindowClass>())
 {
+	m_pServices = &services;
 	m_ui->setupUi(this);
 	UIStyle::Apply(*this, ":/styles/login.qss");
 	setWindowFlag(Qt::FramelessWindowHint);
@@ -74,44 +75,43 @@ LoginWindow::LoginWindow(QWidget* pParent) : QDialog(pParent), m_ui(std::make_un
 	}, m_ui->comboBox_user));
 	LoadUsers();
 	QPointer<LoginWindow> safeThis(this);
-	m_loginCallbackId = CLoginService::InstanceRef().Subscribe([safeThis](const AuthEvent& event)
-															   {
-																   if (safeThis.isNull())
-																   {
-																	   return;
-																   }
-																   QMetaObject::invokeMethod(safeThis.data(), [safeThis, event]()
-																							 {
-																								 if (safeThis.isNull() || (AuthOperation::Login != event.m_operation))
-																								 {
-																									 return;
-																								 }
-																								 if (AuthState::Success == event.m_state)
-																								 {
-																									 safeThis->SavePendingUser();
-																									 safeThis->ClearPendingCredentials();
-																									 safeThis->accept();
-																								 }
-																								 else if (AuthState::Failed == event.m_state)
-																								 {
-																									 safeThis->ClearPendingCredentials();
-																									 safeThis->m_ui->pushButton_login->setEnabled(true);
-																									 QMessageBox::information(safeThis.data(), "提示", QString::fromStdString(event.m_message));
-																								 }
-																								 else if (AuthState::Cancelled == event.m_state)
-																								 {
-																									 safeThis->ClearPendingCredentials();
-																									 safeThis->m_ui->pushButton_login->setEnabled(true);
-																								 }
-																							 },
-																							 Qt::QueuedConnection);
-															   });
+	m_loginCallbackId = m_pServices->m_login.Subscribe([safeThis](const AuthEvent& event)
+	{
+		if (safeThis.isNull())
+		{
+			return;
+		}
+		QMetaObject::invokeMethod(safeThis.data(), [safeThis, event]()
+		{
+			if (safeThis.isNull() || (AuthOperation::Login != event.m_operation))
+			{
+				return;
+			}
+			if (AuthState::Success == event.m_state)
+			{
+				safeThis->SavePendingUser();
+				safeThis->ClearPendingCredentials();
+				safeThis->accept();
+			}
+			else if (AuthState::Failed == event.m_state)
+			{
+				safeThis->ClearPendingCredentials();
+				safeThis->m_ui->pushButton_login->setEnabled(true);
+				QMessageBox::information(safeThis.data(), "提示", QString::fromStdString(event.m_message));
+			}
+			else if (AuthState::Cancelled == event.m_state)
+			{
+				safeThis->ClearPendingCredentials();
+				safeThis->m_ui->pushButton_login->setEnabled(true);
+			}
+		}, Qt::QueuedConnection);
+	});
 }
 
 LoginWindow::~LoginWindow()
 {
 	ClearPendingCredentials();
-	CLoginService::InstanceRef().Unsubscribe(m_loginCallbackId);
+	m_pServices->m_login.Unsubscribe(m_loginCallbackId);
 }
 
 void LoginWindow::ConnectSlots()
@@ -181,12 +181,12 @@ void LoginWindow::OnLoginBtnClicked()
 	param.m_host = std::move(*site);
 	m_strPendingUser = param.m_strUser;
 	m_strPendingPassword = param.m_strPassword;
-	CLoginService::InstanceRef().Authenticate(param);
+	m_pServices->m_login.Authenticate(param);
 }
 
 void LoginWindow::OnRegisterBtnClicked()
 {
-	CRegisterDialog dialog(this);
+	CRegisterDialog dialog(*m_pServices, this);
 	dialog.SetUser(m_ui->comboBox_user->currentText());
 	if (QDialog::Accepted == dialog.exec())
 	{

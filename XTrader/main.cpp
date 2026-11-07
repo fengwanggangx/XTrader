@@ -2,7 +2,6 @@
 #include "components/CMainWindow.h"
 #include "log/defines_log.h"
 #include "system/CBootLoader.h"
-#include "system/CSession.h"
 
 #include <QtWidgets/QApplication>
 #include <QIcon>
@@ -27,20 +26,21 @@ int main(int argc, char* argv[])
 		return boot.GetErrorCode();
 	}
 
-	LoginWindow loginWindow;
-	if (QDialog::Accepted != loginWindow.exec())
+	int result = 0;
 	{
-		CSession::InstanceRef().Stop();
-		boot.Finalize();
-		CLogger::InstancePtr()->ShutDown();
-		return 0;
+		LoginWindow loginWindow(boot.GetServices());
+		if (QDialog::Accepted == loginWindow.exec())
+		{
+			CMainWindow mainWindow(boot.GetServices());
+			mainWindow.show();
+			result = application.exec();
+			boot.Stop();
+		}
+		else
+		{
+			boot.Stop();
+		}
 	}
-
-	CMainWindow mainWindow;
-	mainWindow.show();
-	int result = application.exec();
-
-	CSession::InstanceRef().Stop();
 	boot.Finalize();
 	CLogger::InstancePtr()->ShutDown();
 	return result;
