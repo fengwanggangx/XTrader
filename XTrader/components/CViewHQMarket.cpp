@@ -82,6 +82,7 @@ void CViewHQMarket::Initialize(CTraderServices& services)
 
 	connect(m_ui->marketTabs, &QTabWidget::currentChanged, this, &CViewHQMarket::OnTabChanged);
 	connect(m_ui->rankingTable, &QTableWidget::cellClicked, this, &CViewHQMarket::OnRankingCellClicked);
+	OnTabChanged(m_ui->marketTabs->currentIndex());
 }
 
 void CViewHQMarket::OnSectorListUpdate(QPointer<CViewHQMarket> pInstance, const CSectorListEvent& ev)
@@ -252,6 +253,7 @@ void CViewHQMarket::RefreshSectors(const CSectorListEvent& ev)
 		m_ui->rankingTable->setItem(nIndex, 1, pName);
 		m_ui->rankingTable->setItem(nIndex, 2, pPercent);
 	}
+	SelectSector(m_strSelectedSectorCode.isEmpty() ? QString::fromStdString(m_sectors.front().m_strCode) : m_strSelectedSectorCode);
 }
 
 void CViewHQMarket::SelectSector(const QString& strSectorCode)
@@ -261,6 +263,16 @@ void CViewHQMarket::SelectSector(const QString& strSectorCode)
 		return;
 	}
 	m_strSelectedSectorCode = strSectorCode;
+	m_ui->rankingTable->clearSelection();
+	for (int nIndex = 0; m_ui->rankingTable->rowCount() > nIndex; ++nIndex)
+	{
+		QTableWidgetItem* pName = m_ui->rankingTable->item(nIndex, 1);
+		if ((nullptr != pName) && (strSectorCode == pName->data(Qt::UserRole).toString()))
+		{
+			m_ui->rankingTable->selectRow(nIndex);
+			break;
+		}
+	}
 	for (int nIndex = 0; m_ui->sectorGrid->count() > nIndex; ++nIndex)
 	{
 		QPushButton* pButton = qobject_cast<QPushButton*>(m_ui->sectorGrid->itemAt(nIndex)->widget());
