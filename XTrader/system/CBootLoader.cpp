@@ -39,8 +39,8 @@ bool CBootLoader::Initialize()
 		m_bNetInitialized = true;
 
 		ini::CINIHandler& hIni = ini::CINIHandler::InstanceRef();
-		int nSqlitePoolSize = hIni.GetValue(ini::Config::System, "Sqlite", "pool_size", -1);
-		std::string strSqliteDB = hIni.GetValue(ini::Config::System, "Sqlite", "db_name", "");
+		int nSqlitePoolSize = hIni.GetInt(ini::Config::System, "Sqlite", "pool_size");
+		std::string strSqliteDB = hIni.GetString(ini::Config::System, "Sqlite", "db_name");
 		if ((nSqlitePoolSize <= 0) || strSqliteDB.empty())
 		{
 			m_nErrorCode = 2;
