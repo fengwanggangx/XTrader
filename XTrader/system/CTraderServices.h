@@ -2,13 +2,13 @@
 
 class CLoginService;
 class CStrategyService;
-class CHQMarketService;
-class CTradeAccountService;
+class CHQService;
+class CAccountService;
 
 struct CTraderServices
 {
 	CLoginService& m_login;
 	CStrategyService& m_strategy;
-	CHQMarketService& m_market;
-	CTradeAccountService& m_account;
+	CHQService& m_hq;
+	CAccountService& m_account;
 };

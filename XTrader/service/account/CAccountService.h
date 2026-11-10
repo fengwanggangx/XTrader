@@ -10,15 +10,15 @@
 #include <vector>
 class CTraderCenter;
 
-class CTradeAccountService final
+class CAccountService final
 {
 	friend class CTraderCenter;
 
 public:
-	CTradeAccountService();
-	~CTradeAccountService();
-	CTradeAccountService(const CTradeAccountService& arg) = delete;
-	CTradeAccountService& operator=(const CTradeAccountService& arg) = delete;
+	CAccountService();
+	~CAccountService();
+	CAccountService(const CAccountService& arg) = delete;
+	CAccountService& operator=(const CAccountService& arg) = delete;
 
 	void SetTraderCenter(CTraderCenter* pCenter);
 	bool IsAuthenticated() const noexcept;
@@ -44,7 +44,7 @@ public:
 
 private:
 	bool SendRequest(const CRequest& request);
-	bool OnResponse(const CRequest& response);
+	bool OnRequestReply(const CRequest& response);
 	struct CPending
 	{
 		_TyAccountIndex m_accountIndex{};

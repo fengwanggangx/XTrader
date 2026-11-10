@@ -6,7 +6,7 @@
 #include <QWidget>
 #include <QPointer>
 #include <memory>
-#include "../service/hqmarket/CHQMarketService.h"
+#include "../service/hqmarket/CHQService.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui
@@ -45,9 +45,9 @@ private:
 	void SelectSector(const QString& strSectorCode);
 
 private:
-	CHQMarketService::_TyHandlerToken m_nQuoteTableToken{ 0 };
-	CHQMarketService::_TyHandlerToken m_nSectorListToken{ 0 };
-	CHQMarketService::_TyHandlerToken m_nSectorConstituentsToken{ 0 };
+	CHQService::_TyHandlerToken m_nQuoteTableToken{ 0 };
+	CHQService::_TyHandlerToken m_nSectorListToken{ 0 };
+	CHQService::_TyHandlerToken m_nSectorConstituentsToken{ 0 };
 	std::shared_ptr<class CQuoteTableUpdateState> m_quoteUpdateState;
 	std::vector<CSectorInfo> m_sectors;
 	QString m_strSelectedSectorCode;

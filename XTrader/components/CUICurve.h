@@ -1,7 +1,7 @@
 #ifndef XTRADER_COMPONENTS_CUICURVE_H
 #define XTRADER_COMPONENTS_CUICURVE_H
 
-#include "../service/hqmarket/CHQMarketService.h"
+#include "../service/hqmarket/CHQService.h"
 
 #include <QWidget>
 
@@ -35,7 +35,7 @@ enum class CurveMode
 
 class CUICurve final : public QWidget
 {
-	public:
+public:
 	explicit CUICurve(QWidget* pParent = nullptr);
 	~CUICurve() override;
 
@@ -48,11 +48,11 @@ class CUICurve final : public QWidget
 	void SetBars(const std::vector<CMarketBar>& bars);
 	void Clear();
 
-	protected:
+protected:
 	void changeEvent(QEvent* pEvent) override;
 	bool eventFilter(QObject* pObject, QEvent* pEvent) override;
 
-	private:
+private:
 	void ApplyPalette();
 	void SchedulePaletteUpdate();
 	void InitializePlots();
@@ -64,7 +64,7 @@ class CUICurve final : public QWidget
 	std::shared_ptr<const std::vector<CMarketBar>> AggregateBars(bool bMonthly) const;
 	std::shared_ptr<const std::vector<CMarketBar>> AggregateMinuteBars(int nMinutes) const;
 
-	private:
+private:
 	std::unique_ptr<Ui::CUICurveClass> m_ui;
 	bool m_bApplyingPalette{ false };
 	bool m_bPaletteUpdatePending{ false };

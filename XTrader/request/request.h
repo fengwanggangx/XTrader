@@ -167,8 +167,7 @@ inline bool ReadAccountIdentity(const CRequest& request,
 		{
 			return false;
 		}
-		account = { std::stoull(broker), request.GetExtraData("site"),
-			request.GetExtraData("account") };
+		account = { std::stoull(broker), request.GetExtraData("account") };
 		return IsAccountValid(account);
 	}
 	catch (const std::exception&)
@@ -180,9 +179,8 @@ inline bool ReadAccountIdentity(const CRequest& request,
 inline void WriteAccountIdentity(const _TyAccountIndex& account,
 	CRequest& request)
 {
-	request.SetExtraData("broker_id", std::to_string(std::get<0>(account)));
-	request.SetExtraData("site", std::get<1>(account));
-	request.SetExtraData("account", std::get<2>(account));
+	request.SetExtraData("broker_id", std::to_string(account.first));
+	request.SetExtraData("account", account.second);
 }
 
 #endif

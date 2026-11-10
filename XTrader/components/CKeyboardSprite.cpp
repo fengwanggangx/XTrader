@@ -35,7 +35,7 @@ namespace
 		}
 		return nRank;
 	}
-}
+} // namespace
 
 CKeyboardSprite::CKeyboardSprite(QWidget* pParent) : QWidget(pParent, Qt::Tool | Qt::FramelessWindowHint)
 {
@@ -189,7 +189,7 @@ void CKeyboardSprite::Refresh()
 	std::size_t nSize = m_securities.size();
 	for (std::size_t nIndex = 0; nSize > nIndex; ++nIndex)
 	{
-		if ((Exchange::sse != m_securities[nIndex].m_market) && (Exchange::szse != m_securities[nIndex].m_market) && (Exchange::bse != m_securities[nIndex].m_market))
+		if ((Exchange::sse != m_securities[nIndex].m_hq) && (Exchange::szse != m_securities[nIndex].m_hq) && (Exchange::bse != m_securities[nIndex].m_hq))
 		{
 			continue;
 		}
@@ -212,7 +212,7 @@ void CKeyboardSprite::Refresh()
 		{
 			return left.m_strCode < right.m_strCode;
 		}
-		return left.m_market < right.m_market;
+		return left.m_hq < right.m_hq;
 	});
 	if (m_resultIndices.empty())
 	{
@@ -225,7 +225,8 @@ void CKeyboardSprite::Refresh()
 	for (std::size_t nIndex : m_resultIndices)
 	{
 		const CSecurity& security = m_securities[nIndex];
-		QString strMarket = Exchange::sse == security.m_market ? QStringLiteral("沪A") : Exchange::szse == security.m_market ? QStringLiteral("深A") : QStringLiteral("北交所");
+		QString strMarket = Exchange::sse == security.m_hq ? QStringLiteral("沪A") : Exchange::szse == security.m_hq ? QStringLiteral("深A")
+																													 : QStringLiteral("北交所");
 		QString values[] = { QString::fromStdString(security.m_strCode), QString::fromStdString(security.m_strName), strMarket };
 		for (int nColumn = 0; 3 > nColumn; ++nColumn)
 		{

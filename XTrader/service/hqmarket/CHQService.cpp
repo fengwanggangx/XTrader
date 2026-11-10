@@ -1,4 +1,4 @@
-#include "CHQMarketService.h"
+#include "CHQService.h"
 
 #include "../../system/CTraderCenter.h"
 #include "../../request/v1/market.pb.h"
@@ -134,17 +134,17 @@ namespace
 	}
 } // namespace
 
-CHQMarketService::CHQMarketService()
+CHQService::CHQService()
 {
 	m_request_handler = {
-		{ _TyRequest::MARKET_SECTORS_QUERY, std::bind_front(&CHQMarketService::OnSectorListReply, this) },
-		{ _TyRequest::MARKET_SECTOR_CONSTITUENTS_QUERY, std::bind_front(&CHQMarketService::OnSectorConstituentsReply, this) },
-		{ _TyRequest::MARKET_SECURITIES_QUERY, std::bind_front(&CHQMarketService::OnSecurityListReply, this) },
-		{ _TyRequest::MARKET_DEPTH_PUSH, std::bind_front(&CHQMarketService::OnDepthReply, this) },
-		{ _TyRequest::MARKET_BARS_QUERY, std::bind_front(&CHQMarketService::OnHistoryReply, this) },
-		{ _TyRequest::MARKET_QUOTE_PUSH, std::bind_front(&CHQMarketService::OnQuoteReply, this) },
-		{ _TyRequest::MARKET_SUBSCRIBE, std::bind_front(&CHQMarketService::OnSubscriptionAck, this) },
-		{ _TyRequest::MARKET_UNSUBSCRIBE, std::bind_front(&CHQMarketService::OnSubscriptionAck, this) }
+		{ _TyRequest::MARKET_SECTORS_QUERY, std::bind_front(&CHQService::OnSectorListReply, this) },
+		{ _TyRequest::MARKET_SECTOR_CONSTITUENTS_QUERY, std::bind_front(&CHQService::OnSectorConstituentsReply, this) },
+		{ _TyRequest::MARKET_SECURITIES_QUERY, std::bind_front(&CHQService::OnSecurityListReply, this) },
+		{ _TyRequest::MARKET_DEPTH_PUSH, std::bind_front(&CHQService::OnDepthReply, this) },
+		{ _TyRequest::MARKET_BARS_QUERY, std::bind_front(&CHQService::OnHistoryReply, this) },
+		{ _TyRequest::MARKET_QUOTE_PUSH, std::bind_front(&CHQService::OnQuoteReply, this) },
+		{ _TyRequest::MARKET_SUBSCRIBE, std::bind_front(&CHQService::OnSubscriptionAck, this) },
+		{ _TyRequest::MARKET_UNSUBSCRIBE, std::bind_front(&CHQService::OnSubscriptionAck, this) }
 	};
 	m_quoteTable.AddColumn(CDataColumnSchema{ static_cast<_TyDataColumnId>(MarketQuoteColumn::Security), "代码", DataType::String });
 	m_quoteTable.AddColumn(CDataColumnSchema{ static_cast<_TyDataColumnId>(MarketQuoteColumn::Name), "名称", DataType::String });
@@ -161,7 +161,7 @@ CHQMarketService::CHQMarketService()
 	m_quoteTable.AddColumn(CDataColumnSchema{ static_cast<_TyDataColumnId>(MarketQuoteColumn::PinyinShortAliases), "拼音简称", DataType::String });
 }
 
-CHQMarketService::~CHQMarketService()
+CHQService::~CHQService()
 {
 	m_bStopping.store(true);
 	m_cv_pendingQuotes.notify_all();
@@ -171,7 +171,7 @@ CHQMarketService::~CHQMarketService()
 	}
 }
 
-void CHQMarketService::Initialize()
+void CHQService::Initialize()
 {
 	if (nullptr == m_pTraderCenter)
 	{
@@ -183,7 +183,7 @@ void CHQMarketService::Initialize()
 	}
 	m_bInitialized = true;
 	m_bStopping.store(false);
-	m_quoteWorker = std::thread(&CHQMarketService::QuoteWorkerLoop, this);
+	m_quoteWorker = std::thread(&CHQService::QuoteWorkerLoop, this);
 	m_pTraderCenter->RegisterStateHandler([this](SessionState state, const std::string&)
 	{
 		if (SessionState::Ready == state)
@@ -211,78 +211,83 @@ void CHQMarketService::Initialize()
 	});
 }
 
-CHQMarketService::_TyHandlerToken CHQMarketService::AddQuoteHandler(_TyQuoteHandler&& handler)
+CHQService::_TyHandlerToken CHQService::AddQuoteHandler(_TyQuoteHandler&& handler)
 {
 	return m_pump_quote.Subscribe(std::move(handler));
 }
 
-void CHQMarketService::RemoveQuoteHandler(_TyHandlerToken token)
+void CHQService::RemoveQuoteHandler(_TyHandlerToken token)
 {
 	m_pump_quote.Unsubscribe(token);
 }
 
-CHQMarketService::_TyHandlerToken CHQMarketService::AddDepthHandler(_TyDepthHandler&& handler)
+CHQService::_TyHandlerToken CHQService::AddDepthHandler(_TyDepthHandler&& handler)
 {
 	return m_pump_depth.Subscribe(std::move(handler));
 }
 
-void CHQMarketService::RemoveDepthHandler(_TyHandlerToken token)
+void CHQService::RemoveDepthHandler(_TyHandlerToken token)
 {
 	m_pump_depth.Unsubscribe(token);
 }
 
-CHQMarketService::_TyHandlerToken CHQMarketService::AddHistoryHandler(_TyHistoryHandler&& handler)
+CHQService::_TyHandlerToken CHQService::AddHistoryHandler(_TyHistoryHandler&& handler)
 {
 	return m_pump_history.Subscribe([handler = std::move(handler)](const CMarketHistoryEvent& event)
-									{ handler(event.m_requestId, event.m_strSecurity, event.m_period, event.m_bars, event.m_strError); });
+	{
+		handler(event.m_requestId, event.m_strSecurity, event.m_period, event.m_bars, event.m_strError);
+	});
 }
 
-void CHQMarketService::RemoveHistoryHandler(_TyHandlerToken token)
+void CHQService::RemoveHistoryHandler(_TyHandlerToken token)
 {
 	m_pump_history.Unsubscribe(token);
 }
 
-CHQMarketService::_TyHandlerToken CHQMarketService::AddQuoteTableHandler(_TyQuoteTableHandler&& handler)
+CHQService::_TyHandlerToken CHQService::AddQuoteTableHandler(_TyQuoteTableHandler&& handler)
 {
-	return m_pump_quote_table.Subscribe([handler = std::move(handler)](const CQuoteTableEvent& event) { handler(event.m_view, event.m_changes); });
+	return m_pump_quote_table.Subscribe([handler = std::move(handler)](const CQuoteTableEvent& event)
+	{
+		handler(event.m_view, event.m_changes);
+	});
 }
 
-void CHQMarketService::RemoveQuoteTableHandler(_TyHandlerToken token)
+void CHQService::RemoveQuoteTableHandler(_TyHandlerToken token)
 {
 	m_pump_quote_table.Unsubscribe(token);
 }
 
-CHQMarketService::_TyHandlerToken CHQMarketService::AddSecurityListHandler(_TySecurityListHandler&& handler)
+CHQService::_TyHandlerToken CHQService::AddSecurityListHandler(_TySecurityListHandler&& handler)
 {
 	return m_pump_security_list.Subscribe(std::move(handler));
 }
 
-void CHQMarketService::RemoveSecurityListHandler(_TyHandlerToken token)
+void CHQService::RemoveSecurityListHandler(_TyHandlerToken token)
 {
 	m_pump_security_list.Unsubscribe(token);
 }
 
-CHQMarketService::_TyHandlerToken CHQMarketService::AddSectorListHandler(_TySectorListHandler&& handler)
+CHQService::_TyHandlerToken CHQService::AddSectorListHandler(_TySectorListHandler&& handler)
 {
 	return m_pump_sector_list.Subscribe(std::move(handler));
 }
 
-void CHQMarketService::RemoveSectorListHandler(_TyHandlerToken token)
+void CHQService::RemoveSectorListHandler(_TyHandlerToken token)
 {
 	m_pump_sector_list.Unsubscribe(token);
 }
 
-CHQMarketService::_TyHandlerToken CHQMarketService::AddSectorConstituentsHandler(_TySectorConstituentsHandler&& handler)
+CHQService::_TyHandlerToken CHQService::AddSectorConstituentsHandler(_TySectorConstituentsHandler&& handler)
 {
 	return m_pump_sector_constituents.Subscribe(std::move(handler));
 }
 
-void CHQMarketService::RemoveSectorConstituentsHandler(_TyHandlerToken token)
+void CHQService::RemoveSectorConstituentsHandler(_TyHandlerToken token)
 {
 	m_pump_sector_constituents.Unsubscribe(token);
 }
 
-void CHQMarketService::RegisterSecurity(const CSecurity& info)
+void CHQService::RegisterSecurity(const CSecurity& info)
 {
 	std::string strKey = info.String();
 	if (strKey.empty())
@@ -321,7 +326,7 @@ void CHQMarketService::RegisterSecurity(const CSecurity& info)
 	m_cv_pendingQuotes.notify_one();
 }
 
-bool CHQMarketService::SubscribeQuote(const CSecurity& info)
+bool CHQService::SubscribeQuote(const CSecurity& info)
 {
 	std::string strSecurity = info.String();
 	request::_TyParams parameters{
@@ -331,7 +336,7 @@ bool CHQMarketService::SubscribeQuote(const CSecurity& info)
 	return Subscribe("watchlist:" + strSecurity, parameters);
 }
 
-bool CHQMarketService::UnsubscribeQuote(const CSecurity& info)
+bool CHQService::UnsubscribeQuote(const CSecurity& info)
 {
 	std::string strSecurity = info.String();
 	request::_TyParams parameters{
@@ -341,7 +346,7 @@ bool CHQMarketService::UnsubscribeQuote(const CSecurity& info)
 	return Unsubscribe("watchlist:" + strSecurity, parameters);
 }
 
-bool CHQMarketService::SubscribeQuotes(const std::vector<CSecurity>& securities)
+bool CHQService::SubscribeQuotes(const std::vector<CSecurity>& securities)
 {
 	if (securities.empty())
 	{
@@ -359,7 +364,7 @@ bool CHQMarketService::SubscribeQuotes(const std::vector<CSecurity>& securities)
 	return SendRequest(request::Subscription(securities, std::vector<Channel>{ Channel::quote }));
 }
 
-bool CHQMarketService::UnsubscribeQuotes(const std::vector<CSecurity>& securities)
+bool CHQService::UnsubscribeQuotes(const std::vector<CSecurity>& securities)
 {
 	if (securities.empty())
 	{
@@ -378,7 +383,7 @@ bool CHQMarketService::UnsubscribeQuotes(const std::vector<CSecurity>& securitie
 	return SendRequest(request::UnSubscription(securities, std::vector<Channel>{ Channel::quote }));
 }
 
-bool CHQMarketService::SubscribeDepth(const CSecurity& info)
+bool CHQService::SubscribeDepth(const CSecurity& info)
 {
 	std::string strSecurity = info.String();
 	request::_TyParams parameters{
@@ -388,7 +393,7 @@ bool CHQMarketService::SubscribeDepth(const CSecurity& info)
 	return Subscribe("depth:" + strSecurity, parameters);
 }
 
-bool CHQMarketService::UnsubscribeDepth(const CSecurity& info)
+bool CHQService::UnsubscribeDepth(const CSecurity& info)
 {
 	std::string strSecurity = info.String();
 	request::_TyParams parameters{
@@ -398,7 +403,7 @@ bool CHQMarketService::UnsubscribeDepth(const CSecurity& info)
 	return Unsubscribe("depth:" + strSecurity, parameters);
 }
 
-bool CHQMarketService::QueryHistory(const CSecurity& info, MarketBarPeriod period, std::int64_t nBeginTime, std::int64_t nEndTime, _TyRequestId* requestId)
+bool CHQService::QueryHistory(const CSecurity& info, MarketBarPeriod period, std::int64_t nBeginTime, std::int64_t nEndTime, _TyRequestId* requestId)
 {
 	CRequest request = request::QueryMarketBars(info, ChannelName(period), nBeginTime, nEndTime);
 	if (nullptr != requestId)
@@ -418,12 +423,12 @@ bool CHQMarketService::QueryHistory(const CSecurity& info, MarketBarPeriod perio
 	return false;
 }
 
-bool CHQMarketService::QuerySecurities()
+bool CHQService::QuerySecurities()
 {
 	return SendRequest(request::QueryMarketSecurities());
 }
 
-bool CHQMarketService::QuerySectors(SectorType type)
+bool CHQService::QuerySectors(SectorType type)
 {
 	CRequest req = request::QueryMarketSectors(type);
 	m_nLatestSectorListRequest.store(req.GetId());
@@ -436,7 +441,7 @@ bool CHQMarketService::QuerySectors(SectorType type)
 	return false;
 }
 
-bool CHQMarketService::QuerySectorConstituents(SectorType type, const std::string& strSectorCode)
+bool CHQService::QuerySectorConstituents(SectorType type, const std::string& strSectorCode)
 {
 	CRequest req = request::QueryMarketSectorConstituents(type, strSectorCode);
 	m_nLatestSectorConstituentsRequest.store(req.GetId());
@@ -449,7 +454,7 @@ bool CHQMarketService::QuerySectorConstituents(SectorType type, const std::strin
 	return false;
 }
 
-bool CHQMarketService::Subscribe(const std::string& strKey, const request::_TyParams& param)
+bool CHQService::Subscribe(const std::string& strKey, const request::_TyParams& param)
 {
 	if (strKey.empty())
 	{
@@ -467,7 +472,7 @@ bool CHQMarketService::Subscribe(const std::string& strKey, const request::_TyPa
 	return SendRequest(request::Subscription(param));
 }
 
-bool CHQMarketService::Unsubscribe(const std::string& strKey, const request::_TyParams& param)
+bool CHQService::Unsubscribe(const std::string& strKey, const request::_TyParams& param)
 {
 	{
 		std::lock_guard<std::mutex> lock(m_mtx_subscriptions);
@@ -479,7 +484,7 @@ bool CHQMarketService::Unsubscribe(const std::string& strKey, const request::_Ty
 	return SendRequest(request::UnSubscription(param));
 }
 
-void CHQMarketService::RestoreSubscriptions()
+void CHQService::RestoreSubscriptions()
 {
 	std::unordered_map<std::string, request::_TyParams> subscriptions;
 	{
@@ -511,25 +516,25 @@ void CHQMarketService::RestoreSubscriptions()
 	}
 }
 
-bool CHQMarketService::FindQuote(const CSecurity& info, CQuote& result) const
+bool CHQService::FindQuote(const CSecurity& info, CQuote& result) const
 {
 	std::shared_lock lock(m_mtx_quotes);
 	return container::try_vfind(m_quotes, info.String(), result);
 }
 
-bool CHQMarketService::FindDepth(const CSecurity& info, CMarketDepth& result) const
+bool CHQService::FindDepth(const CSecurity& info, CMarketDepth& result) const
 {
 	std::shared_lock lock(m_mtx_depths);
 	return container::try_vfind(m_depths, info.String(), result);
 }
 
-bool CHQMarketService::FindHistory(const CSecurity& info, MarketBarPeriod period, std::vector<CMarketBar>& result) const
+bool CHQService::FindHistory(const CSecurity& info, MarketBarPeriod period, std::vector<CMarketBar>& result) const
 {
 	std::shared_lock lock(m_mtx_history);
 	return container::try_vfind(m_history, HistoryKey(info.String(), period), result);
 }
 
-std::vector<CIndicatorPoint> CHQMarketService::CalculateMovingAverage(const std::vector<CMarketBar>& bars, std::size_t nPeriod) const
+std::vector<CIndicatorPoint> CHQService::CalculateMovingAverage(const std::vector<CMarketBar>& bars, std::size_t nPeriod) const
 {
 	std::vector<CIndicatorPoint> values;
 	values.reserve(bars.size());
@@ -555,24 +560,24 @@ std::vector<CIndicatorPoint> CHQMarketService::CalculateMovingAverage(const std:
 	return values;
 }
 
-CDataTableView CHQMarketService::GetQuoteTableView() const
+CDataTableView CHQService::GetQuoteTableView() const
 {
 	return m_quoteTable.GetView();
 }
 
-std::vector<CSecurity> CHQMarketService::GetSecurities() const
+std::vector<CSecurity> CHQService::GetSecurities() const
 {
 	std::shared_lock lock(m_mtx_securities);
 	return m_securities;
 }
 
-std::vector<CSectorInfo> CHQMarketService::GetSectors() const
+std::vector<CSectorInfo> CHQService::GetSectors() const
 {
 	std::shared_lock lock(m_mtx_sectors);
 	return m_sectors;
 }
 
-CMarketRuntimeMetrics CHQMarketService::GetRuntimeMetrics() const
+CMarketRuntimeMetrics CHQService::GetRuntimeMetrics() const
 {
 	CMarketRuntimeMetrics metrics;
 	metrics.m_nQuoteReceived = m_runtimeMetrics.m_nQuoteReceived.load();
@@ -591,12 +596,12 @@ CMarketRuntimeMetrics CHQMarketService::GetRuntimeMetrics() const
 	return metrics;
 }
 
-void CHQMarketService::SetPendingQuoteLimit(std::size_t count)
+void CHQService::SetPendingQuoteLimit(std::size_t count)
 {
 	m_runtimeMetrics.m_nPendingQuoteLimit.store((std::max)(std::size_t(1), count));
 }
 
-bool CHQMarketService::AcceptQuoteSequence(std::uint64_t sequence)
+bool CHQService::AcceptQuoteSequence(std::uint64_t sequence)
 {
 	if (0 == sequence)
 	{
@@ -628,7 +633,7 @@ bool CHQMarketService::AcceptQuoteSequence(std::uint64_t sequence)
 	return true;
 }
 
-void CHQMarketService::EnqueueQuote(const CQuote& quote)
+void CHQService::EnqueueQuote(const CQuote& quote)
 {
 	std::string strSecurity = quote.m_security.String();
 	{
@@ -652,7 +657,7 @@ void CHQMarketService::EnqueueQuote(const CQuote& quote)
 	m_cv_pendingQuotes.notify_one();
 }
 
-void CHQMarketService::QuoteWorkerLoop()
+void CHQService::QuoteWorkerLoop()
 {
 	while (!m_bStopping.load())
 	{
@@ -660,7 +665,9 @@ void CHQMarketService::QuoteWorkerLoop()
 		{
 			std::unique_lock<std::mutex> lock(m_mtx_pendingQuotes);
 			m_cv_pendingQuotes.wait_for(lock, std::chrono::milliseconds(20), [this]()
-										{ return m_bStopping.load(); });
+			{
+				return m_bStopping.load();
+			});
 			quotes.swap(m_pendingQuotes);
 		}
 		if (!quotes.empty())
@@ -670,7 +677,7 @@ void CHQMarketService::QuoteWorkerLoop()
 	}
 }
 
-void CHQMarketService::FlushQuotes(std::unordered_map<std::string, CQuote>& quotes)
+void CHQService::FlushQuotes(std::unordered_map<std::string, CQuote>& quotes)
 {
 	CDataTableWriter writer = m_quoteTable.BeginWrite();
 	for (const auto& v : quotes)
@@ -747,7 +754,7 @@ void CHQMarketService::FlushQuotes(std::unordered_map<std::string, CQuote>& quot
 	m_pump_quote_table.Notify(CQuoteTableEvent{ std::move(view), std::move(changes) });
 }
 
-bool CHQMarketService::OnRequestReply(const CRequest& req)
+bool CHQService::OnRequestReply(const CRequest& req)
 {
 	const auto mIter = m_request_handler.find(req.GetType());
 	if (m_request_handler.end() != mIter)
@@ -757,7 +764,7 @@ bool CHQMarketService::OnRequestReply(const CRequest& req)
 	return false;
 }
 
-bool CHQMarketService::OnSectorListReply(const CRequest& req)
+bool CHQService::OnSectorListReply(const CRequest& req)
 {
 	if (req.GetId() != m_nLatestSectorListRequest.load())
 	{
@@ -794,7 +801,7 @@ bool CHQMarketService::OnSectorListReply(const CRequest& req)
 	return true;
 }
 
-bool CHQMarketService::OnSectorConstituentsReply(const CRequest& req)
+bool CHQService::OnSectorConstituentsReply(const CRequest& req)
 {
 	if (req.GetId() != m_nLatestSectorConstituentsRequest.load())
 	{
@@ -835,7 +842,7 @@ bool CHQMarketService::OnSectorConstituentsReply(const CRequest& req)
 	return true;
 }
 
-bool CHQMarketService::OnSecurityListReply(const CRequest& req)
+bool CHQService::OnSecurityListReply(const CRequest& req)
 {
 	const _TyReqData& message = req.GetData();
 	if (!message.has_security_list())
@@ -866,7 +873,7 @@ bool CHQMarketService::OnSecurityListReply(const CRequest& req)
 	subscriptions.reserve(ev.m_securities.size());
 	for (const auto& v : ev.m_securities)
 	{
-		if ((Exchange::sse != v.m_market) && (Exchange::szse != v.m_market) && (Exchange::bse != v.m_market))
+		if ((Exchange::sse != v.m_hq) && (Exchange::szse != v.m_hq) && (Exchange::bse != v.m_hq))
 		{
 			continue;
 		}
@@ -890,7 +897,7 @@ bool CHQMarketService::OnSecurityListReply(const CRequest& req)
 	return true;
 }
 
-bool CHQMarketService::OnDepthReply(const CRequest& req)
+bool CHQService::OnDepthReply(const CRequest& req)
 {
 	const _TyReqData& message = req.GetData();
 	if (!message.has_depth())
@@ -920,7 +927,7 @@ bool CHQMarketService::OnDepthReply(const CRequest& req)
 	return true;
 }
 
-bool CHQMarketService::OnHistoryReply(const CRequest& req)
+bool CHQService::OnHistoryReply(const CRequest& req)
 {
 	CMarketHistoryEvent ev;
 	{
@@ -966,7 +973,7 @@ bool CHQMarketService::OnHistoryReply(const CRequest& req)
 	return true;
 }
 
-bool CHQMarketService::OnQuoteReply(const CRequest& req)
+bool CHQService::OnQuoteReply(const CRequest& req)
 {
 	const _TyReqData& message = req.GetData();
 	if (!message.has_quote())
@@ -1004,7 +1011,7 @@ bool CHQMarketService::OnQuoteReply(const CRequest& req)
 	return true;
 }
 
-bool CHQMarketService::OnSubscriptionAck(const CRequest& req)
+bool CHQService::OnSubscriptionAck(const CRequest& req)
 {
 	const _TyReqData& message = req.GetData();
 	if (!message.has_subscription_ack())
@@ -1040,17 +1047,17 @@ bool CHQMarketService::OnSubscriptionAck(const CRequest& req)
 	return true;
 }
 
-void CHQMarketService::SetTraderCenter(CTraderCenter* pCenter)
+void CHQService::SetTraderCenter(CTraderCenter* pCenter)
 {
 	m_pTraderCenter = pCenter;
 }
 
-bool CHQMarketService::IsAuthenticated() const noexcept
+bool CHQService::IsAuthenticated() const noexcept
 {
 	return (nullptr != m_pTraderCenter) && m_pTraderCenter->IsAuthenticated();
 }
 
-bool CHQMarketService::SendRequest(const CRequest& request)
+bool CHQService::SendRequest(const CRequest& request)
 {
 	return (nullptr != m_pTraderCenter) && m_pTraderCenter->SendRequest(request);
 }

@@ -263,7 +263,7 @@
     <ClCompile Include="defines.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="service\hqmarket\CHQMarketService.cpp">
+    <ClCompile Include="service\hqmarket\CHQService.cpp">
       <Filter>Source Files\service\hqmarket</Filter>
     </ClCompile>
     <ClCompile Include="components\CUITable.cpp">
@@ -299,7 +299,7 @@
     <ClCompile Include="components\CViewTradingAccounts.cpp">
       <Filter>Source Files\components</Filter>
     </ClCompile>
-    <ClCompile Include="service\account\CTradeAccountService.cpp">
+    <ClCompile Include="service\account\CAccountService.cpp">
       <Filter>Source Files\service\account</Filter>
     </ClCompile>
   </ItemGroup>
@@ -595,7 +595,7 @@
     <ClInclude Include="system\CHostMgr.h">
       <Filter>Source Files\system</Filter>
     </ClInclude>
-    <ClInclude Include="service\hqmarket\CHQMarketService.h">
+    <ClInclude Include="service\hqmarket\CHQService.h">
       <Filter>Source Files\service\hqmarket</Filter>
     </ClInclude>
     <ClInclude Include="service\hqmarket\defines_hqmarket.h">
@@ -607,7 +607,7 @@
     <ClInclude Include="components\CViewTradingAccounts.h">
       <Filter>Source Files\components</Filter>
     </ClInclude>
-    <ClInclude Include="service\account\CTradeAccountService.h">
+    <ClInclude Include="service\account\CAccountService.h">
       <Filter>Source Files\service\account</Filter>
     </ClInclude>
   </ItemGroup>

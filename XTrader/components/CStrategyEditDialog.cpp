@@ -1,5 +1,5 @@
 #include "CStrategyEditDialog.h"
-#include "../service/account/CTradeAccountService.h"
+#include "../service/account/CAccountService.h"
 #include <QComboBox>
 #include <QFormLayout>
 #include <QPointer>
@@ -30,7 +30,7 @@ void CStrategyEditDialog::InitializeUI()
 	m_accounts = new QComboBox(this);
 	RefreshAccounts();
 	QPointer<CStrategyEditDialog> safeThis(this);
-	m_accountToken = m_pServices->m_account.Subscribe([safeThis](const CTradeAccountService::CResult&)
+	m_accountToken = m_pServices->m_account.Subscribe([safeThis](const CAccountService::CResult&)
 	{
 		if (!safeThis.isNull())
 		{
@@ -272,7 +272,7 @@ void CStrategyEditDialog::RefreshAccounts()
 	{
 		_TyAccountIndex identity;
 		DecodeAccount(selected.toStdString(), identity);
-		m_accounts->addItem(QString("账户 %1 / %2 / %3 [不可用]").arg(std::get<0>(identity)).arg(QString::fromStdString(std::get<1>(identity)), QString::fromStdString(std::get<2>(identity))), selected);
+		m_accounts->addItem(QString("账户 %1 / %2 [不可用]").arg(identity.first).arg(QString::fromStdString(identity.second)), selected);
 		index = m_accounts->count() - 1;
 	}
 	if (0 == m_accounts->count())

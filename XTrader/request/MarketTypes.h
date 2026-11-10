@@ -84,7 +84,7 @@ struct CSecurity
 	std::string m_strName;
 	std::vector<std::string> m_pinyinFullAliases;
 	std::vector<std::string> m_pinyinShortAliases;
-	Exchange m_market{ Exchange::unknown };
+	Exchange m_hq{ Exchange::unknown };
 	MarketState m_status{ MarketState::unknown };
 
 	CSecurity() = default;

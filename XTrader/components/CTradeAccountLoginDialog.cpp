@@ -52,30 +52,30 @@ CTradeAccountLoginDialog::CTradeAccountLoginDialog(CTraderServices& services, QW
 	CSinglePixelBorder::Install(*m_ui->cancelButton, 5.0);
 	connect(m_ui->brokerCombo, &QComboBox::currentIndexChanged, this,
 		[this](int index)
+	{
+		m_ui->siteCombo->clear();
+		if (0 <= index &&
+			static_cast<std::size_t>(index) < m_brokers.size())
 		{
-			m_ui->siteCombo->clear();
-			if (0 <= index &&
-				static_cast<std::size_t>(index) < m_brokers.size())
+			for (const auto& site : m_brokers[index].sites())
 			{
-				for (const auto& site : m_brokers[index].sites())
-				{
-					m_ui->siteCombo->addItem(QString::fromStdString(site.name()),
-						QString::fromStdString(site.site()));
-				}
+				m_ui->siteCombo->addItem(QString::fromStdString(site.name()),
+					QString::fromStdString(site.site()));
 			}
-		});
+		}
+	});
 	QAction* pReveal = m_ui->passwordEdit->addAction(
 		QIcon(":/trade/password-eye.svg"), QLineEdit::TrailingPosition);
 	pReveal->setCheckable(true);
 	pReveal->setText("显示密码");
 	pReveal->setToolTip("显示密码");
 	connect(pReveal, &QAction::toggled, this, [this, pReveal](bool bVisible)
-		{
-			m_ui->passwordEdit->setEchoMode(bVisible ? QLineEdit::Normal
-													 : QLineEdit::Password);
-			pReveal->setText(bVisible ? "隐藏密码" : "显示密码");
-			pReveal->setToolTip(pReveal->text());
-		});
+	{
+		m_ui->passwordEdit->setEchoMode(bVisible ? QLineEdit::Normal
+												 : QLineEdit::Password);
+		pReveal->setText(bVisible ? "隐藏密码" : "显示密码");
+		pReveal->setToolTip(pReveal->text());
+	});
 	connect(m_ui->loginButton, &QPushButton::clicked, this,
 		&CTradeAccountLoginDialog::Login);
 	connect(m_ui->cancelButton, &QPushButton::clicked, this, &QDialog::reject);
@@ -83,7 +83,7 @@ CTradeAccountLoginDialog::CTradeAccountLoginDialog(CTraderServices& services, QW
 		&CTradeAccountLoginDialog::Login);
 	QPointer<CTradeAccountLoginDialog> self(this);
 	m_nToken = m_pServices->m_account.Subscribe(
-		[self](const CTradeAccountService::CResult& result)
+		[self](const CAccountService::CResult& result)
 	{
 		if (nullptr != self)
 		{
@@ -154,7 +154,7 @@ void CTradeAccountLoginDialog::Login()
 }
 
 void CTradeAccountLoginDialog::HandleResult(
-	const CTradeAccountService::CResult& result)
+	const CAccountService::CResult& result)
 {
 	if (0 != m_directoryId && result.m_requestId == m_directoryId)
 	{

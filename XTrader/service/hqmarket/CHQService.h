@@ -1,5 +1,5 @@
-#ifndef XTRADER_SYSTEM_CHQMARKETSERVICE_H
-#define XTRADER_SYSTEM_CHQMARKETSERVICE_H
+#ifndef XTRADER_SYSTEM_CHQSERVICE_H
+#define XTRADER_SYSTEM_CHQSERVICE_H
 
 #include "../../basic/TMessagePump.h"
 #include "../../basic/CDatable.h"
@@ -22,16 +22,16 @@ class CRequest;
 
 class CTraderCenter;
 
-class CHQMarketService final
+class CHQService final
 {
 	friend class CTraderCenter;
 	friend class CReviewRegressionTests;
 
 public:
-	CHQMarketService();
-	~CHQMarketService();
-	CHQMarketService(const CHQMarketService& arg) = delete;
-	CHQMarketService& operator=(const CHQMarketService& arg) = delete;
+	CHQService();
+	~CHQService();
+	CHQService(const CHQService& arg) = delete;
+	CHQService& operator=(const CHQService& arg) = delete;
 
 	void SetTraderCenter(CTraderCenter* pCenter);
 	bool IsAuthenticated() const noexcept;

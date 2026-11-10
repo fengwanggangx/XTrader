@@ -5,8 +5,8 @@
 #include "CTraderCenter.h"
 #include "CLoginService.h"
 #include "../service/strategy/CStrategyService.h"
-#include "../service/hqmarket/CHQMarketService.h"
-#include "../service/account/CTradeAccountService.h"
+#include "../service/hqmarket/CHQService.h"
+#include "../service/account/CAccountService.h"
 
 #include <string>
 #include <filesystem>
@@ -33,8 +33,8 @@ private:
 	CSession* m_pSession{ nullptr };
 	CLoginService* m_pLoginService{ nullptr };
 	CStrategyService* m_pStrategyService{ nullptr };
-	CHQMarketService* m_pHQMarketService{ nullptr };
-	CTradeAccountService* m_pTradeAccountService{ nullptr };
+	CHQService* m_pHQService{ nullptr };
+	CAccountService* m_pAccountService{ nullptr };
 	CTraderServices* m_pServices{ nullptr };
 	CTraderCenter* m_pTraderCenter{ nullptr };
 	std::filesystem::path m_exec;

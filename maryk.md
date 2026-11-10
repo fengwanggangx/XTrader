@@ -99,19 +99,19 @@ CMarketItemDelegate
 
 ## 5. 数据服务拆分
 
-`CSession` 负责连接、认证、token、心跳、自动重连、通用请求发送和响应分发，不持有行情订阅或查询等具体业务状态。`CHQMarketService` 负责行情业务协议、订阅恢复、历史查询、数据转换、缓存和事件分发。
+`CSession` 负责连接、认证、token、心跳、自动重连、通用请求发送和响应分发，不持有行情订阅或查询等具体业务状态。`CHQService` 负责行情业务协议、订阅恢复、历史查询、数据转换、缓存和事件分发。
 
-图表和表格不得直接调用 HQMarket，统一通过 `CHQMarketService` 和模型获取数据。历史行情、五档盘口和指标计算不再拆成独立 Service，全部作为 `CHQMarketService` 的内部能力：
+图表和表格不得直接调用 HQMarket，统一通过 `CHQService` 和模型获取数据。历史行情、五档盘口和指标计算不再拆成独立 Service，全部作为 `CHQService` 的内部能力：
 
 ```text
-CHQMarketService
+CHQService
  ├── 实时行情订阅、快照缓存和事件分发
  ├── K 线/分时历史请求与缓存
  ├── 五档盘口订阅与缓存
  └── 指标计算
 ```
 
-当前已有 `CHQMarketService`，负责订阅实时行情、接收最新价/昨收/成交量/延迟状态，并投递到 UI 线程。
+当前已有 `CHQService`，负责订阅实时行情、接收最新价/昨收/成交量/延迟状态，并投递到 UI 线程。
 
 ## 6. 性能策略
 
@@ -132,14 +132,14 @@ CHQMarketService
 - 新建 `CUICurve`
 - 实现分时图、日/周/月 K 线和成交量
 - 将自选列表、五档行情改为 `QTableView`
-- 保持并扩展现有 `CHQMarketService`
+- 保持并扩展现有 `CHQService`
 
 ### 第二阶段：行情完整化
 
-- 在 `CHQMarketService` 中增加历史行情能力
+- 在 `CHQService` 中增加历史行情能力
 - 接入历史 K 线和分时接口
-- 在 `CHQMarketService` 中增加五档盘口能力
-- 在 `CHQMarketService` 中增加指标计算和买卖点
+- 在 `CHQService` 中增加五档盘口能力
+- 在 `CHQService` 中增加指标计算和买卖点
 
 ### 第三阶段：性能优化
 
@@ -175,6 +175,6 @@ XTrader 采用：
 K 线图：QWT QwtPlotTradingCurve
 分时图：QWT QwtPlotCurve + Volume
 行情表格：QTableView + QAbstractTableModel
-数据层：CHQMarketService（统一承载实时、历史、盘口和指标）
+数据层：CHQService（统一承载实时、历史、盘口和指标）
 极限性能：后续按 benchmark 决定 QOpenGLWidget/QRhi
 ```

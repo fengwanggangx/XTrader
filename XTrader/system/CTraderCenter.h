@@ -14,15 +14,15 @@ public:
 	void Finalize();
 	void Initialize(CSession& session, CTraderServices& services);
 
-	bool OnRequest(const CRequest& request);
-	bool SendRequest(const CRequest& request);
+	bool OnRequestReply(const CRequest& req);
+	bool SendRequest(const CRequest& req);
 
 	void CancelAuthentication();
 	bool IsAuthenticated() const noexcept;
 	SessionState GetState() const noexcept;
-	void Authenticate(const CAuthParam& param, CSession::_TyAuthCallback&& callback);
-	void SetStateCallback(CSession::_TyStateCallback&& callback);
-	void RegisterStateHandler(CSession::_TyStateCallback&& callback);
+	void Authenticate(const CAuthParam& param, CSession::_TyAuthCallback&& cb);
+	void SetStateCallback(CSession::_TyStateCallback&& cb);
+	void RegisterStateHandler(CSession::_TyStateCallback&& cb);
 
 private:
 	// Borrowed from CBootLoader; stopped and drained before detaching.

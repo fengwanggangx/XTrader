@@ -130,7 +130,7 @@
     <ClCompile Include="request\RequestCenter.cpp" />
     <ClCompile Include="request\MarketTypes.cpp" />
     <ClCompile Include="service\strategy\CStrategyService.cpp" />
-    <ClCompile Include="service\hqmarket\CHQMarketService.cpp" />
+    <ClCompile Include="service\hqmarket\CHQService.cpp" />
     <ClCompile Include="common\datetime.cpp" />
     <ClCompile Include="common\modules.cpp" />
     <ClCompile Include="common\utility.cpp" />
@@ -154,7 +154,7 @@
     <ClCompile Include="components\CDataTableModel.cpp" />
     <ClCompile Include="components\CUICurve.cpp" />
     <ClCompile Include="components\CViewTradingAccounts.cpp" />
-    <ClCompile Include="service\account\CTradeAccountService.cpp" />
+    <ClCompile Include="service\account\CAccountService.cpp" />
     <ClCompile Include="components\CViewStrategySettings.cpp" />
     <ClCompile Include="components\CStrategyEditDialog.cpp" />
     <ClCompile Include="system\CHostMgr.cpp" />
@@ -279,9 +279,9 @@
     <ClInclude Include="request\RequestCenter.h" />
     <ClInclude Include="request\MarketTypes.h" />
     <ClInclude Include="components\CViewTradingAccounts.h" />
-    <ClInclude Include="service\account\CTradeAccountService.h" />
+    <ClInclude Include="service\account\CAccountService.h" />
     <ClInclude Include="service\strategy\CStrategyService.h" />
-    <ClInclude Include="service\hqmarket\CHQMarketService.h" />
+    <ClInclude Include="service\hqmarket\CHQService.h" />
     <ClInclude Include="service\hqmarket\defines_hqmarket.h" />
     <ClInclude Include="common\ISingleton.h" />
     <ClInclude Include="common\container.h" />

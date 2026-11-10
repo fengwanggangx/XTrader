@@ -4,20 +4,34 @@ std::string GetMarketString(Exchange exchange)
 {
 	switch (exchange)
 	{
-	case Exchange::sse: return "SSE";
-	case Exchange::szse: return "SZSE";
-	case Exchange::bse: return "BSE";
-	case Exchange::hkex: return "HKEX";
-	case Exchange::cffex: return "CFFEX";
-	case Exchange::shfe: return "SHFE";
-	case Exchange::dce: return "DCE";
-	case Exchange::czce: return "CZCE";
-	case Exchange::ine: return "INE";
-	case Exchange::gfex: return "GFEX";
-	case Exchange::nasdaq: return "NASDAQ";
-	case Exchange::nyse: return "NYSE";
-	case Exchange::crypto: return "CRYPTO";
-	default: return { };
+	case Exchange::sse:
+		return "SSE";
+	case Exchange::szse:
+		return "SZSE";
+	case Exchange::bse:
+		return "BSE";
+	case Exchange::hkex:
+		return "HKEX";
+	case Exchange::cffex:
+		return "CFFEX";
+	case Exchange::shfe:
+		return "SHFE";
+	case Exchange::dce:
+		return "DCE";
+	case Exchange::czce:
+		return "CZCE";
+	case Exchange::ine:
+		return "INE";
+	case Exchange::gfex:
+		return "GFEX";
+	case Exchange::nasdaq:
+		return "NASDAQ";
+	case Exchange::nyse:
+		return "NYSE";
+	case Exchange::crypto:
+		return "CRYPTO";
+	default:
+		return {};
 	}
 }
 
@@ -25,13 +39,20 @@ std::string GetChannelString(Channel channel)
 {
 	switch (channel)
 	{
-	case Channel::quote: return "quote";
-	case Channel::depth: return "depth";
-	case Channel::trade: return "trade";
-	case Channel::bar_1m: return "bar_1m";
-	case Channel::bar_1d: return "bar_1d";
-	case Channel::market_status: return "market_status";
-	default: return { };
+	case Channel::quote:
+		return "quote";
+	case Channel::depth:
+		return "depth";
+	case Channel::trade:
+		return "trade";
+	case Channel::bar_1m:
+		return "bar_1m";
+	case Channel::bar_1d:
+		return "bar_1d";
+	case Channel::market_status:
+		return "market_status";
+	default:
+		return {};
 	}
 }
 
@@ -39,10 +60,14 @@ std::string GetMarketStateString(MarketState status)
 {
 	switch (status)
 	{
-	case MarketState::normal: return "normal";
-	case MarketState::suspended: return "suspended";
-	case MarketState::delisted: return "delisted";
-	default: return "unknown";
+	case MarketState::normal:
+		return "normal";
+	case MarketState::suspended:
+		return "suspended";
+	case MarketState::delisted:
+		return "delisted";
+	default:
+		return "unknown";
 	}
 }
 
@@ -154,7 +179,7 @@ CSecurity ParseSecurity(const std::string& strSecurity)
 	std::size_t nSeparator = strSecurity.rfind('.');
 	if (std::string::npos == nSeparator)
 	{
-		return { };
+		return {};
 	}
 	return CSecurity(strSecurity.substr(0, nSeparator), ParseMarket(strSecurity.substr(nSeparator + 1)));
 }
@@ -164,22 +189,21 @@ std::string FmtSecurityString(const std::string& strCode, Exchange mk)
 	std::string strMarket = GetMarketString(mk);
 	if (strCode.empty() || strMarket.empty())
 	{
-		return { };
+		return {};
 	}
 	return strCode + "." + strMarket;
 }
 
-CSecurity::CSecurity(const CSecurity& arg) : m_strCode(arg.m_strCode), m_strName(arg.m_strName), m_pinyinFullAliases(arg.m_pinyinFullAliases), m_pinyinShortAliases(arg.m_pinyinShortAliases), m_market(arg.m_market), m_status(arg.m_status)
+CSecurity::CSecurity(const CSecurity& arg) : m_strCode(arg.m_strCode), m_strName(arg.m_strName), m_pinyinFullAliases(arg.m_pinyinFullAliases), m_pinyinShortAliases(arg.m_pinyinShortAliases), m_hq(arg.m_hq), m_status(arg.m_status)
 {
 }
 
-CSecurity::CSecurity(const std::string& strCode, Exchange mk, MarketState status) : m_strCode(strCode), m_market(mk), m_status(status)
+CSecurity::CSecurity(const std::string& strCode, Exchange mk, MarketState status) : m_strCode(strCode), m_hq(mk), m_status(status)
 {
 }
 
-CSecurity::CSecurity(const std::string& strCode, const std::string& strName, Exchange mk, MarketState status) : m_strCode(strCode), m_strName(strName), m_market(mk), m_status(status)
+CSecurity::CSecurity(const std::string& strCode, const std::string& strName, Exchange mk, MarketState status) : m_strCode(strCode), m_strName(strName), m_hq(mk), m_status(status)
 {
-
 }
 
 CSecurity& CSecurity::operator=(const CSecurity& arg)
@@ -190,7 +214,7 @@ CSecurity& CSecurity::operator=(const CSecurity& arg)
 		m_strName = arg.m_strName;
 		m_pinyinFullAliases = arg.m_pinyinFullAliases;
 		m_pinyinShortAliases = arg.m_pinyinShortAliases;
-		m_market = arg.m_market;
+		m_hq = arg.m_hq;
 		m_status = arg.m_status;
 	}
 	return *this;
@@ -198,17 +222,17 @@ CSecurity& CSecurity::operator=(const CSecurity& arg)
 
 bool CSecurity::IsValid() const
 {
-	return !m_strCode.empty() && (Exchange::unknown != m_market);
+	return !m_strCode.empty() && (Exchange::unknown != m_hq);
 }
 
 std::string CSecurity::String() const
 {
-	return FmtSecurityString(m_strCode, m_market);
+	return FmtSecurityString(m_strCode, m_hq);
 }
 
 bool CSecurity::operator==(const CSecurity& arg) const
 {
-	return (m_market == arg.m_market) && (m_strCode == arg.m_strCode);
+	return (m_hq == arg.m_hq) && (m_strCode == arg.m_strCode);
 }
 
 bool CQuoteInfo::IsValid() const

@@ -61,12 +61,12 @@ namespace
 
 	class CMarketTableDelegate final : public QStyledItemDelegate
 	{
-		public:
+	public:
 		explicit CMarketTableDelegate(QObject* parent) : QStyledItemDelegate(parent)
 		{
 		}
 
-		protected:
+	protected:
 		void initStyleOption(QStyleOptionViewItem* option, const QModelIndex& index) const override
 		{
 			QStyledItemDelegate::initStyleOption(option, index);
@@ -107,12 +107,12 @@ namespace
 
 class CMarketFilterProxyModel final : public QSortFilterProxyModel
 {
-	public:
+public:
 	explicit CMarketFilterProxyModel(QObject* parent) : QSortFilterProxyModel(parent)
 	{
 		setDynamicSortFilter(false);
 	}
-	int m_market{ -1 };
+	int m_hq{ -1 };
 	const std::unordered_set<std::string>* m_watchlist{ nullptr };
 	const std::unordered_set<std::string>* m_constituents{ nullptr };
 	void Refresh()
@@ -120,7 +120,7 @@ class CMarketFilterProxyModel final : public QSortFilterProxyModel
 		invalidateFilter();
 	}
 
-	protected:
+protected:
 	bool filterAcceptsRow(int nRow, const QModelIndex& parent) const override
 	{
 		QString strCode = sourceModel()->index(nRow, 0, parent).data().toString();
@@ -133,11 +133,11 @@ class CMarketFilterProxyModel final : public QSortFilterProxyModel
 			return false;
 		}
 		QString strMarket = sourceModel()->index(nRow, 10, parent).data().toString();
-		if (0 == m_market)
+		if (0 == m_hq)
 		{
 			return ("沪A" == strMarket) || ("深A" == strMarket) || ("创业板" == strMarket) || ("科创板" == strMarket);
 		}
-		return (0 > m_market) || (1 == m_market && "北交所" == strMarket) || (2 == m_market && "创业板" == strMarket) || (3 == m_market && "科创板" == strMarket);
+		return (0 > m_hq) || (1 == m_hq && "北交所" == strMarket) || (2 == m_hq && "创业板" == strMarket) || (3 == m_hq && "科创板" == strMarket);
 	}
 };
 
@@ -200,7 +200,7 @@ CMarketPageController::CMarketPageController(CTraderServices& services, MarketTa
 
 CMarketPageController::~CMarketPageController()
 {
-	CHQMarketService& service = m_pServices->m_market;
+	CHQService& service = m_pServices->m_hq;
 	if (0 != m_quoteTableToken)
 	{
 		service.RemoveQuoteTableHandler(m_quoteTableToken);
@@ -380,7 +380,7 @@ QString CMarketPageController::RemoveSelectedWatchlist()
 
 void CMarketPageController::BindService()
 {
-	CHQMarketService& service = m_pServices->m_market;
+	CHQService& service = m_pServices->m_hq;
 	service.Initialize();
 	std::shared_ptr<CQuoteTableUpdateState> quoteUpdateState = m_quoteUpdateState;
 	m_quoteTableToken = service.AddQuoteTableHandler([quoteUpdateState](const CDataTableView& view, const CDataChangeSet& changes)
@@ -446,7 +446,7 @@ void CMarketPageController::SetConstituents(const std::vector<CSecurity>& securi
 
 void CMarketPageController::SetMarket(int nIndex)
 {
-	m_proxy->m_market = nIndex;
+	m_proxy->m_hq = nIndex;
 	m_proxy->Refresh();
 	m_table->Update();
 	EnsureSelection();
@@ -527,7 +527,7 @@ void CMarketPageController::RefreshSelection()
 	double fPercent = current.siblingAtColumn(4).data().toDouble();
 	CQuote quote;
 	double fReferencePrice = 0.0;
-	if (m_pServices->m_market.FindQuote(security, quote))
+	if (m_pServices->m_hq.FindQuote(security, quote))
 	{
 		fReferencePrice = quote.m_fPreClose;
 	}
@@ -591,7 +591,7 @@ void CMarketPageController::RequestHistory(CurveMode mode)
 	m_dayRequestId = 0;
 	QDateTime now = QDateTime::currentDateTime();
 	std::int64_t nBegin = now.addYears(-10).toMSecsSinceEpoch();
-	if (!m_pServices->m_market.QueryHistory(security, MarketBarPeriod::Day, nBegin, now.toMSecsSinceEpoch(), &m_dayRequestId))
+	if (!m_pServices->m_hq.QueryHistory(security, MarketBarPeriod::Day, nBegin, now.toMSecsSinceEpoch(), &m_dayRequestId))
 	{
 		m_chartState->setText("历史查询未发送，请检查连接");
 	}
@@ -615,7 +615,7 @@ void CMarketPageController::RequestMinuteHistory(bool bIncremental)
 		nBegin = m_minuteBars.back().m_nBeginTime + 1;
 	}
 	m_bMinuteIncrementalRequest = bIncremental;
-	if (!m_pServices->m_market.QueryHistory(security, MarketBarPeriod::Minute, nBegin, now.toMSecsSinceEpoch(), &m_minuteRequestId))
+	if (!m_pServices->m_hq.QueryHistory(security, MarketBarPeriod::Minute, nBegin, now.toMSecsSinceEpoch(), &m_minuteRequestId))
 	{
 		m_minuteRequestId = 0;
 		m_bMinuteIncrementalRequest = false;

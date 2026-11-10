@@ -3,7 +3,7 @@
 
 #include "../system/CTraderServices.h"
 
-#include "../service/hqmarket/CHQMarketService.h"
+#include "../service/hqmarket/CHQService.h"
 #include <QObject>
 #include <QString>
 #include <memory>

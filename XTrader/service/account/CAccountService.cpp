@@ -1,8 +1,8 @@
-#include "CTradeAccountService.h"
+#include "CAccountService.h"
 #include "../../system/CTraderCenter.h"
 #include <algorithm>
-CTradeAccountService::CTradeAccountService() = default;
-CTradeAccountService::~CTradeAccountService()
+CAccountService::CAccountService() = default;
+CAccountService::~CAccountService()
 {
 	m_timeouts.request_stop();
 	m_wake.notify_all();
@@ -11,7 +11,7 @@ CTradeAccountService::~CTradeAccountService()
 		m_timeouts.join();
 	}
 }
-void CTradeAccountService::Initialize()
+void CAccountService::Initialize()
 {
 	if (nullptr == m_pTraderCenter)
 	{
@@ -63,38 +63,38 @@ void CTradeAccountService::Initialize()
 				}
 				for (const auto& response : expired)
 				{
-					OnResponse(response);
+					OnRequestReply(response);
 				}
 			}
 		});
 	});
 }
-_TyCallbackId CTradeAccountService::Subscribe(_TyHandler&& handler)
+_TyCallbackId CAccountService::Subscribe(_TyHandler&& handler)
 {
 	Initialize();
 	return m_results.Subscribe(std::move(handler));
 }
-void CTradeAccountService::Unsubscribe(_TyCallbackId token)
+void CAccountService::Unsubscribe(_TyCallbackId token)
 {
 	m_results.Unsubscribe(token);
 }
 std::vector<request::TradeAccountRecord>
-CTradeAccountService::GetAccounts() const
+CAccountService::GetAccounts() const
 {
 	std::lock_guard<std::mutex> lock(m_mtx_state);
 	return m_accounts;
 }
-bool CTradeAccountService::IsSupported() const
+bool CAccountService::IsSupported() const
 {
 	std::lock_guard<std::mutex> lock(m_mtx_state);
 	return m_supported;
 }
-std::uint64_t CTradeAccountService::GetGeneration() const
+std::uint64_t CAccountService::GetGeneration() const
 {
 	std::lock_guard<std::mutex> lock(m_mtx_state);
 	return m_generation;
 }
-std::uint64_t CTradeAccountService::Send(
+std::uint64_t CAccountService::Send(
 	_TyRequest type, const _TyAccountIndex& account,
 	const std::unordered_map<std::string, std::string>& extra)
 {
@@ -149,8 +149,8 @@ std::uint64_t CTradeAccountService::Send(
 			}
 		}
 		m_pending.emplace(req.GetId(), CPending{ account, type,
-												 std::chrono::steady_clock::now() +
-													 std::chrono::seconds(_TyRequest::TRADE_ACCOUNT_LOGIN == type ? 75 : 20) });
+										   std::chrono::steady_clock::now() +
+											   std::chrono::seconds(_TyRequest::TRADE_ACCOUNT_LOGIN == type ? 75 : 20) });
 	}
 	if (SendRequest(req))
 	{
@@ -160,7 +160,7 @@ std::uint64_t CTradeAccountService::Send(
 	m_pending.erase(req.GetId());
 	return 0;
 }
-bool CTradeAccountService::OnResponse(const CRequest& response)
+bool CAccountService::OnRequestReply(const CRequest& response)
 {
 	CResult result;
 	{
@@ -214,10 +214,10 @@ bool CTradeAccountService::OnResponse(const CRequest& response)
 				 _TyRequest::TRADE_ACCOUNT_DISCONNECT == result.m_type)
 		{
 			std::erase_if(m_pending, [](const auto& item)
-				{
-					return _TyRequest::TRADE_ACCOUNT_LIST_QUERY == item.second.m_type ||
-						   _TyRequest::TRADE_FUNDS_QUERY == item.second.m_type;
-				});
+			{
+				return _TyRequest::TRADE_ACCOUNT_LIST_QUERY == item.second.m_type ||
+					   _TyRequest::TRADE_FUNDS_QUERY == item.second.m_type;
+			});
 		}
 		else if (_TyRequest::TRADE_ACCOUNT_LIST_QUERY == result.m_type)
 		{
@@ -234,9 +234,9 @@ bool CTradeAccountService::OnResponse(const CRequest& response)
 				std::sort(m_accounts.begin(), m_accounts.end(),
 					[](const request::TradeAccountRecord& left,
 						const request::TradeAccountRecord& right)
-					{
-						return AccountIndex(left) < AccountIndex(right);
-					});
+				{
+					return AccountIndex(left) < AccountIndex(right);
+				});
 			}
 		}
 	}
@@ -244,17 +244,17 @@ bool CTradeAccountService::OnResponse(const CRequest& response)
 	return true;
 }
 
-void CTradeAccountService::SetTraderCenter(CTraderCenter* pCenter)
+void CAccountService::SetTraderCenter(CTraderCenter* pCenter)
 {
 	m_pTraderCenter = pCenter;
 }
 
-bool CTradeAccountService::IsAuthenticated() const noexcept
+bool CAccountService::IsAuthenticated() const noexcept
 {
 	return (nullptr != m_pTraderCenter) && m_pTraderCenter->IsAuthenticated();
 }
 
-bool CTradeAccountService::SendRequest(const CRequest& request)
+bool CAccountService::SendRequest(const CRequest& request)
 {
 	return (nullptr != m_pTraderCenter) && m_pTraderCenter->SendRequest(request);
 }

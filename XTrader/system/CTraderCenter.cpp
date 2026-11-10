@@ -1,6 +1,6 @@
 #include "CTraderCenter.h"
-#include "../service/account/CTradeAccountService.h"
-#include "../service/hqmarket/CHQMarketService.h"
+#include "../service/account/CAccountService.h"
+#include "../service/hqmarket/CHQService.h"
 #include "../service/strategy/CStrategyService.h"
 #include <utility>
 
@@ -20,7 +20,7 @@ void CTraderCenter::Initialize(CSession& session, CTraderServices& services)
 	Finalize();
 	m_pSession = &session;
 	m_pServices = &services;
-	session.SetResponseCallback(std::bind_front(&CTraderCenter::OnRequest, this));
+	session.SetResponseCallback(std::bind_front(&CTraderCenter::OnRequestReply, this));
 }
 
 void CTraderCenter::Finalize()
@@ -77,29 +77,31 @@ void CTraderCenter::CancelAuthentication()
 	}
 }
 
-void CTraderCenter::SetStateCallback(CSession::_TyStateCallback&& callback)
+void CTraderCenter::SetStateCallback(CSession::_TyStateCallback&& cb)
 {
 	if (nullptr != m_pSession)
 	{
-		m_pSession->SetStateCallback(std::move(callback));
+		m_pSession->SetStateCallback(std::move(cb));
 	}
 }
 
-void CTraderCenter::RegisterStateHandler(CSession::_TyStateCallback&& callback)
+void CTraderCenter::RegisterStateHandler(CSession::_TyStateCallback&& cb)
 {
 	if (nullptr != m_pSession)
 	{
-		m_pSession->RegisterStateHandler(std::move(callback));
+		m_pSession->RegisterStateHandler(std::move(cb));
 	}
 }
 
-bool CTraderCenter::OnRequest(const CRequest& request)
+bool CTraderCenter::OnRequestReply(const CRequest& req)
 {
 	if (nullptr == m_pServices)
 	{
 		return false;
 	}
-	switch (request.GetType())
+
+	_TyRequest t = req.GetType();
+	switch (t)
 	{
 	case _TyRequest::MARKET_SUBSCRIBE:
 	case _TyRequest::MARKET_UNSUBSCRIBE:
@@ -110,7 +112,7 @@ bool CTraderCenter::OnRequest(const CRequest& request)
 	case _TyRequest::MARKET_SECTOR_CONSTITUENTS_QUERY:
 	case _TyRequest::MARKET_QUOTE_PUSH:
 	case _TyRequest::MARKET_DEPTH_PUSH:
-		return m_pServices->m_market.OnRequestReply(request);
+		return m_pServices->m_hq.OnRequestReply(req);
 	case _TyRequest::STRATEGY_ADD:
 	case _TyRequest::STRATEGY_MODIFY:
 	case _TyRequest::STRATEGY_QUERY:
@@ -119,7 +121,7 @@ bool CTraderCenter::OnRequest(const CRequest& request)
 	case _TyRequest::STRATEGY_START:
 	case _TyRequest::STRATEGY_PAUSE:
 	case _TyRequest::STRATEGY_STOP:
-		return m_pServices->m_strategy.OnRequestReply(request);
+		return m_pServices->m_strategy.OnRequestReply(req);
 	case _TyRequest::TRADE_ACCOUNT_LOGIN:
 	case _TyRequest::TRADE_ACCOUNT_LIST_QUERY:
 	case _TyRequest::TRADE_ACCOUNT_DISCONNECT:
@@ -135,7 +137,7 @@ bool CTraderCenter::OnRequest(const CRequest& request)
 	case _TyRequest::TRADE_ACCOUNT_INFO_PUSH:
 	case _TyRequest::TRADE_POSITION_PUSH:
 	case _TyRequest::SUPPORTED_BROKER_QUERY:
-		return m_pServices->m_account.OnResponse(request);
+		return m_pServices->m_account.OnRequestReply(req);
 	default:
 		return false;
 	}

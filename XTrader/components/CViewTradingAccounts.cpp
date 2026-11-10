@@ -54,30 +54,30 @@ CViewTradingAccounts::CViewTradingAccounts(CTraderServices& services, QWidget* p
 	m_strategies->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 	layout->addWidget(m_strategies);
 	connect(m_add, &QPushButton::clicked, this, [this]()
-		{
-			EditAccount(true);
-		});
+	{
+		EditAccount(true);
+	});
 	connect(m_disconnect, &QPushButton::clicked, this,
 		[this]()
-		{
-			Operate(_TyRequest::TRADE_ACCOUNT_DISCONNECT);
-		});
+	{
+		Operate(_TyRequest::TRADE_ACCOUNT_DISCONNECT);
+	});
 	connect(refresh, &QPushButton::clicked, this, &CViewTradingAccounts::Refresh);
 	connect(m_logs, &QTableWidget::itemSelectionChanged, this,
 		&CViewTradingAccounts::RefreshSelection);
 	connect(m_strategies, &QTableWidget::cellDoubleClicked, this,
 		[this](int row, int)
+	{
+		if (nullptr != m_navigate &&
+			nullptr != m_strategies->item(row, 0))
 		{
-			if (nullptr != m_navigate &&
-				nullptr != m_strategies->item(row, 0))
-			{
-				m_navigate(
-					m_strategies->item(row, 0)->data(Qt::UserRole).toULongLong());
-			}
-		});
+			m_navigate(
+				m_strategies->item(row, 0)->data(Qt::UserRole).toULongLong());
+		}
+	});
 	QPointer<CViewTradingAccounts> self(this);
 	m_accountToken = m_pServices->m_account.Subscribe(
-		[self](const CTradeAccountService::CResult& result)
+		[self](const CAccountService::CResult& result)
 	{
 		if (nullptr != self)
 		{
@@ -95,12 +95,12 @@ CViewTradingAccounts::CViewTradingAccounts(CTraderServices& services, QWidget* p
 	});
 	QTimer* timer = new QTimer(this);
 	connect(timer, &QTimer::timeout, this, [this]()
+	{
+		if (isVisible())
 		{
-			if (isVisible())
-			{
-				Refresh();
-			}
-		});
+			Refresh();
+		}
+	});
 	timer->start(3000);
 }
 
@@ -214,7 +214,7 @@ void CViewTradingAccounts::RefreshButtons()
 }
 
 void CViewTradingAccounts::HandleResult(
-	const CTradeAccountService::CResult& result)
+	const CAccountService::CResult& result)
 {
 	if (result.m_bSessionReset)
 	{

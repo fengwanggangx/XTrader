@@ -1,8 +1,8 @@
 #include "CBootLoader.h"
 #include "CTraderCenter.h"
 #include "../service/strategy/CStrategyService.h"
-#include "../service/hqmarket/CHQMarketService.h"
-#include "../service/account/CTradeAccountService.h"
+#include "../service/hqmarket/CHQService.h"
+#include "../service/account/CAccountService.h"
 #include "../database/CDBEngine.h"
 #include "../database/IDataBase.h"
 #include "../network/common_net.h"
@@ -70,15 +70,15 @@ bool CBootLoader::Initialize()
 		m_pSession = new CSession();
 		m_pLoginService = new CLoginService();
 		m_pStrategyService = new CStrategyService();
-		m_pHQMarketService = new CHQMarketService();
-		m_pTradeAccountService = new CTradeAccountService();
-		m_pServices = new CTraderServices{ *m_pLoginService, *m_pStrategyService, *m_pHQMarketService, *m_pTradeAccountService };
+		m_pHQService = new CHQService();
+		m_pAccountService = new CAccountService();
+		m_pServices = new CTraderServices{ *m_pLoginService, *m_pStrategyService, *m_pHQService, *m_pAccountService };
 		m_pTraderCenter = new CTraderCenter();
 		m_pTraderCenter->Initialize(*m_pSession, *m_pServices);
 		m_pLoginService->SetTraderCenter(m_pTraderCenter);
 		m_pStrategyService->SetTraderCenter(m_pTraderCenter);
-		m_pHQMarketService->SetTraderCenter(m_pTraderCenter);
-		m_pTradeAccountService->SetTraderCenter(m_pTraderCenter);
+		m_pHQService->SetTraderCenter(m_pTraderCenter);
+		m_pAccountService->SetTraderCenter(m_pTraderCenter);
 		m_bInitialized = true;
 		return true;
 	}
@@ -130,19 +130,19 @@ void CBootLoader::Finalize()
 	{
 		m_pStrategyService->SetTraderCenter(nullptr);
 	}
-	if (nullptr != m_pHQMarketService)
+	if (nullptr != m_pHQService)
 	{
-		m_pHQMarketService->SetTraderCenter(nullptr);
+		m_pHQService->SetTraderCenter(nullptr);
 	}
-	if (nullptr != m_pTradeAccountService)
+	if (nullptr != m_pAccountService)
 	{
-		m_pTradeAccountService->SetTraderCenter(nullptr);
+		m_pAccountService->SetTraderCenter(nullptr);
 	}
 
 	delete std::exchange(m_pTraderCenter, nullptr);
 	delete std::exchange(m_pServices, nullptr);
-	delete std::exchange(m_pTradeAccountService, nullptr);
-	delete std::exchange(m_pHQMarketService, nullptr);
+	delete std::exchange(m_pAccountService, nullptr);
+	delete std::exchange(m_pHQService, nullptr);
 	delete std::exchange(m_pStrategyService, nullptr);
 	delete std::exchange(m_pLoginService, nullptr);
 	delete std::exchange(m_pSession, nullptr);

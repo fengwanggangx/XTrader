@@ -52,7 +52,7 @@ void CViewHQMarket::Initialize(CTraderServices& services)
 	m_ui->rankingTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 	m_ui->rankingTable->horizontalHeader()->setFixedHeight(24);
 
-	CHQMarketService& service = m_pServices->m_market;
+	CHQService& service = m_pServices->m_hq;
 	service.Initialize();
 
 	RefreshQuotes(service.GetQuoteTableView());
@@ -136,30 +136,30 @@ CViewHQMarket::~CViewHQMarket()
 	{
 		return;
 	}
-	m_pServices->m_market.RemoveQuoteTableHandler(m_nQuoteTableToken);
-	m_pServices->m_market.RemoveSectorListHandler(m_nSectorListToken);
-	m_pServices->m_market.RemoveSectorConstituentsHandler(m_nSectorConstituentsToken);
+	m_pServices->m_hq.RemoveQuoteTableHandler(m_nQuoteTableToken);
+	m_pServices->m_hq.RemoveSectorListHandler(m_nSectorListToken);
+	m_pServices->m_hq.RemoveSectorConstituentsHandler(m_nSectorConstituentsToken);
 }
 
 void CViewHQMarket::OnTabChanged(int idx)
 {
-	if (0 == idx)	//概览
+	if (0 == idx) // 概览
 	{
 		if (!m_bIndicesRequested)
 		{
 			m_bIndicesRequested = true;
-			m_pServices->m_market.SubscribeQuote(CSecurity("000001", Exchange::sse));
-			m_pServices->m_market.SubscribeQuote(CSecurity("399001", Exchange::szse));
-			m_pServices->m_market.SubscribeQuote(CSecurity("399006", Exchange::szse));
+			m_pServices->m_hq.SubscribeQuote(CSecurity("000001", Exchange::sse));
+			m_pServices->m_hq.SubscribeQuote(CSecurity("399001", Exchange::szse));
+			m_pServices->m_hq.SubscribeQuote(CSecurity("399006", Exchange::szse));
 			RequestSectors();
 		}
 	}
-	else if ((1 == idx) || (3 == idx))	//自选股、A股
+	else if ((1 == idx) || (3 == idx)) // 自选股、A股
 	{
 		if (!m_bSecuritiesRequested)
 		{
 			m_bSecuritiesRequested = true;
-			m_pServices->m_market.QuerySecurities();
+			m_pServices->m_hq.QuerySecurities();
 		}
 	}
 	else
@@ -199,7 +199,7 @@ void CViewHQMarket::RequestSectors()
 	}
 	m_bOverviewRequested = true;
 	m_ui->sectorState->setText("正在加载行业板块…");
-	m_pServices->m_market.QuerySectors(SectorType::industry);
+	m_pServices->m_hq.QuerySectors(SectorType::industry);
 }
 
 void CViewHQMarket::RefreshSectors(const CSectorListEvent& ev)
@@ -218,7 +218,9 @@ void CViewHQMarket::RefreshSectors(const CSectorListEvent& ev)
 	}
 	m_sectors = ev.m_sectors;
 	std::sort(m_sectors.begin(), m_sectors.end(), [](const CSectorInfo& left, const CSectorInfo& right)
-			  { return left.m_fChangePercent > right.m_fChangePercent; });
+	{
+		return left.m_fChangePercent > right.m_fChangePercent;
+	});
 	if (m_sectors.empty())
 	{
 		m_ui->sectorState->setText("暂无行业板块数据");
@@ -268,7 +270,7 @@ void CViewHQMarket::SelectSector(const QString& strSectorCode)
 		}
 	}
 	m_ui->sectorState->setText("正在加载成分股…");
-	m_pServices->m_market.QuerySectorConstituents(SectorType::industry, strSectorCode.toStdString());
+	m_pServices->m_hq.QuerySectorConstituents(SectorType::industry, strSectorCode.toStdString());
 }
 
 void CViewHQMarket::RefreshConstituents(const CSectorConstituentsEvent& ev)

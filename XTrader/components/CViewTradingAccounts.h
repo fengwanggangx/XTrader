@@ -1,6 +1,6 @@
 #pragma once
 #include "../system/CTraderServices.h"
-#include "../service/account/CTradeAccountService.h"
+#include "../service/account/CAccountService.h"
 #include <QWidget>
 #include <array>
 #include <functional>
@@ -33,7 +33,7 @@ private:
 	void RefreshButtons();
 	void EditAccount(bool bNew);
 	void Operate(_TyRequest type);
-	void HandleResult(const CTradeAccountService::CResult& result);
+	void HandleResult(const CAccountService::CResult& result);
 	void RefreshStrategies();
 	const request::TradeAccountRecord* SelectedAccount() const;
 	QPushButton* m_add{ nullptr };

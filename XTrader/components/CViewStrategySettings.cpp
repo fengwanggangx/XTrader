@@ -177,7 +177,7 @@ void CViewStrategySettings::Initialize(CTraderServices& services)
 	service.Initialize();
 	QPointer<CViewStrategySettings> safeThis(this);
 	m_nAccountToken = m_pServices->m_account.Subscribe(
-		[safeThis](const CTradeAccountService::CResult& result)
+		[safeThis](const CAccountService::CResult& result)
 	{
 		if (!safeThis.isNull() &&
 			((_TyRequest::TRADE_ACCOUNT_LIST_QUERY == result.m_type) ||

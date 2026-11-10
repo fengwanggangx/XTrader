@@ -1,6 +1,6 @@
 #pragma once
 #include "../system/CTraderServices.h"
-#include "../service/account/CTradeAccountService.h"
+#include "../service/account/CAccountService.h"
 #include <QDialog>
 #include <memory>
 namespace Ui
@@ -20,7 +20,7 @@ private:
 	std::vector<request::BrokerRecord> m_brokers;
 	std::uint64_t m_directoryId{ 0 };
 	void Login();
-	void HandleResult(const CTradeAccountService::CResult& result);
+	void HandleResult(const CAccountService::CResult& result);
 	void SetBusy(bool bBusy);
 	void ShowError(const QString& strMessage);
 	std::unique_ptr<Ui::CTradeAccountLoginDialog> m_ui;

@@ -7,8 +7,8 @@ namespace net
 } // namespace net
 #include "system/CTraderCenter.h"
 #include "service/strategy/CStrategyService.h"
-#include "service/account/CTradeAccountService.h"
-#include "service/hqmarket/CHQMarketService.h"
+#include "service/account/CAccountService.h"
+#include "service/hqmarket/CHQService.h"
 #include "components/CStrategyEditDialog.h"
 #include "components/CViewStrategySettings.h"
 #include "components/CViewTradingAccounts.h"
@@ -30,7 +30,7 @@ namespace
 	std::vector<CRequest> requests;
 	std::vector<CSession::_TyStateCallback> stateHandlers;
 	std::vector<request::TradeAccountRecord> accounts;
-	TMessagePump<CTradeAccountService::CResult> accountEvents;
+	TMessagePump<CAccountService::CResult> accountEvents;
 	bool sendSuccess = true;
 
 	void Check(bool passed, const char* message)
@@ -44,7 +44,7 @@ namespace
 
 	void Reply(const CRequest& response)
 	{
-		center.OnRequest(response);
+		center.OnRequestReply(response);
 	}
 
 	CRequest Last(_TyRequest type)
@@ -67,7 +67,6 @@ namespace
 		strategy.set_strategy_name("MA");
 		strategy.set_strategy_type("moving_average");
 		strategy.set_broker_id(1);
-		strategy.set_site("site");
 		strategy.set_account("000123");
 		strategy.set_enabled(true);
 		request::StrategySubscription* subscription = strategy.add_subscriptions();
@@ -118,7 +117,7 @@ CTraderCenter::CTraderCenter() = default;
 
 CTraderCenter::~CTraderCenter() = default;
 
-bool CTraderCenter::OnRequest(const CRequest& response)
+bool CTraderCenter::OnRequestReply(const CRequest& response)
 {
 	return (nullptr != pStrategyService) && pStrategyService->OnRequestReply(response);
 }
@@ -151,22 +150,22 @@ CLoginService::CLoginService() = default;
 
 CLoginService::~CLoginService() = default;
 
-CHQMarketService::CHQMarketService() = default;
+CHQService::CHQService() = default;
 
-CHQMarketService::~CHQMarketService() = default;
+CHQService::~CHQService() = default;
 
-CTradeAccountService::CTradeAccountService() = default;
+CAccountService::CAccountService() = default;
 
-CTradeAccountService::~CTradeAccountService() = default;
-std::vector<request::TradeAccountRecord> CTradeAccountService::GetAccounts() const
+CAccountService::~CAccountService() = default;
+std::vector<request::TradeAccountRecord> CAccountService::GetAccounts() const
 {
 	return accounts;
 }
-_TyCallbackId CTradeAccountService::Subscribe(_TyHandler&& handler)
+_TyCallbackId CAccountService::Subscribe(_TyHandler&& handler)
 {
 	return accountEvents.Subscribe(std::move(handler));
 }
-void CTradeAccountService::Unsubscribe(_TyCallbackId token)
+void CAccountService::Unsubscribe(_TyCallbackId token)
 {
 	accountEvents.Unsubscribe(token);
 }
@@ -201,10 +200,33 @@ int main(int argc, char** argv)
 	Check(!CStrategyService::ValidateStrategy(strategy, error), "Duplicate subscription accepted");
 	strategy = Strategy();
 
+	request::TradeAccountRecord primary;
+	primary.set_broker_id(1);
+	primary.set_account("000123");
+	primary.set_site("primary");
+	request::TradeAccountRecord secondary = primary;
+	secondary.set_site("secondary");
+	Check(AccountIndex(primary) == AccountIndex(secondary), "Access node changed account identity");
+	secondary.set_broker_id(2);
+	Check(AccountIndex(primary) != AccountIndex(secondary), "Broker account domains merged");
+	_TyAccountIndex identity;
+	Check(DecodeAccount(EncodeAccount(AccountIndex(primary)), identity) && identity == AccountIndex(primary), "Binary account identity did not round trip");
+	request::StrategyInfo binding;
+	SetAccountIdentity(identity, binding);
+	Check(binding.site().empty() && IsAccountValid(AccountIndex(binding)), "Strategy binding requires access node");
+	request::TradeCounterReply fundsReply;
+	SetAccountIdentity(identity, fundsReply);
+	SetAccountIdentity(identity, *fundsReply.mutable_funds());
+	Check(AccountIndex(primary) == AccountIndex(fundsReply) && AccountIndex(primary) == AccountIndex(fundsReply.funds()), "Funds identity depends on access node");
+	CRequest identityRequest;
+	WriteAccountIdentity(identity, identityRequest);
+	_TyAccountIndex requestIdentity;
+	Check(identityRequest.GetExtraData("site").empty() && ReadAccountIdentity(identityRequest, requestIdentity) && identity == requestIdentity, "Request identity requires access node");
+
 	CLoginService loginService;
 	CStrategyService service;
-	CHQMarketService marketService;
-	CTradeAccountService accountService;
+	CHQService marketService;
+	CAccountService accountService;
 	CTraderServices services{ loginService, service, marketService, accountService };
 	pStrategyService = &service;
 	service.SetTraderCenter(&center);
@@ -275,6 +297,7 @@ int main(int argc, char** argv)
 	dialog.SetStrategy(strategy);
 	Check("000123" == dialog.GetStrategy().account(), "Account leading zeros lost");
 	Check(1 == dialog.GetStrategy().broker_id(), "Wrong broker selected");
+	Check(dialog.GetStrategy().site().empty(), "Strategy persisted access node as identity");
 	bool detailedLabel = false;
 	for (QComboBox* combo : dialog.findChildren<QComboBox*>())
 	{
@@ -284,6 +307,11 @@ int main(int argc, char** argv)
 		}
 	}
 	Check(detailedLabel, "Account identity not displayed");
+	accounts.front().set_site("secondary");
+	accountEvents.Notify({});
+	QApplication::processEvents();
+	Check(1 == dialog.GetStrategy().broker_id() && "000123" == dialog.GetStrategy().account(), "Access node change lost strategy account selection");
+
 	accounts.erase(accounts.begin());
 	accountEvents.Notify({});
 	QApplication::processEvents();

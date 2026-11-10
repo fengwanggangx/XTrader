@@ -60,7 +60,7 @@ CMainWindow::CMainWindow(CTraderServices& services, QWidget* pParent) : QMainWin
 	m_pKeyboardSprite = new CKeyboardSprite(this);
 	m_pKeyboardSprite->setProperty("darkTheme", m_bDarkTheme);
 	QPointer<CKeyboardSprite> safeSprite(m_pKeyboardSprite);
-	m_nSecurityListToken = m_pServices->m_market.AddSecurityListHandler([safeSprite](const CSecurityListEvent& ev)
+	m_nSecurityListToken = m_pServices->m_hq.AddSecurityListHandler([safeSprite](const CSecurityListEvent& ev)
 	{
 		if (!safeSprite.isNull())
 		{
@@ -73,7 +73,7 @@ CMainWindow::CMainWindow(CTraderServices& services, QWidget* pParent) : QMainWin
 			}, Qt::QueuedConnection);
 		}
 	});
-	m_pKeyboardSprite->SetSecurities(m_pServices->m_market.GetSecurities());
+	m_pKeyboardSprite->SetSecurities(m_pServices->m_hq.GetSecurities());
 	connect(m_pKeyboardSprite, &CKeyboardSprite::SecuritySelected, this, [this](const CSecurity& security)
 	{
 		m_ui->treeWidget->setCurrentItem(m_ui->treeWidget->topLevelItem(0));
@@ -86,7 +86,7 @@ CMainWindow::CMainWindow(CTraderServices& services, QWidget* pParent) : QMainWin
 CMainWindow::~CMainWindow()
 {
 	qApp->removeEventFilter(this);
-	m_pServices->m_market.RemoveSecurityListHandler(m_nSecurityListToken);
+	m_pServices->m_hq.RemoveSecurityListHandler(m_nSecurityListToken);
 	m_pServices->m_login.SetStateCallback({});
 }
 
