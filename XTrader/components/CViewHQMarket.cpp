@@ -298,6 +298,7 @@ void CViewHQMarket::RefreshConstituents(const CSectorConstituentsEvent& ev)
 	}
 	m_ui->sectorState->setText(QString("%1 · %2只成分股").arg(QString::fromStdString(ev.m_sector.m_strName)).arg(ev.m_securities.size()));
 	m_ui->constituentsPage->SetSector(ev.m_sector, ev.m_securities);
+	m_pServices->m_hq.SubscribeQuotes(ev.m_securities);
 }
 
 void CViewHQMarket::RefreshQuotes(const CDataTableView& view)

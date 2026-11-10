@@ -4,6 +4,7 @@ QMainWindow, #centralWidget { background: #122130; color: #dce8f6; }
 #appTitleLabel { color: #f2f7ff; font-size: 15px; font-weight: 600; }
 #navigationFrame { background: #122130; border-right: 1px solid #203b52; }
 QTreeWidget { background: transparent; border: none; outline: none; color: #a9bdd0; font-size: 14px; }
+QTableView { outline: none; }
 QTreeWidget::item { height: 42px; padding-left: 10px; }
 QTreeWidget::item:selected { background: #3a6ef7; color: white; border-top-left-radius: 6px; border-bottom-left-radius: 6px; }
 QTabBar { background: #0f1e2d; border: 0; border-bottom: 1px solid #203b52; padding: 0; margin: 0; }
