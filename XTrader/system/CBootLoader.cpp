@@ -51,7 +51,7 @@ bool CBootLoader::Initialize()
 
 		db::CConnectParam dbParam("", 0, "", "", (m_exec / strSqliteDB).string(), "");
 		m_bDatabaseInitialized = true;
-		if (0 != CDBEngine::InstanceRef().Initialize(db::em_database::sqlite, dbParam, 4))
+		if (0 != CDBEngine::InstanceRef().Initialize(db::em_database::sqlite, dbParam, nSqlitePoolSize))
 		{
 			m_nErrorCode = 3;
 			m_strLastError = "Sqlite initialization failed";
