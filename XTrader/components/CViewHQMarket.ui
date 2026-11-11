@@ -843,44 +843,20 @@
 							<string>自选</string>
 						</attribute>
 					</widget>
-					<widget class="QWidget" name="indexPage">
+					<widget class="CViewAShare" name="indexPage">
 						<attribute name="title">
 							<string>指数</string>
 						</attribute>
-						<layout class="QVBoxLayout" name="indexPageLayout">
-							<item>
-								<widget class="QLabel" name="indexPagePlaceholder">
-									<property name="text">
-										<string>该市场数据页将在后续阶段接入</string>
-									</property>
-									<property name="alignment">
-										<set>Qt::AlignCenter</set>
-									</property>
-								</widget>
-							</item>
-						</layout>
 					</widget>
 					<widget class="CViewAShare" name="asharePage">
 						<attribute name="title">
 							<string>A股</string>
 						</attribute>
 					</widget>
-					<widget class="QWidget" name="hongKongPage">
+					<widget class="CViewAShare" name="hongKongPage">
 						<attribute name="title">
 							<string>港股</string>
 						</attribute>
-						<layout class="QVBoxLayout" name="hongKongPageLayout">
-							<item>
-								<widget class="QLabel" name="hongKongPagePlaceholder">
-									<property name="text">
-										<string>该市场数据页将在后续阶段接入</string>
-									</property>
-									<property name="alignment">
-										<set>Qt::AlignCenter</set>
-									</property>
-								</widget>
-							</item>
-						</layout>
 					</widget>
 					<widget class="QWidget" name="usPage">
 						<attribute name="title">

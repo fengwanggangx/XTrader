@@ -127,6 +127,7 @@
     <ClCompile Include="system\CSession.cpp" />
     <ClCompile Include="system\CTraderCenter.cpp" />
     <ClCompile Include="system\CLoginService.cpp" />
+    <ClCompile Include="service\watchlist\CWatchlistService.cpp" />
     <ClCompile Include="request\RequestCenter.cpp" />
     <ClCompile Include="request\MarketTypes.cpp" />
     <ClCompile Include="service\strategy\CStrategyService.cpp" />
@@ -273,6 +274,7 @@
     <ClInclude Include="components\CViewWatchlist.h" />
     <ClInclude Include="components\CViewAShare.h" />
     <ClInclude Include="system\CLoginService.h" />
+    <ClInclude Include="service\watchlist\CWatchlistService.h" />
     <ClInclude Include="system\CSession.h" />
     <ClInclude Include="system\CTraderCenter.h" />
     <ClInclude Include="system\CTraderServices.h" />

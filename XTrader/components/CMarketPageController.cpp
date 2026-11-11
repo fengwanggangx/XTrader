@@ -4,6 +4,7 @@
 #include "CDataTableModel.h"
 #include "CQuoteTableUpdateState.h"
 #include "CUICurve.h"
+#include "../service/watchlist/CWatchlistService.h"
 
 #include <QAbstractButton>
 #include <QAction>
@@ -18,7 +19,7 @@
 #include <QSortFilterProxyModel>
 #include <QStyledItemDelegate>
 #include <QStyle>
-#include <QSettings>
+#include <QRegularExpression>
 #include <QSignalBlocker>
 #include <QTimer>
 #include <QToolButton>
@@ -137,6 +138,14 @@ protected:
 		{
 			return ("沪A" == strMarket) || ("深A" == strMarket) || ("创业板" == strMarket) || ("科创板" == strMarket);
 		}
+		if (4 == m_hq)
+		{
+			return "指数" == strMarket;
+		}
+		if (5 == m_hq)
+		{
+			return "港股" == strMarket;
+		}
 		return (0 > m_hq) || (1 == m_hq && "北交所" == strMarket) || (2 == m_hq && "创业板" == strMarket) || (3 == m_hq && "科创板" == strMarket);
 	}
 };
@@ -154,15 +163,6 @@ CMarketPageController::CMarketPageController(CTraderServices& services, MarketTa
 	}
 	if (MarketTableMode::Watchlist == mode)
 	{
-		QSettings settings("Mary", "Mary");
-		for (const auto& strSecurity : settings.value("watchlist/securities").toStringList())
-		{
-			std::string strKey = strSecurity.toStdString();
-			if (ParseSecurity(strKey).IsValid() && m_watchlist.emplace(strKey).second)
-			{
-				m_watchlistOrder.emplace_back(std::move(strKey));
-			}
-		}
 		m_proxy->m_watchlist = &m_watchlist;
 	}
 	m_table->setModel(m_proxy);
@@ -322,60 +322,60 @@ QString CMarketPageController::AddWatchlist(const QString& strInput)
 	{
 		return "证券清单尚未加载，请稍后重试";
 	}
-	std::vector<std::string> matches;
-	int nRowCount = m_model->rowCount();
-	for (int nRow = 0; nRowCount > nRow; ++nRow)
+	QStringList inputs = strInput.split(QRegularExpression("[,，;；\\s]+"), Qt::SkipEmptyParts);
+	if (inputs.isEmpty())
 	{
-		QString strKey = m_model->index(nRow, 0).data().toString();
-		QString strName = m_model->index(nRow, 1).data().toString();
-		QString strPinyinFullAliases = m_model->index(nRow, static_cast<int>(MarketQuoteColumn::PinyinFullAliases) - 1).data().toString();
-		QString strPinyinShortAliases = m_model->index(nRow, static_cast<int>(MarketQuoteColumn::PinyinShortAliases) - 1).data().toString();
-		if ((0 == QString::compare(strKey, strInput, Qt::CaseInsensitive)) || (strKey.section('.', 0, 0) == strInput) || strName.contains(strInput, Qt::CaseInsensitive) || strPinyinFullAliases.contains(strInput, Qt::CaseInsensitive) || strPinyinShortAliases.contains(strInput, Qt::CaseInsensitive))
+		return "请输入证券代码或名称";
+	}
+	std::vector<std::string> securities;
+	std::unordered_set<std::string> unique;
+	int nRowCount = m_model->rowCount();
+	for (const QString& strItem : inputs)
+	{
+		std::vector<std::string> matches;
+		for (int nRow = 0; nRowCount > nRow; ++nRow)
 		{
-			matches.emplace_back(strKey.toStdString());
+			QString strKey = m_model->index(nRow, 0).data().toString();
+			QString strName = m_model->index(nRow, 1).data().toString();
+			QString strPinyinFullAliases = m_model->index(nRow, static_cast<int>(MarketQuoteColumn::PinyinFullAliases) - 1).data().toString();
+			QString strPinyinShortAliases = m_model->index(nRow, static_cast<int>(MarketQuoteColumn::PinyinShortAliases) - 1).data().toString();
+			if ((0 == QString::compare(strKey, strItem, Qt::CaseInsensitive)) || (strKey.section('.', 0, 0) == strItem) || strName.contains(strItem, Qt::CaseInsensitive) || strPinyinFullAliases.contains(strItem, Qt::CaseInsensitive) || strPinyinShortAliases.contains(strItem, Qt::CaseInsensitive))
+			{
+				matches.emplace_back(strKey.toStdString());
+			}
+		}
+		if (matches.empty())
+		{
+			return "未找到匹配的证券：" + strItem;
+		}
+		if (1 != matches.size())
+		{
+			return "匹配到多个证券，请输入完整市场代码：" + strItem;
+		}
+		if (unique.emplace(matches.front()).second)
+		{
+			securities.emplace_back(matches.front());
 		}
 	}
-	if (matches.empty())
-	{
-		return "未找到匹配的证券";
-	}
-	if (1 != matches.size())
-	{
-		return "匹配到多个证券，请输入更完整的名称、拼音或市场代码";
-	}
-	if (!m_watchlist.emplace(matches.front()).second)
-	{
-		return "该证券已在自选中";
-	}
-	m_watchlistOrder.emplace_back(matches.front());
-	QStringList securities;
-	for (const std::string& strSecurity : m_watchlistOrder)
-	{
-		securities.append(QString::fromStdString(strSecurity));
-	}
-	QSettings("Mary", "Mary").setValue("watchlist/securities", securities);
-	m_proxy->Refresh();
-	m_table->Update();
-	return "已添加到自选";
+	return m_pServices->m_watchlist.Add(securities) ? QString() : QString("连接不可用，添加失败");
 }
 
 QString CMarketPageController::RemoveSelectedWatchlist()
 {
 	CSecurity security = GetSecurity(m_table->currentIndex());
-	if (!security.IsValid() || (0 == m_watchlist.erase(security.String())))
+	if (!security.IsValid() || !m_watchlist.contains(security.String()))
 	{
 		return "请先选择要删除的自选证券";
 	}
-	m_watchlistOrder.erase(std::remove(m_watchlistOrder.begin(), m_watchlistOrder.end(), security.String()), m_watchlistOrder.end());
-	QStringList securities;
-	for (const std::string& strSecurity : m_watchlistOrder)
-	{
-		securities.append(QString::fromStdString(strSecurity));
-	}
-	QSettings("Mary", "Mary").setValue("watchlist/securities", securities);
+	return m_pServices->m_watchlist.Remove({ security.String() }) ? QString() : QString("连接不可用，删除失败");
+}
+
+void CMarketPageController::SetWatchlist(const std::vector<std::string>& securities)
+{
+	m_watchlist.clear();
+	m_watchlist.insert(securities.begin(), securities.end());
 	m_proxy->Refresh();
 	m_table->Update();
-	return "已从自选中删除";
 }
 
 void CMarketPageController::BindService()

@@ -23,7 +23,9 @@ enum class MarketTableMode
 {
 	Watchlist,
 	AShare,
-	Constituents
+	Constituents,
+	Index,
+	HongKong
 };
 
 // Shared page-side market logic, with no layout or search controls.
@@ -36,6 +38,7 @@ public:
 	void SetMarket(int nIndex);
 	QString AddWatchlist(const QString& strInput);
 	QString RemoveSelectedWatchlist();
+	void SetWatchlist(const std::vector<std::string>& securities);
 	void SetCharts(QLabel* pTitle, QLabel* pPrice, QLabel* pState, CUICurve* pIntraday, CUICurve* pCandles);
 	QWidget* CreateIntradayControls(QWidget* pParent);
 	void SetIntradayDays(int nDays);
@@ -56,7 +59,6 @@ private:
 	MarketTableMode m_mode;
 	std::string m_selectedSecurity;
 	std::unordered_set<std::string> m_watchlist;
-	std::vector<std::string> m_watchlistOrder;
 	std::unordered_set<std::string> m_constituents;
 	CUITable* m_table{ nullptr };
 	CDataTableModel* m_model{ nullptr };

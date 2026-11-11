@@ -2,6 +2,7 @@
 #define XTRADER_COMPONENTS_CVIEWWATCHLIST_H
 
 #include "../system/CTraderServices.h"
+#include "../basic/TMessagePump.h"
 
 #include <QWidget>
 #include <memory>
@@ -25,6 +26,7 @@ private:
 	std::unique_ptr<Ui::CViewWatchlistClass> m_ui;
 	std::unique_ptr<CMarketPageController> m_controller;
 	bool m_bLayoutInitialized{ false };
+	_TyCallbackId m_watchlistToken{ 0 };
 
 private:
 	CTraderServices* m_pServices{ nullptr };

@@ -2,6 +2,7 @@
 #include "CUIStyle.h"
 #include "CDataTableModel.h"
 #include "CQuoteTableUpdateState.h"
+#include "CMarketPageController.h"
 #include "../system/CSession.h"
 #include "ui_CViewHQMarket.h"
 
@@ -28,7 +29,9 @@ void CViewHQMarket::Initialize(CTraderServices& services)
 	m_pServices = &services;
 	m_ui->setupUi(this);
 	m_ui->watchlistPage->Initialize(services);
-	m_ui->asharePage->Initialize(services);
+	m_ui->indexPage->Initialize(services, MarketTableMode::Index);
+	m_ui->asharePage->Initialize(services, MarketTableMode::AShare);
+	m_ui->hongKongPage->Initialize(services, MarketTableMode::HongKong);
 	m_ui->constituentsPage->Initialize(services);
 	m_ui->marketTabs->tabBar()->setDrawBase(false);
 	m_ui->marketTabs->tabBar()->setExpanding(false);
@@ -123,10 +126,20 @@ void CViewHQMarket::OnSessionStateChanged(QPointer<CViewHQMarket> pInstance, Ses
 	}
 	QMetaObject::invokeMethod(pInstance.data(), [pInstance]()
 	{
-		if (!pInstance.isNull() && (0 == pInstance->m_ui->marketTabs->currentIndex()))
+		if (pInstance.isNull())
+		{
+			return;
+		}
+		int nIndex = pInstance->m_ui->marketTabs->currentIndex();
+		if (0 == nIndex)
 		{
 			pInstance->m_bOverviewRequested = false;
 			pInstance->RequestSectors();
+		}
+		else if ((1 == nIndex) || (2 == nIndex) || (3 == nIndex) || (4 == nIndex))
+		{
+			pInstance->m_bSecuritiesRequested = false;
+			pInstance->OnTabChanged(nIndex);
 		}
 	}, Qt::QueuedConnection);
 }
@@ -155,7 +168,7 @@ void CViewHQMarket::OnTabChanged(int idx)
 			RequestSectors();
 		}
 	}
-	else if ((1 == idx) || (3 == idx)) // 自选股、A股
+	else if ((1 == idx) || (2 == idx) || (3 == idx) || (4 == idx)) // 自选、指数、A股、港股
 	{
 		if (!m_bSecuritiesRequested)
 		{

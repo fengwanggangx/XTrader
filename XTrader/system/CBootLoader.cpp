@@ -3,6 +3,7 @@
 #include "../service/strategy/CStrategyService.h"
 #include "../service/hqmarket/CHQService.h"
 #include "../service/account/CAccountService.h"
+#include "../service/watchlist/CWatchlistService.h"
 #include "../database/CDBEngine.h"
 #include "../database/IDataBase.h"
 #include "../network/common_net.h"
@@ -72,13 +73,15 @@ bool CBootLoader::Initialize()
 		m_pStrategyService = new CStrategyService();
 		m_pHQService = new CHQService();
 		m_pAccountService = new CAccountService();
-		m_pServices = new CTraderServices{ *m_pLoginService, *m_pStrategyService, *m_pHQService, *m_pAccountService };
+		m_pWatchlistService = new CWatchlistService();
+		m_pServices = new CTraderServices{ *m_pLoginService, *m_pStrategyService, *m_pHQService, *m_pAccountService, *m_pWatchlistService };
 		m_pTraderCenter = new CTraderCenter();
 		m_pTraderCenter->Initialize(*m_pSession, *m_pServices);
 		m_pLoginService->SetTraderCenter(m_pTraderCenter);
 		m_pStrategyService->SetTraderCenter(m_pTraderCenter);
 		m_pHQService->SetTraderCenter(m_pTraderCenter);
 		m_pAccountService->SetTraderCenter(m_pTraderCenter);
+		m_pWatchlistService->SetTraderCenter(m_pTraderCenter);
 		m_bInitialized = true;
 		return true;
 	}
@@ -138,10 +141,15 @@ void CBootLoader::Finalize()
 	{
 		m_pAccountService->SetTraderCenter(nullptr);
 	}
+	if (nullptr != m_pWatchlistService)
+	{
+		m_pWatchlistService->SetTraderCenter(nullptr);
+	}
 
 	delete std::exchange(m_pTraderCenter, nullptr);
 	delete std::exchange(m_pServices, nullptr);
 	delete std::exchange(m_pAccountService, nullptr);
+	delete std::exchange(m_pWatchlistService, nullptr);
 	delete std::exchange(m_pHQService, nullptr);
 	delete std::exchange(m_pStrategyService, nullptr);
 	delete std::exchange(m_pLoginService, nullptr);

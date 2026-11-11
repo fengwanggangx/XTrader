@@ -7,6 +7,7 @@
 #include "../service/strategy/CStrategyService.h"
 #include "../service/hqmarket/CHQService.h"
 #include "../service/account/CAccountService.h"
+#include "../service/watchlist/CWatchlistService.h"
 
 #include <string>
 #include <filesystem>
@@ -35,6 +36,7 @@ private:
 	CStrategyService* m_pStrategyService{ nullptr };
 	CHQService* m_pHQService{ nullptr };
 	CAccountService* m_pAccountService{ nullptr };
+	CWatchlistService* m_pWatchlistService{ nullptr };
 	CTraderServices* m_pServices{ nullptr };
 	CTraderCenter* m_pTraderCenter{ nullptr };
 	std::filesystem::path m_exec;

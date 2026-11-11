@@ -1,11 +1,14 @@
 #include "CViewWatchlist.h"
 #include "CMarketPageController.h"
 #include "ui_CViewWatchlist.h"
+#include "../service/watchlist/CWatchlistService.h"
+#include "../system/CLoginService.h"
 
 #include <QHeaderView>
 #include <QInputDialog>
 #include <QMargins>
 #include <QMessageBox>
+#include <QPointer>
 #include <QShortcut>
 #include <QTabBar>
 #include <QTimer>
@@ -58,6 +61,44 @@ void CViewWatchlist::Initialize(CTraderServices& services)
 		m_ui->countLabel->setText(QString("共%1只").arg(nCount));
 	});
 	m_controller = std::make_unique<CMarketPageController>(*m_pServices, MarketTableMode::Watchlist, m_ui->table, this);
+	QPointer<CViewWatchlist> safeThis(this);
+	m_watchlistToken = m_pServices->m_watchlist.Subscribe([safeThis](const CWatchlistEvent& event)
+	{
+		if (safeThis.isNull())
+		{
+			return;
+		}
+		QMetaObject::invokeMethod(safeThis.data(), [safeThis, event]()
+		{
+			if (safeThis.isNull())
+			{
+				return;
+			}
+			if (event.m_bReset)
+			{
+				safeThis->m_controller->SetWatchlist({});
+				return;
+			}
+			if (!event.m_strError.empty())
+			{
+				QMessageBox::warning(safeThis.data(), "自选股", QString::fromStdString(event.m_strError));
+				return;
+			}
+			safeThis->m_controller->SetWatchlist(event.m_securities);
+			if (_TyRequest::WATCHLIST_ADD == event.m_type)
+			{
+				QMessageBox::information(safeThis.data(), "自选股", "已添加到自选");
+			}
+			else if (_TyRequest::WATCHLIST_REMOVE == event.m_type)
+			{
+				QMessageBox::information(safeThis.data(), "自选股", "已从自选中删除");
+			}
+		}, Qt::QueuedConnection);
+	});
+	if (m_pServices->m_login.IsAuthenticated())
+	{
+		m_pServices->m_watchlist.Query();
+	}
 	m_controller->SetCharts(m_ui->stockTitle, m_ui->priceLabel, m_ui->chartState, m_ui->intradayCurve, m_ui->candleCurve);
 	m_ui->intradayLabel->hide();
 	m_ui->intradayFrameLayout->insertWidget(1, m_controller->CreateIntradayControls(m_ui->intradayFrame));
@@ -108,22 +149,34 @@ void CViewWatchlist::Initialize(CTraderServices& services)
 	connect(m_ui->addButton, &QPushButton::clicked, this, [this]()
 	{
 		bool bAccepted = false;
-		QString strCode = QInputDialog::getText(this, "添加自选股", "输入证券代码、完整市场代码或证券名称", QLineEdit::Normal, QString(), &bAccepted).trimmed();
+		QString strCode = QInputDialog::getMultiLineText(this, "添加自选股", "输入一个或多个证券代码/名称，以换行、空格或逗号分隔", QString(), &bAccepted).trimmed();
 		if (bAccepted && !strCode.isEmpty())
 		{
 			QString strResult = m_controller->AddWatchlist(strCode);
-			QMessageBox::information(this, "自选股", strResult);
+			if (!strResult.isEmpty())
+			{
+				QMessageBox::warning(this, "自选股", strResult);
+			}
 		}
 	});
 	QShortcut* pDeleteShortcut = new QShortcut(QKeySequence::Delete, m_ui->table);
 	connect(pDeleteShortcut, &QShortcut::activated, this, [this]()
 	{
 		QString strResult = m_controller->RemoveSelectedWatchlist();
-		QMessageBox::information(this, "自选股", strResult);
+		if (!strResult.isEmpty())
+		{
+			QMessageBox::warning(this, "自选股", strResult);
+		}
 	});
 }
 
-CViewWatchlist::~CViewWatchlist() = default;
+CViewWatchlist::~CViewWatchlist()
+{
+	if ((nullptr != m_pServices) && (0 != m_watchlistToken))
+	{
+		m_pServices->m_watchlist.Unsubscribe(m_watchlistToken);
+	}
+}
 
 void CViewWatchlist::showEvent(QShowEvent* pEvent)
 {

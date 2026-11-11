@@ -11,11 +11,12 @@ namespace Ui
 	class CViewAShareClass;
 }
 class CMarketPageController;
+enum class MarketTableMode;
 
 class CViewAShare final : public QWidget
 {
 public:
-	void Initialize(CTraderServices& services);
+	void Initialize(CTraderServices& services, MarketTableMode mode);
 	explicit CViewAShare(QWidget* pParent = nullptr);
 	~CViewAShare() override;
 

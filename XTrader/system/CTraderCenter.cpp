@@ -2,6 +2,7 @@
 #include "../service/account/CAccountService.h"
 #include "../service/hqmarket/CHQService.h"
 #include "../service/strategy/CStrategyService.h"
+#include "../service/watchlist/CWatchlistService.h"
 #include <utility>
 
 CTraderCenter::CTraderCenter() = default;
@@ -103,6 +104,10 @@ bool CTraderCenter::OnRequestReply(const CRequest& req)
 	_TyRequest t = req.GetType();
 	switch (t)
 	{
+	case _TyRequest::WATCHLIST_QUERY:
+	case _TyRequest::WATCHLIST_ADD:
+	case _TyRequest::WATCHLIST_REMOVE:
+		return m_pServices->m_watchlist.OnRequestReply(req);
 	case _TyRequest::MARKET_SUBSCRIBE:
 	case _TyRequest::MARKET_UNSUBSCRIBE:
 	case _TyRequest::MARKET_QUOTE_QUERY:

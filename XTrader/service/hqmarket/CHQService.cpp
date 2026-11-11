@@ -83,6 +83,10 @@ namespace
 		{
 			return "北交所";
 		}
+		if ("HKEX" == strExchange)
+		{
+			return "港股";
+		}
 		if ("SSE" == strExchange)
 		{
 			if (strCode.starts_with("000"))
@@ -873,7 +877,7 @@ bool CHQService::OnSecurityListReply(const CRequest& req)
 	subscriptions.reserve(ev.m_securities.size());
 	for (const auto& v : ev.m_securities)
 	{
-		if ((Exchange::sse != v.m_hq) && (Exchange::szse != v.m_hq) && (Exchange::bse != v.m_hq))
+		if ((Exchange::sse != v.m_hq) && (Exchange::szse != v.m_hq) && (Exchange::bse != v.m_hq) && (Exchange::hkex != v.m_hq))
 		{
 			continue;
 		}

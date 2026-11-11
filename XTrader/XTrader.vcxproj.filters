@@ -302,6 +302,9 @@
     <ClCompile Include="service\account\CAccountService.cpp">
       <Filter>Source Files\service\account</Filter>
     </ClCompile>
+    <ClCompile Include="service\watchlist\CWatchlistService.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="components\CLoginWindow.h">
@@ -609,6 +612,9 @@
     </ClInclude>
     <ClInclude Include="service\account\CAccountService.h">
       <Filter>Source Files\service\account</Filter>
+    </ClInclude>
+    <ClInclude Include="service\watchlist\CWatchlistService.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

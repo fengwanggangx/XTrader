@@ -30,7 +30,7 @@ CViewAShare::CViewAShare(QWidget* pParent) : QWidget(pParent), m_ui(std::make_un
 {
 }
 
-void CViewAShare::Initialize(CTraderServices& services)
+void CViewAShare::Initialize(CTraderServices& services, MarketTableMode mode)
 {
 	if (nullptr != m_pServices)
 	{
@@ -54,7 +54,7 @@ void CViewAShare::Initialize(CTraderServices& services)
 	{
 		m_ui->countLabel->setText(QString("共%1只").arg(nCount));
 	});
-	m_controller = std::make_unique<CMarketPageController>(*m_pServices, MarketTableMode::AShare, m_ui->table, this);
+	m_controller = std::make_unique<CMarketPageController>(*m_pServices, mode, m_ui->table, this);
 	m_controller->SetCharts(m_ui->stockTitle, m_ui->priceLabel, m_ui->chartState, m_ui->intradayCurve, m_ui->candleCurve);
 	m_ui->intradayLabel->hide();
 	m_ui->intradayFrameLayout->insertWidget(1, m_controller->CreateIntradayControls(m_ui->intradayFrame));
@@ -102,12 +102,21 @@ void CViewAShare::Initialize(CTraderServices& services)
 	m_ui->splitter->setStretchFactor(1, 50);
 	m_ui->chartSplitter->setSizes({ 420, 420 });
 
-	connect(m_ui->marketTabs, &QTabWidget::currentChanged, this, [this](int nIndex)
+	if (MarketTableMode::AShare == mode)
 	{
-		m_ui->titleLabel->setText(m_ui->marketTabs->tabText(nIndex));
-		m_controller->SetMarket(nIndex);
-	});
-	m_controller->SetMarket(0);
+		connect(m_ui->marketTabs, &QTabWidget::currentChanged, this, [this](int nIndex)
+		{
+			m_ui->titleLabel->setText(m_ui->marketTabs->tabText(nIndex));
+			m_controller->SetMarket(nIndex);
+		});
+		m_controller->SetMarket(0);
+	}
+	else
+	{
+		m_ui->marketTabs->hide();
+		m_ui->titleLabel->setText(MarketTableMode::Index == mode ? QStringLiteral("沪深指数") : QStringLiteral("港股"));
+		m_controller->SetMarket(MarketTableMode::Index == mode ? 4 : 5);
+	}
 }
 
 CViewAShare::~CViewAShare() = default;
