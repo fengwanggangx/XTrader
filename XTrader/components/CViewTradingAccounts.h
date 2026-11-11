@@ -37,7 +37,9 @@ private:
 	void RefreshStrategies();
 	const request::TradeAccountRecord* SelectedAccount() const;
 	QPushButton* m_add{ nullptr };
+	QPushButton* m_login{ nullptr };
 	QPushButton* m_disconnect{ nullptr };
+	QPushButton* m_remove{ nullptr };
 	QLabel* m_heading{ nullptr };
 	QLabel* m_notice{ nullptr };
 	QTableWidget* m_strategies{ nullptr };

@@ -19,7 +19,7 @@ protected:
 private:
 	std::vector<request::BrokerRecord> m_brokers;
 	std::uint64_t m_directoryId{ 0 };
-	void Login();
+	void AddAccount();
 	void HandleResult(const CAccountService::CResult& result);
 	void SetBusy(bool bBusy);
 	void ShowError(const QString& strMessage);

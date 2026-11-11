@@ -20,11 +20,15 @@ CViewTradingAccounts::CViewTradingAccounts(CTraderServices& services, QWidget* p
 	setObjectName("tradingAccountsPage");
 	QVBoxLayout* layout = new QVBoxLayout(this);
 	QHBoxLayout* actions = new QHBoxLayout();
-	m_add = new QPushButton("登录账户", this);
+	m_add = new QPushButton("新增账户", this);
+	m_login = new QPushButton("登录账户", this);
 	m_disconnect = new QPushButton("断开账户", this);
+	m_remove = new QPushButton("移除账户", this);
 	QPushButton* refresh = new QPushButton("刷新", this);
 	actions->addWidget(m_add);
+	actions->addWidget(m_login);
 	actions->addWidget(m_disconnect);
+	actions->addWidget(m_remove);
 	actions->addWidget(refresh);
 	actions->addStretch();
 	layout->addLayout(actions);
@@ -57,10 +61,22 @@ CViewTradingAccounts::CViewTradingAccounts(CTraderServices& services, QWidget* p
 	{
 		EditAccount(true);
 	});
+	connect(m_login, &QPushButton::clicked, this, [this]()
+	{
+		Operate(_TyRequest::TRADE_ACCOUNT_LOGIN);
+	});
 	connect(m_disconnect, &QPushButton::clicked, this,
 		[this]()
 	{
+		if (QMessageBox::Yes != QMessageBox::question(this, "断开交易账户", "断开此交易账户可能影响其他正在使用该账户的用户。确定断开吗？"))
+		{
+			return;
+		}
 		Operate(_TyRequest::TRADE_ACCOUNT_DISCONNECT);
+	});
+	connect(m_remove, &QPushButton::clicked, this, [this]()
+	{
+		Operate(_TyRequest::TRADE_ACCOUNT_REMOVE);
 	});
 	connect(refresh, &QPushButton::clicked, this, &CViewTradingAccounts::Refresh);
 	connect(m_logs, &QTableWidget::itemSelectionChanged, this,
@@ -190,8 +206,19 @@ void CViewTradingAccounts::RefreshSelection()
 	m_heading->setText(QString::fromStdString(m_accounts[row].broker_name() +
 											  " / " + m_accounts[row].site() +
 											  " / " + m_accounts[row].account()));
-	m_snapshotId = m_pServices->m_account.Send(
-		_TyRequest::TRADE_FUNDS_QUERY, m_selectedIndex);
+	if (request::ACCOUNT_CONNECTED == m_accounts[row].state())
+	{
+		m_snapshotId = m_pServices->m_account.Send(
+			_TyRequest::TRADE_FUNDS_QUERY, m_selectedIndex);
+	}
+	else
+	{
+		m_snapshotId = 0;
+		for (QLabel* label : m_funds)
+		{
+			label->setText("--");
+		}
+	}
 	RefreshStrategies();
 	RefreshButtons();
 }
@@ -209,8 +236,12 @@ void CViewTradingAccounts::ClearDetails()
 void CViewTradingAccounts::RefreshButtons()
 {
 	const request::TradeAccountRecord* account = SelectedAccount();
+	m_login->setEnabled(0 == m_operationId && nullptr != account &&
+		(request::ACCOUNT_DISCONNECTED == account->state() || request::ACCOUNT_ERROR == account->state()));
 	m_disconnect->setEnabled(0 == m_operationId && nullptr != account &&
 							 request::ACCOUNT_CONNECTED == account->state());
+	m_remove->setEnabled(0 == m_operationId && nullptr != account &&
+		(request::ACCOUNT_DISCONNECTED == account->state() || request::ACCOUNT_ERROR == account->state()));
 }
 
 void CViewTradingAccounts::HandleResult(

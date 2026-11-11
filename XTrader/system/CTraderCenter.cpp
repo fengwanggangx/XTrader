@@ -129,6 +129,8 @@ bool CTraderCenter::OnRequestReply(const CRequest& req)
 		return m_pServices->m_strategy.OnRequestReply(req);
 	case _TyRequest::TRADE_ACCOUNT_LOGIN:
 	case _TyRequest::TRADE_ACCOUNT_LIST_QUERY:
+	case _TyRequest::TRADE_ACCOUNT_ADD:
+	case _TyRequest::TRADE_ACCOUNT_REMOVE:
 	case _TyRequest::TRADE_ACCOUNT_DISCONNECT:
 	case _TyRequest::TRADE_FUNDS_QUERY:
 	case _TyRequest::TRADE_ORDER_SUBMIT:

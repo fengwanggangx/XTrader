@@ -3,7 +3,7 @@
 	<class>CTradeAccountLoginDialog</class>
 	<widget class="QDialog" name="CTradeAccountLoginDialog">
 		<property name="windowTitle">
-			<string>登录账户</string>
+			<string>新增账户</string>
 		</property>
 		<layout class="QVBoxLayout" name="rootLayout">
 			<property name="leftMargin">
@@ -51,7 +51,7 @@
 						<item>
 							<widget class="QLabel" name="titleLabel">
 								<property name="text">
-									<string>登录账户</string>
+									<string>新增账户</string>
 								</property>
 							</widget>
 						</item>
@@ -313,7 +313,7 @@
 								<item>
 									<widget class="QPushButton" name="loginButton">
 										<property name="text">
-											<string>登录</string>
+											<string>保存</string>
 										</property>
 										<property name="default">
 											<bool>true</bool>

@@ -77,10 +77,10 @@ CTradeAccountLoginDialog::CTradeAccountLoginDialog(CTraderServices& services, QW
 		pReveal->setToolTip(pReveal->text());
 	});
 	connect(m_ui->loginButton, &QPushButton::clicked, this,
-		&CTradeAccountLoginDialog::Login);
+		&CTradeAccountLoginDialog::AddAccount);
 	connect(m_ui->cancelButton, &QPushButton::clicked, this, &QDialog::reject);
 	connect(m_ui->passwordEdit, &QLineEdit::returnPressed, this,
-		&CTradeAccountLoginDialog::Login);
+		&CTradeAccountLoginDialog::AddAccount);
 	QPointer<CTradeAccountLoginDialog> self(this);
 	m_nToken = m_pServices->m_account.Subscribe(
 		[self](const CAccountService::CResult& result)
@@ -121,10 +121,10 @@ void CTradeAccountLoginDialog::SetBusy(bool bBusy)
 	m_ui->siteCombo->setEnabled(!bBusy);
 	m_ui->accountEdit->setEnabled(!bBusy);
 	m_ui->passwordEdit->setEnabled(!bBusy);
-	m_ui->loginButton->setText(bBusy ? "登录中…" : "登录");
+	m_ui->loginButton->setText(bBusy ? "保存中…" : "保存");
 }
 
-void CTradeAccountLoginDialog::Login()
+void CTradeAccountLoginDialog::AddAccount()
 {
 	if (0 != m_nRequestId)
 	{
@@ -139,8 +139,9 @@ void CTradeAccountLoginDialog::Login()
 		return;
 	}
 	m_nRequestId = m_pServices->m_account.Send(
-		_TyRequest::TRADE_ACCOUNT_LOGIN, {},
+		_TyRequest::TRADE_ACCOUNT_ADD, {},
 		{ { "broker_id", m_ui->brokerCombo->currentData().toString().toStdString() },
+			{ "broker_name", m_ui->brokerCombo->currentText().toStdString() },
 			{ "site", m_ui->siteCombo->currentData().toString().toStdString() },
 			{ "account", m_ui->accountEdit->text().toStdString() },
 			{ "password", m_ui->passwordEdit->text().toStdString() } });

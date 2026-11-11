@@ -115,6 +115,8 @@ std::uint64_t CAccountService::Send(
 	case _TyRequest::SUPPORTED_BROKER_QUERY:
 	case _TyRequest::TRADE_ACCOUNT_LOGIN:
 	case _TyRequest::TRADE_ACCOUNT_LIST_QUERY:
+	case _TyRequest::TRADE_ACCOUNT_ADD:
+	case _TyRequest::TRADE_ACCOUNT_REMOVE:
 	case _TyRequest::TRADE_ACCOUNT_DISCONNECT:
 	case _TyRequest::TRADE_FUNDS_QUERY:
 		break;
