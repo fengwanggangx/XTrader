@@ -35,13 +35,15 @@ CViewTradingAccounts::CViewTradingAccounts(CTraderServices& services, QWidget* p
 	m_notice = new QLabel(this);
 	layout->addWidget(m_notice);
 	m_logs = new QTableWidget(this);
-	m_logs->setColumnCount(5);
+	m_logs->setColumnCount(6);
 	m_logs->setHorizontalHeaderLabels(
-		{ "券商", "站点", "账号", "账户名称", "状态" });
+		{ "序号", "券商", "站点", "账号", "账户名称", "状态" });
+	m_logs->verticalHeader()->hide();
 	m_logs->setEditTriggers(QAbstractItemView::NoEditTriggers);
 	m_logs->setSelectionBehavior(QAbstractItemView::SelectRows);
 	m_logs->setSelectionMode(QAbstractItemView::SingleSelection);
 	m_logs->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+	m_logs->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
 	layout->addWidget(m_logs);
 	m_heading = new QLabel("请选择账户", this);
 	layout->addWidget(m_heading);
@@ -150,7 +152,8 @@ void CViewTradingAccounts::RefreshRows()
 	for (std::size_t index = 0; index < m_accounts.size(); ++index)
 	{
 		const request::TradeAccountRecord& info = m_accounts[index];
-		QStringList values{ QString::fromStdString(info.broker_name()),
+		QStringList values{ QString::number(index + 1),
+			QString::fromStdString(info.broker_name()),
 			QString::fromStdString(info.site()),
 			QString::fromStdString(info.account()),
 			QString::fromStdString(info.name()),
@@ -161,8 +164,12 @@ void CViewTradingAccounts::RefreshRows()
 																													  : "未连接" };
 		for (int column = 0; column < values.size(); ++column)
 		{
-			m_logs->setItem(static_cast<int>(index), column,
-				new QTableWidgetItem(values[column]));
+			QTableWidgetItem* item = new QTableWidgetItem(values[column]);
+			if (0 == column)
+			{
+				item->setTextAlignment(Qt::AlignCenter);
+			}
+			m_logs->setItem(static_cast<int>(index), column, item);
 		}
 		if (m_selectedIndex == AccountIndex(info))
 		{

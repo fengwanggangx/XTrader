@@ -37,13 +37,13 @@
 					</property>
 					<layout class="QHBoxLayout" name="titleLayout">
 						<property name="leftMargin">
-							<number>18</number>
+							<number>10</number>
 						</property>
 						<property name="topMargin">
 							<number>0</number>
 						</property>
 						<property name="rightMargin">
-							<number>12</number>
+							<number>6</number>
 						</property>
 						<property name="bottomMargin">
 							<number>0</number>
@@ -68,14 +68,14 @@
 								</property>
 								<property name="minimumSize">
 									<size>
-										<width>28</width>
-										<height>28</height>
+										<width>22</width>
+										<height>22</height>
 									</size>
 								</property>
 								<property name="maximumSize">
 									<size>
-										<width>28</width>
-										<height>28</height>
+										<width>22</width>
+										<height>22</height>
 									</size>
 								</property>
 							</widget>
@@ -109,13 +109,7 @@
 											<string>券商</string>
 										</property>
 										<property name="alignment">
-											<set>Qt::AlignRight|Qt::AlignVCenter</set>
-										</property>
-										<property name="minimumSize">
-											<size>
-												<width>40</width>
-												<height>0</height>
-											</size>
+											<set>Qt::AlignLeft|Qt::AlignVCenter</set>
 										</property>
 									</widget>
 								</item>
@@ -127,7 +121,13 @@
 										<property name="minimumSize">
 											<size>
 												<width>0</width>
-												<height>36</height>
+												<height>27</height>
+											</size>
+										</property>
+										<property name="maximumSize">
+											<size>
+												<width>16777215</width>
+												<height>27</height>
 											</size>
 										</property>
 									</widget>
@@ -138,13 +138,7 @@
 											<string>站点</string>
 										</property>
 										<property name="alignment">
-											<set>Qt::AlignRight|Qt::AlignVCenter</set>
-										</property>
-										<property name="minimumSize">
-											<size>
-												<width>40</width>
-												<height>0</height>
-											</size>
+											<set>Qt::AlignLeft|Qt::AlignVCenter</set>
 										</property>
 									</widget>
 								</item>
@@ -156,7 +150,13 @@
 										<property name="minimumSize">
 											<size>
 												<width>0</width>
-												<height>36</height>
+												<height>27</height>
+											</size>
+										</property>
+										<property name="maximumSize">
+											<size>
+												<width>16777215</width>
+												<height>27</height>
 											</size>
 										</property>
 									</widget>
@@ -167,13 +167,7 @@
 											<string>账户</string>
 										</property>
 										<property name="alignment">
-											<set>Qt::AlignRight|Qt::AlignVCenter</set>
-										</property>
-										<property name="minimumSize">
-											<size>
-												<width>40</width>
-												<height>0</height>
-											</size>
+											<set>Qt::AlignLeft|Qt::AlignVCenter</set>
 										</property>
 									</widget>
 								</item>
@@ -188,7 +182,13 @@
 										<property name="minimumSize">
 											<size>
 												<width>0</width>
-												<height>36</height>
+												<height>27</height>
+											</size>
+										</property>
+										<property name="maximumSize">
+											<size>
+												<width>16777215</width>
+												<height>27</height>
 											</size>
 										</property>
 									</widget>
@@ -199,13 +199,7 @@
 											<string>密码</string>
 										</property>
 										<property name="alignment">
-											<set>Qt::AlignRight|Qt::AlignVCenter</set>
-										</property>
-										<property name="minimumSize">
-											<size>
-												<width>40</width>
-												<height>0</height>
-											</size>
+											<set>Qt::AlignLeft|Qt::AlignVCenter</set>
 										</property>
 									</widget>
 								</item>
@@ -223,7 +217,13 @@
 										<property name="minimumSize">
 											<size>
 												<width>0</width>
-												<height>36</height>
+												<height>27</height>
+											</size>
+										</property>
+										<property name="maximumSize">
+											<size>
+												<width>16777215</width>
+												<height>27</height>
 											</size>
 										</property>
 									</widget>
@@ -232,7 +232,7 @@
 									<number>12</number>
 								</property>
 								<property name="horizontalSpacing">
-									<number>14</number>
+									<number>10</number>
 								</property>
 							</layout>
 						</item>
@@ -290,7 +290,7 @@
 							<number>20</number>
 						</property>
 						<property name="bottomMargin">
-							<number>14</number>
+							<number>11</number>
 						</property>
 						<item>
 							<layout class="QHBoxLayout" name="buttonLayout">
@@ -320,8 +320,14 @@
 										</property>
 										<property name="minimumSize">
 											<size>
-												<width>80</width>
-												<height>36</height>
+												<width>60</width>
+												<height>27</height>
+											</size>
+										</property>
+										<property name="maximumSize">
+											<size>
+												<width>60</width>
+												<height>27</height>
 											</size>
 										</property>
 									</widget>
@@ -333,8 +339,14 @@
 										</property>
 										<property name="minimumSize">
 											<size>
-												<width>80</width>
-												<height>36</height>
+												<width>60</width>
+												<height>27</height>
+											</size>
+										</property>
+										<property name="maximumSize">
+											<size>
+												<width>60</width>
+												<height>27</height>
 											</size>
 										</property>
 									</widget>
@@ -345,13 +357,13 @@
 					<property name="minimumSize">
 						<size>
 							<width>0</width>
-							<height>64</height>
+							<height>50</height>
 						</size>
 					</property>
 					<property name="maximumSize">
 						<size>
 							<width>16777215</width>
-							<height>64</height>
+							<height>50</height>
 						</size>
 					</property>
 				</widget>
@@ -359,14 +371,14 @@
 		</layout>
 		<property name="minimumSize">
 			<size>
-				<width>390</width>
-				<height>308</height>
+				<width>272</width>
+				<height>272</height>
 			</size>
 		</property>
 		<property name="maximumSize">
 			<size>
-				<width>390</width>
-				<height>308</height>
+				<width>272</width>
+				<height>272</height>
 			</size>
 		</property>
 		<property name="sizeGripEnabled">

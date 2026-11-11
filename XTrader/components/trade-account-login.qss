@@ -5,9 +5,9 @@ QDialog#CTradeAccountLoginDialog QComboBox:focus, QDialog#CTradeAccountLoginDial
 QDialog#CTradeAccountLoginDialog QComboBox QAbstractItemView { border: 1px solid #cbd7e8; border-radius: 0px; outline: none; color: #162033; background: white; selection-background-color: #edf5fd; selection-color: #162033; }
 QDialog#CTradeAccountLoginDialog QPushButton { border: 1px solid #cbd7e8; border-radius: 0px; background: white; color: #162033; padding: 0px 16px; }
 QDialog#CTradeAccountLoginDialog QPushButton:hover { background: #f0f5ff; }
-QDialog#CTradeAccountLoginDialog #loginButton { border-radius: 5px; background: #2563eb; border-color: #2563eb; color: white; }
+QDialog#CTradeAccountLoginDialog #loginButton { background: #2563eb; color: white; }
 QDialog#CTradeAccountLoginDialog #loginButton:hover { background: #1d4ed8; }
-QDialog#CTradeAccountLoginDialog #loginButton:disabled { background: #93b4ee; border-color: #93b4ee; }
+QDialog#CTradeAccountLoginDialog #loginButton:disabled { background: #93b4ee; }
 QDialog#CTradeAccountLoginDialog #errorLabel { color: #d9363e; }
 QDialog#CTradeAccountLoginDialog #divider { background: transparent; border: none; }
 
@@ -18,9 +18,9 @@ QDialog#CTradeAccountLoginDialog #titleFrame { background: #f7f9fd; border: none
 QDialog#CTradeAccountLoginDialog #titleLabel { font-size: 14px; font-weight: 700; }
 QDialog#CTradeAccountLoginDialog #brokerComboLabel, QDialog#CTradeAccountLoginDialog #siteComboLabel, QDialog#CTradeAccountLoginDialog #accountEditLabel, QDialog#CTradeAccountLoginDialog #passwordEditLabel { font-weight: 700; }
 QDialog#CTradeAccountLoginDialog #closeButton { border: none; background: transparent; color: #64748b; font-size: 22px; padding: 0; }
-QDialog#CTradeAccountLoginDialog #closeButton:hover { background: #fee2e2; color: #dc2626; }
+QDialog#CTradeAccountLoginDialog #closeButton:hover { margin: 1px; background: #fee2e2; color: #dc2626; }
 
-QDialog#CTradeAccountLoginDialog #cancelButton { border-radius: 5px; }
+QDialog#CTradeAccountLoginDialog #loginButton, QDialog#CTradeAccountLoginDialog #cancelButton { border: none; outline: none; border-radius: 5px; }
 
 /* Borders are drawn once in physical pixels by CSinglePixelBorder. */
 QDialog#CTradeAccountLoginDialog,

@@ -10,7 +10,29 @@
 #include <QMouseEvent>
 #include <QPointer>
 #include <QSettings>
+#include <QStyledItemDelegate>
 #include <QWindow>
+
+namespace
+{
+	class CComboItemDelegate final : public QStyledItemDelegate
+	{
+	public:
+		explicit CComboItemDelegate(QComboBox& combo) : QStyledItemDelegate(combo.view()), m_combo(combo)
+		{
+		}
+
+		QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override
+		{
+			QSize size = QStyledItemDelegate::sizeHint(option, index);
+			size.setHeight(m_combo.height());
+			return size;
+		}
+
+	private:
+		QComboBox& m_combo;
+	};
+}
 
 CTradeAccountLoginDialog::CTradeAccountLoginDialog(CTraderServices& services, QWidget* pParent)
 	: QDialog(pParent), m_ui(std::make_unique<Ui::CTradeAccountLoginDialog>())
@@ -19,7 +41,7 @@ CTradeAccountLoginDialog::CTradeAccountLoginDialog(CTraderServices& services, QW
 	setWindowFlags(Qt::Dialog | Qt::FramelessWindowHint |
 				   Qt::NoDropShadowWindowHint);
 	m_ui->setupUi(this);
-	setFixedSize(390, 308);
+	setFixedSize(272, 272);
 	m_ui->titleFrame->installEventFilter(this);
 	m_ui->titleLabel->installEventFilter(this);
 	connect(m_ui->closeButton, &QPushButton::clicked, this, &QDialog::reject);
@@ -30,6 +52,7 @@ CTradeAccountLoginDialog::CTradeAccountLoginDialog(CTraderServices& services, QW
 	for (QComboBox* pCombo : { m_ui->brokerCombo, m_ui->siteCombo })
 	{
 		pCombo->setFrame(false);
+		pCombo->setItemDelegate(new CComboItemDelegate(*pCombo));
 		pCombo->view()->setFrameShape(QFrame::NoFrame);
 		QFrame* pPopup = qobject_cast<QFrame*>(pCombo->view()->parentWidget());
 		if (nullptr != pPopup)
@@ -219,5 +242,5 @@ void CTradeAccountLoginDialog::ShowError(const QString& strMessage)
 				m_ui->errorLabel->heightForWidth(m_ui->errorLabel->width())) +
 			m_ui->bodyLayout->spacing();
 	}
-	setFixedSize(390, 308 + nExtraHeight);
+	setFixedSize(272, 272 + nExtraHeight);
 }
