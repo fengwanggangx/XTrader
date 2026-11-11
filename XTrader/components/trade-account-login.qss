@@ -1,4 +1,5 @@
-QDialog#CTradeAccountLoginDialog { background: #ffffff; color: #162033; font-family: "Microsoft YaHei UI"; font-size: 14px; border: 1px solid #cbd7e8; border-radius: 0px; outline: none; }
+QDialog#CTradeAccountLoginDialog { background: #ffffff; color: #162033; font-size: 14px; border: 1px solid #cbd7e8; border-radius: 0px; outline: none; }
+QDialog#CTradeAccountLoginDialog, QDialog#CTradeAccountLoginDialog QWidget { font-family: "Microsoft YaHei"; font-weight: normal; }
 QDialog#CTradeAccountLoginDialog QLabel { color: #162033; background: transparent; }
 QDialog#CTradeAccountLoginDialog QComboBox, QDialog#CTradeAccountLoginDialog QLineEdit { color: #162033; background: #ffffff; border: 1px solid #cbd7e8; border-radius: 0px; padding: 0px 12px; selection-background-color: #2563eb; }
 QDialog#CTradeAccountLoginDialog QComboBox:focus, QDialog#CTradeAccountLoginDialog QLineEdit:focus { border: 1px solid #2563eb; }
@@ -15,10 +16,9 @@ QDialog#CTradeAccountLoginDialog QComboBox::drop-down { subcontrol-origin: paddi
 QDialog#CTradeAccountLoginDialog QComboBox::down-arrow { image: url(:/trade/chevron.svg); width: 16px; height: 16px; }
 
 QDialog#CTradeAccountLoginDialog #titleFrame { background: #f7f9fd; border: none; border-bottom: none; }
-QDialog#CTradeAccountLoginDialog #titleLabel { font-size: 14px; font-weight: 700; }
-QDialog#CTradeAccountLoginDialog #brokerComboLabel, QDialog#CTradeAccountLoginDialog #siteComboLabel, QDialog#CTradeAccountLoginDialog #accountEditLabel, QDialog#CTradeAccountLoginDialog #passwordEditLabel { font-weight: 700; }
-QDialog#CTradeAccountLoginDialog #closeButton { border: none; background: transparent; color: #64748b; font-size: 22px; padding: 0; }
-QDialog#CTradeAccountLoginDialog #closeButton:hover { margin: 1px; background: #fee2e2; color: #dc2626; }
+QDialog#CTradeAccountLoginDialog #titleLabel { font-size: 14px; }
+QDialog#CTradeAccountLoginDialog #closeButton { border: none; background: transparent; image: url(:/window/close-white.png); image-position: center; padding: 0; }
+QDialog#CTradeAccountLoginDialog #closeButton:hover { margin: 1px; background: #fee2e2; }
 
 QDialog#CTradeAccountLoginDialog #loginButton, QDialog#CTradeAccountLoginDialog #cancelButton { border: none; outline: none; border-radius: 5px; }
 
@@ -46,3 +46,19 @@ QDialog#CTradeAccountLoginDialog #loginButton > QWidget#singlePixelBorder { colo
 QDialog#CTradeAccountLoginDialog #loginButton:disabled > QWidget#singlePixelBorder { color: #93b4ee; }
 
 QDialog#CTradeAccountLoginDialog #titleFrame > QWidget#singlePixelBorder, QDialog#CTradeAccountLoginDialog #divider > QWidget#singlePixelBorder { color: #e2e8f0; }
+
+CMainWindow[darkTheme="true"] QDialog#CTradeAccountLoginDialog { background: #122130; color: #dce8f6; }
+CMainWindow[darkTheme="true"] QDialog#CTradeAccountLoginDialog QLabel { color: #dce8f6; }
+CMainWindow[darkTheme="true"] QDialog#CTradeAccountLoginDialog QComboBox, CMainWindow[darkTheme="true"] QDialog#CTradeAccountLoginDialog QLineEdit { background: #0f1e2d; color: #dce8f6; placeholder-text-color: #8fa8bc; }
+CMainWindow[darkTheme="true"] QDialog#CTradeAccountLoginDialog QComboBox QAbstractItemView { background: #0f1e2d; color: #dce8f6; selection-background-color: #1e3e81; selection-color: #ffffff; }
+CMainWindow[darkTheme="true"] QDialog#CTradeAccountLoginDialog #titleFrame { background: #14283a; }
+CMainWindow[darkTheme="true"] QDialog#CTradeAccountLoginDialog #closeButton { image: url(:/window/close-black.png); }
+CMainWindow[darkTheme="true"] QDialog#CTradeAccountLoginDialog #closeButton:hover { background: #f04455; }
+CMainWindow[darkTheme="true"] QDialog#CTradeAccountLoginDialog #cancelButton { background: #0f1e2d; color: #dce8f6; }
+CMainWindow[darkTheme="true"] QDialog#CTradeAccountLoginDialog #cancelButton:hover { background: #203b52; }
+CMainWindow[darkTheme="true"] QDialog#CTradeAccountLoginDialog #loginButton:disabled { background: #37546c; color: #c8d8e7; }
+CMainWindow[darkTheme="true"] QDialog#CTradeAccountLoginDialog #errorLabel { color: #ff8592; }
+CMainWindow[darkTheme="true"] QDialog#CTradeAccountLoginDialog QWidget#singlePixelBorder { color: #37546c; selection-background-color: #1683ff; }
+CMainWindow[darkTheme="true"] QDialog#CTradeAccountLoginDialog #loginButton > QWidget#singlePixelBorder { color: #2563eb; }
+CMainWindow[darkTheme="true"] QDialog#CTradeAccountLoginDialog #loginButton:disabled > QWidget#singlePixelBorder { color: #37546c; }
+CMainWindow[darkTheme="true"] QDialog#CTradeAccountLoginDialog #titleFrame > QWidget#singlePixelBorder, CMainWindow[darkTheme="true"] QDialog#CTradeAccountLoginDialog #divider > QWidget#singlePixelBorder { color: #203b52; }
