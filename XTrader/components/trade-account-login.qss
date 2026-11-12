@@ -1,7 +1,7 @@
 QDialog#CTradeAccountLoginDialog { background: #ffffff; color: #162033; font-size: 14px; border: 1px solid #cbd7e8; border-radius: 0px; outline: none; }
 QDialog#CTradeAccountLoginDialog, QDialog#CTradeAccountLoginDialog QWidget { font-family: "Microsoft YaHei"; font-weight: normal; }
 QDialog#CTradeAccountLoginDialog QLabel { color: #162033; background: transparent; }
-QDialog#CTradeAccountLoginDialog QComboBox, QDialog#CTradeAccountLoginDialog QLineEdit { color: #162033; background: #ffffff; border: 1px solid #cbd7e8; border-radius: 0px; padding: 0px 12px; selection-background-color: #2563eb; }
+QDialog#CTradeAccountLoginDialog QComboBox, QDialog#CTradeAccountLoginDialog QLineEdit { color: #162033; background: #ffffff; border: 1px solid #cbd7e8; border-radius: 0px; padding: 0px 6px; selection-background-color: #2563eb; }
 QDialog#CTradeAccountLoginDialog QComboBox:focus, QDialog#CTradeAccountLoginDialog QLineEdit:focus { border: 1px solid #2563eb; }
 QDialog#CTradeAccountLoginDialog QComboBox QAbstractItemView { border: 1px solid #cbd7e8; border-radius: 0px; outline: none; color: #162033; background: white; selection-background-color: #edf5fd; selection-color: #162033; }
 QDialog#CTradeAccountLoginDialog QPushButton { border: 1px solid #cbd7e8; border-radius: 0px; background: white; color: #162033; padding: 0px 16px; }
