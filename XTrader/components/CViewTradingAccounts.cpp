@@ -1,6 +1,8 @@
 #include "CViewTradingAccounts.h"
 #include "../service/strategy/CStrategyService.h"
 #include "CTradeAccountLoginDialog.h"
+#include <QCheckBox>
+#include <QColor>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QLabel>
@@ -10,6 +12,7 @@
 #include <QPointer>
 #include <QPushButton>
 #include <QShowEvent>
+#include <QSignalBlocker>
 #include <QTableWidget>
 #include <QTimer>
 #include <QVBoxLayout>
@@ -35,15 +38,56 @@ CViewTradingAccounts::CViewTradingAccounts(CTraderServices& services, QWidget* p
 	m_notice = new QLabel(this);
 	layout->addWidget(m_notice);
 	m_logs = new QTableWidget(this);
-	m_logs->setColumnCount(6);
+	m_logs->setColumnCount(8);
 	m_logs->setHorizontalHeaderLabels(
-		{ "序号", "券商", "站点", "账号", "账户名称", "状态" });
+		{ "", "序号", "券商", "站点", "账号", "账户名称", "状态", "操作" });
 	m_logs->verticalHeader()->hide();
 	m_logs->setEditTriggers(QAbstractItemView::NoEditTriggers);
 	m_logs->setSelectionBehavior(QAbstractItemView::SelectRows);
 	m_logs->setSelectionMode(QAbstractItemView::SingleSelection);
 	m_logs->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-	m_logs->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+	m_logs->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Fixed);
+	m_logs->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Fixed);
+	m_logs->horizontalHeader()->setSectionResizeMode(7, QHeaderView::Fixed);
+	m_logs->setColumnWidth(0, 44);
+	m_logs->setColumnWidth(1, 60);
+	m_logs->setColumnWidth(7, 112);
+	m_logs->verticalHeader()->setDefaultSectionSize(48);
+	m_logs->setShowGrid(false);
+	m_logs->setAlternatingRowColors(true);
+	m_checkAll = new QCheckBox(m_logs->horizontalHeader()->viewport());
+	m_checkAll->setToolTip("全选账户");
+	connect(m_logs->horizontalHeader(), &QHeaderView::geometriesChanged, this, [this]()
+	{
+		QHeaderView* header = m_logs->horizontalHeader();
+		QSize size = m_checkAll->sizeHint();
+		m_checkAll->setGeometry(header->sectionViewportPosition(0) + (header->sectionSize(0) - size.width()) / 2,
+								(header->height() - size.height()) / 2, size.width(), size.height());
+	});
+	connect(m_checkAll, &QCheckBox::clicked, this, [this](bool checked)
+	{
+		for (int row = 0; row < m_logs->rowCount(); ++row)
+		{
+			m_logs->item(row, 0)->setCheckState(checked ? Qt::Checked : Qt::Unchecked);
+		}
+	});
+	connect(m_logs, &QTableWidget::itemChanged, this, [this](QTableWidgetItem* item)
+	{
+		if (0 != item->column() || m_accounts.size() <= static_cast<std::size_t>(item->row()))
+		{
+			return;
+		}
+		_TyAccountIndex key = AccountIndex(m_accounts[item->row()]);
+		if (Qt::Checked == item->checkState())
+		{
+			m_checkedAccounts.insert(key);
+		}
+		else
+		{
+			m_checkedAccounts.erase(key);
+		}
+		RefreshChecks();
+	});
 	layout->addWidget(m_logs);
 	m_heading = new QLabel("请选择账户", this);
 	layout->addWidget(m_heading);
@@ -152,6 +196,10 @@ void CViewTradingAccounts::RefreshRows()
 	for (std::size_t index = 0; index < m_accounts.size(); ++index)
 	{
 		const request::TradeAccountRecord& info = m_accounts[index];
+		QTableWidgetItem* check = new QTableWidgetItem();
+		check->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsUserCheckable);
+		check->setCheckState(m_checkedAccounts.contains(AccountIndex(info)) ? Qt::Checked : Qt::Unchecked);
+		m_logs->setItem(static_cast<int>(index), 0, check);
 		QStringList values{ QString::number(index + 1),
 			QString::fromStdString(info.broker_name()),
 			QString::fromStdString(info.site()),
@@ -169,14 +217,51 @@ void CViewTradingAccounts::RefreshRows()
 			{
 				item->setTextAlignment(Qt::AlignCenter);
 			}
-			m_logs->setItem(static_cast<int>(index), column, item);
+			if (5 == column)
+			{
+				item->setForeground(QColor(request::ACCOUNT_CONNECTED == info.state() ? "#199B61" : "#6B7280"));
+			}
+			m_logs->setItem(static_cast<int>(index), column + 1, item);
 		}
+		QWidget* operation = new QWidget(m_logs);
+		QHBoxLayout* operationLayout = new QHBoxLayout(operation);
+		operationLayout->setContentsMargins(10, 7, 10, 7);
+		QPushButton* button = new QPushButton(operation);
+		button->setObjectName("accountStateAction");
+		operationLayout->addWidget(button);
+		m_logs->setCellWidget(static_cast<int>(index), 7, operation);
+		_TyAccountIndex key = AccountIndex(info);
+		connect(button, &QPushButton::clicked, this, [this, key]()
+		{
+			if (0 != m_operationId)
+			{
+				return;
+			}
+			for (std::size_t row = 0; row < m_accounts.size(); ++row)
+			{
+				if (key == AccountIndex(m_accounts[row]))
+				{
+					m_logs->selectRow(static_cast<int>(row));
+					RefreshSelection();
+					if (request::ACCOUNT_CONNECTED == m_accounts[row].state())
+					{
+						m_disconnect->click();
+					}
+					else
+					{
+						m_login->click();
+					}
+					return;
+				}
+			}
+		});
 		if (m_selectedIndex == AccountIndex(info))
 		{
 			selected = static_cast<int>(index);
 		}
 	}
 	m_logs->blockSignals(false);
+	RefreshChecks();
 	if (0 <= selected)
 	{
 		m_logs->selectRow(selected);
@@ -242,6 +327,19 @@ void CViewTradingAccounts::ClearDetails()
 
 void CViewTradingAccounts::RefreshButtons()
 {
+	for (int row = 0; row < m_logs->rowCount(); ++row)
+	{
+		QPushButton* button = m_logs->cellWidget(row, 7)->findChild<QPushButton*>("accountStateAction");
+		request::TradingAccountState state = m_accounts[row].state();
+		bool connected = request::ACCOUNT_CONNECTED == state;
+		bool idle = request::ACCOUNT_DISCONNECTED == state || request::ACCOUNT_ERROR == state;
+		button->setText(connected ? "断开" : idle ? "登录"
+												  : m_logs->item(row, 6)->text());
+		button->setEnabled(0 == m_operationId && (connected || idle));
+		button->setStyleSheet(connected
+								  ? "QPushButton { color: #475569; background: white; border: 1px solid #CBD5E1; border-radius: 4px; padding: 3px 12px; } QPushButton:disabled { color: #94A3B8; }"
+								  : "QPushButton { color: white; background: #2563EB; border: 1px solid #2563EB; border-radius: 4px; padding: 3px 12px; } QPushButton:disabled { color: #94A3B8; background: #F1F5F9; border-color: #E2E8F0; }");
+	}
 	const request::TradeAccountRecord* account = SelectedAccount();
 	m_login->setEnabled(0 == m_operationId && nullptr != account &&
 		(request::ACCOUNT_DISCONNECTED == account->state() || request::ACCOUNT_ERROR == account->state()));
@@ -249,6 +347,25 @@ void CViewTradingAccounts::RefreshButtons()
 							 request::ACCOUNT_CONNECTED == account->state());
 	m_remove->setEnabled(0 == m_operationId && nullptr != account &&
 		(request::ACCOUNT_DISCONNECTED == account->state() || request::ACCOUNT_ERROR == account->state()));
+}
+
+void CViewTradingAccounts::RefreshChecks()
+{
+	std::set<_TyAccountIndex> checked;
+	for (const auto& account : m_accounts)
+	{
+		_TyAccountIndex key = AccountIndex(account);
+		if (m_checkedAccounts.contains(key))
+		{
+			checked.insert(std::move(key));
+		}
+	}
+	m_checkedAccounts = std::move(checked);
+	QSignalBlocker blocker(m_checkAll);
+	m_checkAll->setTristate(!m_checkedAccounts.empty() && m_checkedAccounts.size() < m_accounts.size());
+	m_checkAll->setCheckState(m_checkedAccounts.empty() ? Qt::Unchecked : m_checkedAccounts.size() == m_accounts.size() ? Qt::Checked
+																														: Qt::PartiallyChecked);
+	m_checkAll->setEnabled(!m_accounts.empty());
 }
 
 void CViewTradingAccounts::HandleResult(

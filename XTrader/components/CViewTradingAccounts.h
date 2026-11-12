@@ -4,6 +4,8 @@
 #include <QWidget>
 #include <array>
 #include <functional>
+#include <set>
+class QCheckBox;
 class QLabel;
 class QPushButton;
 class QLineEdit;
@@ -31,6 +33,7 @@ private:
 	void RefreshSelection();
 	void ClearDetails();
 	void RefreshButtons();
+	void RefreshChecks();
 	void EditAccount(bool bNew);
 	void Operate(_TyRequest type);
 	void HandleResult(const CAccountService::CResult& result);
@@ -44,6 +47,8 @@ private:
 	QLabel* m_notice{ nullptr };
 	QTableWidget* m_strategies{ nullptr };
 	QTableWidget* m_logs{ nullptr };
+	QCheckBox* m_checkAll{ nullptr };
+	std::set<_TyAccountIndex> m_checkedAccounts;
 	std::array<QLabel*, 4> m_funds{};
 	std::vector<request::TradeAccountRecord> m_accounts;
 	_TyAccountIndex m_selectedIndex{};
