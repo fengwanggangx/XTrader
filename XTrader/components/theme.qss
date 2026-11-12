@@ -16,7 +16,6 @@ QFrame[summaryCard="true"] { background: #ffffff; border: 1px solid #e4eaf2; bor
 #shanghaiPrice, #shenzhenPrice, #chinextPrice { color: #f04455; font-size: 23px; font-weight: 700; }
 #chartTitle, #depthTitle, #watchlistTitle { color: #1d2a3c; font-size: 14px; font-weight: 600; }
 #chartPlaceholder { color: #8b98aa; background: #fafcff; border: 1px dashed #dce4ef; }
-QTableWidget { background: #ffffff; alternate-background-color: #f8fafd; border: none; gridline-color: #edf1f6; color: #344258; }
 QTableView { background: #ffffff; alternate-background-color: #f8fafd; border: none; gridline-color: #edf1f6; color: #344258; selection-background-color: #edf5fd; selection-color: #162033; }
 QTabWidget::pane { background: #f4f7fb; border: 1px solid #e4eaf2; top: -1px; }
 QComboBox { background: #ffffff; color: #344258; border: 1px solid #dce3ed; border-radius: 5px; padding: 5px 9px; }
@@ -62,7 +61,6 @@ CMainWindow[darkTheme="true"] QFrame#shanghaiCard, CMainWindow[darkTheme="true"]
 CMainWindow[darkTheme="true"] #shanghaiPrice, CMainWindow[darkTheme="true"] #shenzhenPrice, CMainWindow[darkTheme="true"] #chinextPrice { color: #ff4d61; }
 CMainWindow[darkTheme="true"] #chartTitle, CMainWindow[darkTheme="true"] #depthTitle, CMainWindow[darkTheme="true"] #watchlistTitle { color: #edf6ff; }
 CMainWindow[darkTheme="true"] #chartPlaceholder { color: #718ba0; background: #12202f; border-color: #203b52; }
-CMainWindow[darkTheme="true"] QTableWidget { background: #0e192b; alternate-background-color: #122130; gridline-color: #203b52; color: #c8d8e7; }
 CMainWindow[darkTheme="true"] QTableView { background: #0e192b; alternate-background-color: #122130; gridline-color: #203b52; color: #c8d8e7; selection-background-color: #1e3e81; selection-color: #ffffff; }
 CMainWindow[darkTheme="true"] QLabel { color: #dce8f6; }
 CMainWindow[darkTheme="true"] QTabWidget::pane { background: #122130; border-color: #203b52; }
@@ -111,12 +109,12 @@ QWidget#keyboardSpriteTitle { background: #444444; color: #ffffff; }
 QWidget#keyboardSpriteTitle QLabel { color: #ffffff; }
 QPushButton#keyboardSpriteClose { background: transparent; color: #bcbcbc; border: 0; font-size: 21px; }
 QLineEdit#keyboardSpriteSearch { background: #ffffff; color: #101010; border: 0; border-bottom: 2px solid #aaaaaa; padding: 0 8px; font-size: 19px; }
-QTableWidget#keyboardSpriteResults { background: #ffffff; color: #101010; border: 0; font-size: 18px; }
-QTableWidget#keyboardSpriteResults::item { padding: 0 5px; }
-QTableWidget#keyboardSpriteResults::item:selected { background: #8dd5fa; color: #101010; }
+QTableView#keyboardSpriteResults { background: #ffffff; color: #101010; border: 0; font-size: 18px; }
+QTableView#keyboardSpriteResults::item { padding: 0 5px; }
+QTableView#keyboardSpriteResults::item:selected { background: #8dd5fa; color: #101010; }
 QLabel#keyboardSpriteMessage { background: #ffffff; color: #8b8b8b; font-size: 16px; }
 QWidget#keyboardSprite[darkTheme="true"] { background: #191919; border-color: #666666; }
-QWidget#keyboardSprite[darkTheme="true"] QLineEdit#keyboardSpriteSearch, QWidget#keyboardSprite[darkTheme="true"] QTableWidget#keyboardSpriteResults, QWidget#keyboardSprite[darkTheme="true"] QLabel#keyboardSpriteMessage { background: #191919; color: #eeeeee; }
+QWidget#keyboardSprite[darkTheme="true"] QLineEdit#keyboardSpriteSearch, QWidget#keyboardSprite[darkTheme="true"] QTableView#keyboardSpriteResults, QWidget#keyboardSprite[darkTheme="true"] QLabel#keyboardSpriteMessage { background: #191919; color: #eeeeee; }
 QWidget[marketPage="true"] QTabWidget#periodTabs { border: 0; }
 QWidget[marketPage="true"] QTabWidget#periodTabs QTabBar::tab { min-width: 48px; max-width: 48px; height: 28px; padding: 0; margin: 0; border-top: 0; border-bottom: 0; border-left: 0; }
 QWidget[marketPage="true"] QWidget#intradayPeriodBar, QWidget[marketPage="true"] QWidget#candlePeriodBar { border: 0; border-top: 1px solid #dce5f0; border-bottom: 1px solid #dce5f0; }

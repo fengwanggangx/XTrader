@@ -5,9 +5,11 @@
 #include <QWidget>
 #include <QStringList>
 #include <vector>
+#include "CTableData.h"
+#include <map>
 
 class QLineEdit;
-class QTableWidget;
+
 class QLabel;
 class QStackedWidget;
 
@@ -32,11 +34,14 @@ class CKeyboardSprite final : public QWidget
 		QStringList m_values;
 	};
 	void Refresh();
-	void ConfirmSelection();
+	void ConfirmSelection(_TyDataRowId rowId = 0);
+	CDataTable m_resultsData;
+	std::map<std::string, _TyDataRowId> m_securityIds;
+	_TyDataRowId m_nextSecurityId{ 1 };
 	std::vector<CSecurity> m_securities;
 	std::vector<CSearchEntry> m_searchEntries;
 	QLineEdit* m_pSearch{ nullptr };
-	QTableWidget* m_pResults{ nullptr };
+	CUITable* m_pResults{ nullptr };
 	QLabel* m_pMessage{ nullptr };
 	QStackedWidget* m_pContent{ nullptr };
 	std::vector<std::size_t> m_resultIndices;

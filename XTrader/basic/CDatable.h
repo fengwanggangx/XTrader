@@ -55,6 +55,7 @@ struct CDataChangeSet
 
 struct CDataTableStorage
 {
+	std::uint64_t m_sourceId{ 0 };
 	_TyDataVersion m_version{ 0 };
 	std::vector<CDataColumnSchema> m_schema;
 	std::vector<std::shared_ptr<_TyDataColumnStorage>> m_columns;
@@ -83,6 +84,7 @@ class CDataTableView final
 	CDataTableView() = default;
 	bool IsValid() const noexcept;
 	_TyDataVersion GetVersion() const noexcept;
+	std::uint64_t GetSourceId() const noexcept;
 	std::size_t GetRowCount() const noexcept;
 	std::size_t GetColumnCount() const noexcept;
 	const std::vector<CDataColumnSchema>& GetSchema() const noexcept;

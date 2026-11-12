@@ -8,7 +8,7 @@
 #include <QLineEdit>
 #include <QPushButton>
 #include <QStackedWidget>
-#include <QTableWidget>
+#include "CTableData.h"
 #include <QVBoxLayout>
 #include <algorithm>
 
@@ -70,9 +70,14 @@ CKeyboardSprite::CKeyboardSprite(QWidget* pParent) : QWidget(pParent, Qt::Tool |
 	m_pMessage->setWordWrap(true);
 	m_pMessage->setContentsMargins(22, 40, 22, 0);
 	m_pContent->addWidget(m_pMessage);
-	m_pResults = new QTableWidget(this);
+	m_pResults = new CUITable(this);
 	m_pResults->setObjectName("keyboardSpriteResults");
-	m_pResults->setColumnCount(3);
+	DefineTable(m_resultsData, { { 1, "代码", DataType::String }, { 2, "名称", DataType::String }, { 3, "市场", DataType::String } });
+	PublishTable(m_resultsData, *m_pResults, {});
+	CTablePresentation presentation;
+	presentation.m_columns = { { 1, "代码" }, { 2, "名称" }, { 3, "市场", Qt::AlignRight | Qt::AlignVCenter } };
+	presentation.m_columns[2].m_foreground = QBrush(QColor("#398bc7"));
+	m_pResults->DataModel()->SetPresentation(std::move(presentation));
 	m_pResults->horizontalHeader()->hide();
 	m_pResults->verticalHeader()->hide();
 	m_pResults->setShowGrid(false);
@@ -86,9 +91,12 @@ CKeyboardSprite::CKeyboardSprite(QWidget* pParent) : QWidget(pParent, Qt::Tool |
 	m_pResults->setColumnWidth(0, 110);
 	m_pResults->setColumnWidth(2, 76);
 	m_pResults->verticalHeader()->setDefaultSectionSize(30);
-	connect(m_pResults, &QTableWidget::cellDoubleClicked, this, [this](int, int)
+	connect(m_pResults, &CUITable::OperationRequested, this, [this](const CTableOperation& operation)
 	{
-		ConfirmSelection();
+		if (TableOperationKind::Activate == operation.m_kind && operation.m_generation == m_resultsData.GetView().GetSourceId())
+		{
+			ConfirmSelection(operation.m_rowId);
+		}
 	});
 	m_pContent->addWidget(m_pResults);
 	pLayout->addWidget(m_pContent);
@@ -98,6 +106,14 @@ CKeyboardSprite::CKeyboardSprite(QWidget* pParent) : QWidget(pParent, Qt::Tool |
 void CKeyboardSprite::SetSecurities(const std::vector<CSecurity>& securities)
 {
 	m_securities = securities;
+	for (const auto& security : m_securities)
+	{
+		const auto mIter = m_securityIds.find(security.String());
+		if (m_securityIds.end() == mIter)
+		{
+			m_securityIds.emplace(security.String(), m_nextSecurityId++);
+		}
+	}
 	m_searchEntries.clear();
 	m_searchEntries.reserve(m_securities.size());
 	for (const CSecurity& security : m_securities)
@@ -150,11 +166,11 @@ bool CKeyboardSprite::eventFilter(QObject* pObject, QEvent* pEvent)
 		}
 		if ((Qt::Key_Down == pKey->key()) || (Qt::Key_Up == pKey->key()))
 		{
-			int nRow = m_pResults->currentRow() + (Qt::Key_Down == pKey->key() ? 1 : -1);
-			if ((0 <= nRow) && (m_pResults->rowCount() > nRow))
+			int nRow = m_pResults->currentIndex().row() + (Qt::Key_Down == pKey->key() ? 1 : -1);
+			if ((0 <= nRow) && (m_pResults->ResultCount() > nRow))
 			{
 				m_pResults->selectRow(nRow);
-				m_pResults->scrollToItem(m_pResults->item(nRow, 0));
+				m_pResults->scrollTo(m_pResults->model()->index(nRow, 0));
 			}
 			return true;
 		}
@@ -220,39 +236,32 @@ void CKeyboardSprite::Refresh()
 		m_pContent->setCurrentWidget(m_pMessage);
 		return;
 	}
-	m_pResults->setRowCount(static_cast<int>(m_resultIndices.size()));
-	int nRow = 0;
-	for (std::size_t nIndex : m_resultIndices)
+	std::vector<CTableRow> rows;
+	rows.reserve(m_resultIndices.size());
+	for (std::size_t index : m_resultIndices)
 	{
-		const CSecurity& security = m_securities[nIndex];
-		QString strMarket = Exchange::sse == security.m_hq ? QStringLiteral("沪A") : Exchange::szse == security.m_hq ? QStringLiteral("深A")
-																													 : QStringLiteral("北交所");
-		QString values[] = { QString::fromStdString(security.m_strCode), QString::fromStdString(security.m_strName), strMarket };
-		for (int nColumn = 0; 3 > nColumn; ++nColumn)
-		{
-			QTableWidgetItem* pItem = new QTableWidgetItem(values[nColumn]);
-			pItem->setToolTip(values[nColumn]);
-			if (2 == nColumn)
-			{
-				pItem->setForeground(QColor("#398bc7"));
-				pItem->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
-			}
-			m_pResults->setItem(nRow, nColumn, pItem);
-		}
-		++nRow;
+		const CSecurity& security = m_securities[index];
+		std::string market = Exchange::sse == security.m_hq ? "沪A" : Exchange::szse == security.m_hq ? "深A"
+																									  : "北交所";
+		rows.push_back({ m_securityIds.at(security.String()), { security.m_strCode, security.m_strName, market } });
 	}
+	PublishTable(m_resultsData, *m_pResults, rows);
 	m_pContent->setCurrentWidget(m_pResults);
 	m_pResults->selectRow(0);
 }
 
-void CKeyboardSprite::ConfirmSelection()
+void CKeyboardSprite::ConfirmSelection(_TyDataRowId rowId)
 {
-	int nRow = m_pResults->currentRow();
-	if ((0 > nRow) || (m_resultIndices.size() <= static_cast<std::size_t>(nRow)))
+	_TyDataRowId id = 0 == rowId ? m_pResults->SelectedRowId() : rowId;
+	for (std::size_t index : m_resultIndices)
 	{
-		return;
+		const CSecurity& security = m_securities[index];
+		if (m_securityIds.at(security.String()) == id)
+		{
+			CSecurity selected = security;
+			hide();
+			emit SecuritySelected(selected);
+			return;
+		}
 	}
-	CSecurity security = m_securities[m_resultIndices[static_cast<std::size_t>(nRow)]];
-	hide();
-	emit SecuritySelected(security);
 }

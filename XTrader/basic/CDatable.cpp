@@ -70,6 +70,11 @@ CDataTableView::CDataTableView(std::shared_ptr<const CDataTableStorage> storage)
 {
 }
 
+std::uint64_t CDataTableView::GetSourceId() const noexcept
+{
+	return nullptr == m_storage ? 0 : m_storage->m_sourceId;
+}
+
 bool CDataTableView::IsValid() const noexcept
 {
 	return nullptr != m_storage;
@@ -370,7 +375,10 @@ std::uint32_t CDataTableWriter::InternString(const std::string& value)
 
 CDataTable::CDataTable()
 {
-	m_currentStorage.store(std::make_shared<const CDataTableStorage>());
+	static std::atomic_uint64_t nextSourceId{ 1 };
+	std::shared_ptr<CDataTableStorage> storage = std::make_shared<CDataTableStorage>();
+	storage->m_sourceId = nextSourceId.fetch_add(1);
+	m_currentStorage.store(std::move(storage));
 }
 
 bool CDataTable::AddColumn(const CDataColumnSchema& schema)

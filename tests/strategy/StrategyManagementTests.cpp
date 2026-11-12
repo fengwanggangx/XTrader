@@ -9,6 +9,7 @@ namespace net
 #include "service/strategy/CStrategyService.h"
 #include "service/account/CAccountService.h"
 #include "service/hqmarket/CHQService.h"
+#include "service/watchlist/CWatchlistService.h"
 #include "components/CStrategyEditDialog.h"
 #include "components/CViewStrategySettings.h"
 #include "components/CViewTradeAccounts.h"
@@ -18,8 +19,13 @@ namespace net
 #include <QComboBox>
 #include <QLineEdit>
 #include <QMessageBox>
-#include <QTableWidget>
+#include "components/CUITable.h"
+#include "components/CKeyboardSprite.h"
+#include <QKeyEvent>
 #include <QTimer>
+#include <QDir>
+#include <QFile>
+#include <QFontDatabase>
 #include <cstdlib>
 #include <iostream>
 
@@ -134,18 +140,6 @@ bool CTraderCenter::IsAuthenticated() const noexcept
 {
 	return true;
 }
-CViewTradeAccounts::CViewTradeAccounts(CTraderServices& services, QWidget* parent) : QWidget(parent)
-{
-}
-CViewTradeAccounts::~CViewTradeAccounts() = default;
-void CViewTradeAccounts::showEvent(QShowEvent* event)
-{
-	QWidget::showEvent(event);
-}
-void CViewTradeAccounts::SetStrategyNavigation(std::function<void(std::uint64_t)>&& handler)
-{
-	m_navigate = std::move(handler);
-}
 CLoginService::CLoginService() = default;
 
 CLoginService::~CLoginService() = default;
@@ -170,9 +164,186 @@ void CAccountService::Unsubscribe(_TyCallbackId token)
 	accountEvents.Unsubscribe(token);
 }
 
+std::uint64_t CAccountService::Send(_TyRequest type, const _TyAccountIndex& account, const std::unordered_map<std::string, std::string>& extra)
+{
+	CRequest request;
+	request.SetType(type);
+	if (IsAccountValid(account))
+	{
+		WriteAccountIdentity(account, request);
+	}
+	for (const auto& [key, value] : extra)
+	{
+		request.SetExtraData(key, value);
+	}
+	requests.push_back(request);
+	return request.GetId();
+}
+
+class CTradeAccountUiTests
+{
+public:
+	static void SavePreview(CViewTradeAccounts& page)
+	{
+		QString directory = qEnvironmentVariable("XTRADER_UI_ARTIFACTS");
+		if (directory.isEmpty())
+		{
+			return;
+		}
+		QDir().mkpath(directory);
+		QPalette original = QApplication::palette();
+		page.resize(1400, 850);
+		page.setAutoFillBackground(true);
+		page.show();
+		for (const QString& theme : { QString("light"), QString("dark") })
+		{
+			QFile style(QString(XTRADER_COMPONENTS_PATH) + "/theme-" + theme + ".qss");
+			Check(style.open(QIODevice::ReadOnly), "Cannot load preview theme");
+			QPalette palette = page.palette();
+			palette.setColor(QPalette::Window, QColor("dark" == theme ? "#122130" : "#f4f7fb"));
+			palette.setColor(QPalette::WindowText, QColor("dark" == theme ? "#dce8f6" : "#162033"));
+			bool dark = "dark" == theme;
+			palette.setColor(QPalette::Button, QColor(dark ? "#122130" : "#ffffff"));
+			palette.setColor(QPalette::ButtonText, QColor(dark ? "#a9bdd0" : "#536176"));
+			palette.setColor(QPalette::Text, QColor(dark ? "#c8d8e7" : "#344258"));
+			palette.setColor(QPalette::Link, QColor(dark ? "#1683ff" : "#1677ff"));
+			palette.setColor(QPalette::Mid, QColor(dark ? "#203b52" : "#e4eaf2"));
+			QApplication::setPalette(palette);
+			page.setPalette(palette);
+			page.setAttribute(Qt::WA_StyledBackground, true);
+			page.setStyleSheet(QString::fromUtf8(style.readAll()) + "\n#tradeAccountsPage { background: palette(window); }");
+			QApplication::processEvents();
+			Check(page.grab().save(directory + "/accounts-" + theme + ".png"), "Cannot save account preview");
+		}
+		page.hide();
+		QApplication::setPalette(original);
+	}
+
+	static void Run(CTraderServices& services)
+	{
+		CViewTradeAccounts page(services);
+		request::TradeAccountRecord first;
+		first.set_broker_id(1);
+		first.set_account("000123");
+		first.set_broker_name("Broker A");
+		first.set_site("primary");
+		first.set_state(request::ACCOUNT_DISCONNECTED);
+		request::TradeAccountRecord second = first;
+		second.set_broker_id(2);
+		second.set_broker_name("Broker B");
+		page.m_accounts = { first, second };
+		page.RefreshRows();
+		_TyDataRowId firstId = page.m_rowIds.at(AccountIndex(first));
+		_TyDataRowId secondId = page.m_rowIds.at(AccountIndex(second));
+		Check(firstId != secondId, "Same account number at different brokers merged");
+		page.m_logs->setSortingEnabled(true);
+		page.m_logs->sortByColumn(2, Qt::DescendingOrder);
+		page.m_logs->SelectRowId(secondId);
+		page.m_logs->TriggerAction(page.m_logs->model()->index(page.m_logs->currentIndex().row(), 7), "login");
+		_TyAccountIndex sent;
+		Check(ReadAccountIdentity(Last(_TyRequest::TRADE_ACCOUNT_LOGIN), sent) && sent == AccountIndex(second), "Sorted account action used wrong broker");
+		CAccountService::CResult result;
+		result.m_requestId = page.m_operationId;
+		result.m_type = _TyRequest::TRADE_ACCOUNT_LOGIN;
+		page.HandleResult(result);
+		page.m_logs->SetCheckedRowIds({ firstId, secondId });
+		Check(page.m_remove->isEnabled(), "Disconnected checked accounts cannot be removed");
+		std::size_t before = requests.size();
+		page.m_remove->click();
+		int removed = 0;
+		for (std::size_t index = before; index < requests.size(); ++index)
+		{
+			if (_TyRequest::TRADE_ACCOUNT_REMOVE == requests[index].GetType())
+			{
+				++removed;
+			}
+		}
+		Check(2 == removed, "Bulk remove did not target both checked accounts");
+		page.m_removeIds.clear();
+		page.m_accounts[1].set_state(request::ACCOUNT_CONNECTED);
+		page.RefreshRows();
+		Check(!page.m_remove->isEnabled(), "Connected account enabled bulk remove");
+		SavePreview(page);
+		page.m_logs->SelectRowId(secondId);
+		before = requests.size();
+		QTimer::singleShot(0, [&page]()
+		{
+			page.m_accounts.erase(page.m_accounts.begin() + 1);
+			page.RefreshRows();
+			for (QWidget* widget : QApplication::topLevelWidgets())
+			{
+				QMessageBox* question = qobject_cast<QMessageBox*>(widget);
+				if (nullptr != question)
+				{
+					question->done(QMessageBox::Yes);
+				}
+			}
+		});
+		page.m_logs->TriggerAction(page.m_logs->model()->index(page.m_logs->currentIndex().row(), 7), "disconnect");
+		for (std::size_t index = before; index < requests.size(); ++index)
+		{
+			Check(_TyRequest::TRADE_ACCOUNT_DISCONNECT != requests[index].GetType(), "Removed account disconnected after modal refresh");
+		}
+	}
+};
+
+void TestKeyboardSprite()
+{
+	std::vector<CSecurity> selected;
+	CKeyboardSprite sprite;
+	sprite.SetSecurities({ CSecurity("600000", "Alpha", Exchange::sse), CSecurity("600000", "Beta", Exchange::szse) });
+	QObject::connect(&sprite, &CKeyboardSprite::SecuritySelected, &sprite, [&selected](const CSecurity& security)
+	{
+		selected.push_back(security);
+	});
+	sprite.Open("600");
+	CUITable* table = sprite.findChild<CUITable*>("keyboardSpriteResults");
+	Check(nullptr != table && 2 == table->ResultCount(), "Keyboard search lost matching securities");
+	_TyDataRowId betaId = 0;
+	for (int row = 0; row < table->ResultCount(); ++row)
+	{
+		if ("Beta" == table->model()->index(row, 1).data().toString())
+		{
+			betaId = table->model()->index(row, 1).data(TableRowIdRole).toULongLong();
+		}
+	}
+	Check(0 != betaId, "Keyboard result has no stable identity");
+	table->setSortingEnabled(true);
+	table->sortByColumn(1, Qt::DescendingOrder);
+	table->SelectRowId(betaId);
+	QKeyEvent enter(QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier);
+	QLineEdit* search = sprite.findChild<QLineEdit*>("keyboardSpriteSearch");
+	QApplication::sendEvent(search, &enter);
+	Check(1 == selected.size() && Exchange::szse == selected.back().m_hq, "Keyboard confirmation used displayed row number");
+	sprite.Open("600");
+	CTableOperation activate;
+	activate.m_kind = TableOperationKind::Activate;
+	activate.m_generation = table->DataModel()->GetView().GetSourceId();
+	activate.m_rowId = betaId;
+	table->selectRow(1);
+	table->OperationRequested(activate);
+	Check(2 == selected.size() && Exchange::szse == selected.back().m_hq, "Activation ignored message row identity");
+	sprite.Open("no-match");
+	table->OperationRequested(activate);
+	Check(2 == selected.size(), "Hidden stale search result was activated");
+}
+
 int main(int argc, char** argv)
 {
+	qInstallMessageHandler([](QtMsgType type, const QMessageLogContext&, const QString& message)
+	{
+		std::cerr << message.toStdString() << '\n';
+		if (QtFatalMsg == type)
+		{
+			std::_Exit(2);
+		}
+	});
 	QApplication app(argc, argv);
+	int fontId = QFontDatabase::addApplicationFont("C:/Windows/Fonts/msyh.ttc");
+	if (0 <= fontId)
+	{
+		app.setFont(QFont(QFontDatabase::applicationFontFamilies(fontId).front(), 10));
+	}
 	request::StrategyInfo strategy = Strategy();
 	std::string error;
 	Check(CStrategyService::ValidateStrategy(strategy, error), "Default moving average rejected");
@@ -227,7 +398,8 @@ int main(int argc, char** argv)
 	CStrategyService service;
 	CHQService marketService;
 	CAccountService accountService;
-	CTraderServices services{ loginService, service, marketService, accountService };
+	CWatchlistService watchlistService;
+	CTraderServices services{ loginService, service, marketService, accountService, watchlistService };
 	pStrategyService = &service;
 	service.SetTraderCenter(&center);
 	service.Initialize();
@@ -321,22 +493,41 @@ int main(int argc, char** argv)
 	Check(QDialog::Accepted != dialog.result(), "Missing account accepted");
 	accounts.insert(accounts.begin(), account);
 	accounts.front().set_broker_id(1);
-	QTableWidget* parameters = dialog.findChild<QTableWidget*>("parameterTable");
-	parameters->setRowCount(2);
-	for (int row = 0; 2 > row; ++row)
+	CUITable* parameters = dialog.findChild<CUITable*>("parameterTable");
+	QMetaObject::invokeMethod(&dialog, "OnAddParameter", Qt::DirectConnection);
+	QMetaObject::invokeMethod(&dialog, "OnAddParameter", Qt::DirectConnection);
+	for (int row = 0; row < 2; ++row)
 	{
-		parameters->setItem(row, 0, new QTableWidgetItem("short_window"));
-		parameters->setItem(row, 1, new QTableWidgetItem("5"));
+		parameters->model()->setData(parameters->model()->index(row, 0), "short_window");
+		parameters->model()->setData(parameters->model()->index(row, 1), "5");
 	}
 	CloseWarning();
 	QMetaObject::invokeMethod(&dialog, "OnAccept", Qt::DirectConnection);
 	Check(QDialog::Accepted != dialog.result(), "Duplicate parameter closed dialog");
-	parameters->item(1, 0)->setText("long_window");
-	parameters->item(1, 1)->setText("2");
+	parameters->model()->setData(parameters->model()->index(1, 0), "long_window");
+	parameters->model()->setData(parameters->model()->index(1, 1), "2");
 	CloseWarning();
 	QMetaObject::invokeMethod(&dialog, "OnAccept", Qt::DirectConnection);
 	Check(QDialog::Accepted != dialog.result(), "Invalid windows closed dialog");
-	parameters->item(1, 1)->setText("20");
+	CTableOperation lastEdit;
+	QMetaObject::Connection editConnection = QObject::connect(parameters, &CUITable::OperationRequested, parameters, [&lastEdit](const CTableOperation& operation)
+	{
+		if (TableOperationKind::Edit == operation.m_kind)
+		{
+			lastEdit = operation;
+		}
+	});
+	parameters->model()->setData(parameters->model()->index(1, 1), "20");
+	lastEdit.m_value = "1";
+	parameters->OperationRequested(lastEdit);
+	Check(dialog.GetStrategy().parameters().at("long_window") == "20", "Stale edit overwrote accepted draft");
+	lastEdit.m_requestId += 100;
+	parameters->OperationRequested(lastEdit);
+	Check(dialog.GetStrategy().parameters().at("long_window") == "20", "Edit with stale original value overwrote draft");
+	lastEdit.m_generation += 1;
+	parameters->OperationRequested(lastEdit);
+	Check(dialog.GetStrategy().parameters().at("long_window") == "20", "Foreign data source edit overwrote draft");
+	QObject::disconnect(editConnection);
 	QMetaObject::invokeMethod(&dialog, "OnAccept", Qt::DirectConnection);
 	Check(QDialog::Accepted == dialog.result(), "Valid dialog did not accept");
 	CViewStrategySettings view;
@@ -348,6 +539,13 @@ int main(int argc, char** argv)
 	QApplication::processEvents();
 	QPushButton* deleteButton = view.findChild<QPushButton*>("deleteButton");
 	Check(deleteButton->isEnabled(), "Delete button unavailable after fresh snapshots");
+	QLineEdit* strategySearch = view.findChild<QLineEdit*>("searchEdit");
+	CUITable* instances = view.findChild<CUITable*>("instancesTable");
+	strategySearch->setText("no matching strategy");
+	Check(0 == instances->ResultCount() && !deleteButton->isEnabled(), "Strategy filter left an actionable hidden selection");
+	strategySearch->clear();
+	instances->SelectRowId(42);
+	Check(deleteButton->isEnabled(), "Strategy selection did not recover after filtering");
 	count = requests.size();
 	QTimer::singleShot(0, [&service, &strategy]()
 	{
@@ -378,6 +576,8 @@ int main(int argc, char** argv)
 	service.Invalidate();
 	QApplication::processEvents();
 	Check(!view.findChild<QPushButton*>("modifyButton")->isEnabled(), "Queued config notification revived stale edit button");
+	CTradeAccountUiTests::Run(services);
+	TestKeyboardSprite();
 	std::cout << "Strategy management regression tests passed\n";
 	return 0;
 }

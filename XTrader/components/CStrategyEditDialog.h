@@ -7,6 +7,9 @@
 
 #include <QDialog>
 #include <memory>
+#include "CTableData.h"
+#include <map>
+#include <tuple>
 #include "../request/request.h"
 #include "../basic/TMessagePump.h"
 
@@ -40,10 +43,16 @@ private slots:
 private:
 	void InitializeUI();
 	void RefreshAccounts();
-	void SetSubscriptionChoices(int row, const QString& exchange, const QString& channel);
+	void ApplyEdit(const CTableOperation& operation, CDataTable& table, std::vector<CTableRow>& rows, CUITable& widget);
 
 private:
 	std::unique_ptr<Ui::CStrategyEditDialogClass> m_ui;
+	CDataTable m_parameterData;
+	CDataTable m_subscriptionData;
+	std::vector<CTableRow> m_parameters;
+	std::vector<CTableRow> m_subscriptions;
+	_TyDataRowId m_nextDraftId{ 1 };
+	std::map<std::tuple<std::uint64_t, _TyDataRowId, _TyTableColumnId>, std::uint64_t> m_editRequests;
 	_TyCallbackId m_accountToken{ 0 };
 	_TyAccountIndex m_originalAccount{};
 	std::uint64_t m_strategyId{ 0 };

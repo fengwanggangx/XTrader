@@ -269,6 +269,8 @@
     <ClInclude Include="basic\QtCallbackBridge.h" />
     <ClInclude Include="components\CMarketPageController.h" />
     <ClInclude Include="components\CQuoteTableUpdateState.h" />
+    <ClInclude Include="components\CTableTypes.h" />
+    <ClInclude Include="components\CTableData.h" />
     <ClInclude Include="components\CUIStyle.h" />
     <ClInclude Include="components\CViewConstituents.h" />
     <ClInclude Include="components\CViewWatchlist.h" />
@@ -301,7 +303,7 @@
     <ClInclude Include="components\CSystemSettings.h" />
     <ClInclude Include="components\CViewHQMarket.h" />
     <ClInclude Include="components\CUICurve.h" />
-    <ClInclude Include="components\CDataTableModel.h" />
+    <QtMoc Include="components\CDataTableModel.h" />
     <ClInclude Include="system\CHostMgr.h" />
     <ClInclude Include="cryption\Cryption.h" />
     <ClInclude Include="database\CDBEngine.h" />

@@ -6,6 +6,8 @@
 #include <QWidget>
 #include <QPointer>
 #include <memory>
+#include "CTableData.h"
+#include <map>
 #include "../service/hqmarket/CHQService.h"
 
 QT_BEGIN_NAMESPACE
@@ -34,7 +36,7 @@ private:
 
 private:
 	void OnTabChanged(int nIndex);
-	void OnRankingCellClicked(int nRow, int nColumn);
+	void OnRankingOperation(const CTableOperation& operation);
 
 private:
 	void OnSectorButtonClicked();
@@ -49,6 +51,9 @@ private:
 	CHQService::_TyHandlerToken m_nSectorListToken{ 0 };
 	CHQService::_TyHandlerToken m_nSectorConstituentsToken{ 0 };
 	std::shared_ptr<class CQuoteTableUpdateState> m_quoteUpdateState;
+	CDataTable m_rankingData;
+	std::map<std::string, _TyDataRowId> m_sectorIds;
+	_TyDataRowId m_nextSectorId{ 1 };
 	std::vector<CSectorInfo> m_sectors;
 	QString m_strSelectedSectorCode;
 	bool m_bOverviewRequested{ false };

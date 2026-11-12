@@ -392,6 +392,8 @@
     <ClInclude Include="components\CMarketPageController.h">
       <Filter>Source Files\components</Filter>
     </ClInclude>
+    <ClInclude Include="components\CTableTypes.h"><Filter>Source Files\components</Filter></ClInclude>
+    <ClInclude Include="components\CTableData.h"><Filter>Source Files\components</Filter></ClInclude>
     <ClInclude Include="components\CQuoteTableUpdateState.h">
       <Filter>Source Files\components</Filter>
     </ClInclude>
@@ -592,9 +594,9 @@
     <ClInclude Include="components\CUICurve.h">
       <Filter>Source Files\components</Filter>
     </ClInclude>
-    <ClInclude Include="components\CDataTableModel.h">
+    <QtMoc Include="components\CDataTableModel.h">
       <Filter>Source Files\components</Filter>
-    </ClInclude>
+    </QtMoc>
     <ClInclude Include="system\CHostMgr.h">
       <Filter>Source Files\system</Filter>
     </ClInclude>

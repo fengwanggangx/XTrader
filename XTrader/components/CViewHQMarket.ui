@@ -783,7 +783,7 @@
 													</widget>
 												</item>
 												<item>
-													<widget class="QTableWidget" name="rankingTable">
+													<widget class="CUITable" name="rankingTable">
 														<property name="selectionBehavior">
 															<enum>QAbstractItemView::SelectRows</enum>
 														</property>
@@ -799,21 +799,6 @@
 														<attribute name="verticalHeaderVisible">
 															<bool>false</bool>
 														</attribute>
-														<column>
-															<property name="text">
-																<string>序号</string>
-															</property>
-														</column>
-														<column>
-															<property name="text">
-																<string>行业名称</string>
-															</property>
-														</column>
-														<column>
-															<property name="text">
-																<string>涨跌幅</string>
-															</property>
-														</column>
 														<property name="verticalScrollBarPolicy">
 															<enum>Qt::ScrollBarAlwaysOff</enum>
 														</property>
@@ -900,7 +885,7 @@
 			<extends>QWidget</extends>
 			<header>CDistributionChart.h</header>
 		</customwidget>
-	</customwidgets>
+	<customwidget><class>CUITable</class><extends>QTableView</extends><header>CUITable.h</header></customwidget></customwidgets>
 	<resources />
 	<connections />
 </ui>

@@ -6,6 +6,7 @@
 
 #include "../service/strategy/CStrategyService.h"
 #include <QString>
+#include "CTableData.h"
 #include <QWidget>
 #include <cstdint>
 #include <memory>
@@ -16,10 +17,10 @@ namespace Ui
 	class CViewStrategySettingsClass;
 }
 
+class CStrategyFilterProxyModel;
 class QLabel;
 class QLineEdit;
 class QComboBox;
-class QTableWidget;
 
 class CViewStrategySettings final : public QWidget
 {
@@ -32,6 +33,7 @@ public:
 private:
 	std::unique_ptr<Ui::CViewStrategySettingsClass> m_ui;
 	void RefreshFilter();
+	int SelectedStrategyRow() const;
 	void RefreshDetails();
 	void RefreshSnapshot();
 	void RefreshRows();
@@ -40,6 +42,11 @@ private:
 	void DeleteStrategy();
 	void ControlStrategy(_TyRequest type);
 	void RefreshConnection();
+	CDataTable m_instanceTable;
+	CDataTable m_parameterTable;
+	std::map<std::pair<std::uint64_t, std::string>, _TyDataRowId> m_parameterIds;
+	_TyDataRowId m_nextParameterId{ 1 };
+	CDataTable m_logTable;
 	CStrategyService::_TyStrategyList m_strategies;
 	CStrategyService::_TyRuntimeMap m_runtimes;
 	std::unordered_map<std::uint64_t, QString> m_pendingOperations;
@@ -53,7 +60,8 @@ private:
 	int m_refreshTicks{ 0 };
 	std::uint64_t m_selectedStrategyId{ 0 };
 	std::uint64_t m_snapshotGeneration{ 0 };
-	QTableWidget* m_pInstances{ nullptr };
+	CUITable* m_pInstances{ nullptr };
+	CStrategyFilterProxyModel* m_instanceFilter{ nullptr };
 	QLabel* m_pDetails{ nullptr };
 	QLineEdit* m_pSearch{ nullptr };
 	QComboBox* m_pStatus{ nullptr };

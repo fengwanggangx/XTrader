@@ -56,8 +56,13 @@ void CViewWatchlist::Initialize(CTraderServices& services)
 	{
 		m_ui->table->Search(m_ui->searchEdit->text());
 	});
-	connect(m_ui->table, &CUITable::ResultsChanged, this, [this](int nCount)
+	connect(m_ui->table, &CUITable::OperationRequested, this, [this](const CTableOperation& operation)
 	{
+		if (TableOperationKind::ResultsChanged != operation.m_kind)
+		{
+			return;
+		}
+		int nCount = operation.m_value.toInt();
 		m_ui->countLabel->setText(QString("共%1只").arg(nCount));
 	});
 	m_controller = std::make_unique<CMarketPageController>(*m_pServices, MarketTableMode::Watchlist, m_ui->table, this);

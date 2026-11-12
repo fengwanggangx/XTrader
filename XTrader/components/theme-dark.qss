@@ -16,7 +16,6 @@ QFrame[summaryCard="true"] { background: #132130; border: 1px solid #203b52; bor
 #shanghaiPrice, #shenzhenPrice, #chinextPrice { color: #ff4d61; font-size: 23px; font-weight: 700; }
 #chartTitle, #depthTitle, #watchlistTitle { color: #edf6ff; font-size: 14px; font-weight: 600; }
 #chartPlaceholder { color: #718ba0; background: #12202f; border: 1px dashed #203b52; }
-QTableWidget { background: #0e192b; alternate-background-color: #122130; border: none; gridline-color: #203b52; color: #c8d8e7; }
 QTableView { background: #0e192b; alternate-background-color: #122130; border: none; gridline-color: #203b52; color: #c8d8e7; selection-background-color: #1e3e81; selection-color: white; }
 QLabel { color: #dce8f6; }
 QTabWidget::pane { background: #122130; border: 1px solid #203b52; top: -1px; }

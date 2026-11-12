@@ -10,7 +10,7 @@
 #include <QMetaObject>
 #include <QPushButton>
 #include <QTabBar>
-#include <QTableWidgetItem>
+#include "CTableData.h"
 #include <QTimer>
 #include <cmath>
 #include <algorithm>
@@ -28,6 +28,11 @@ void CViewHQMarket::Initialize(CTraderServices& services)
 	}
 	m_pServices = &services;
 	m_ui->setupUi(this);
+	DefineTable(m_rankingData, { { 1, "排名", DataType::UInt64 }, { 2, "行业板块", DataType::String }, { 3, "涨跌幅", DataType::Double } });
+	PublishTable(m_rankingData, *m_ui->rankingTable, {});
+	CTablePresentation presentation;
+	presentation.m_columns = { { 1, "排名" }, { 2, "行业板块" }, { 3, "涨跌幅", Qt::AlignRight | Qt::AlignVCenter, 2, true, "%" } };
+	m_ui->rankingTable->DataModel()->SetPresentation(std::move(presentation));
 	m_ui->watchlistPage->Initialize(services);
 	m_ui->indexPage->Initialize(services, MarketTableMode::Index);
 	m_ui->asharePage->Initialize(services, MarketTableMode::AShare);
@@ -84,7 +89,7 @@ void CViewHQMarket::Initialize(CTraderServices& services)
 	m_pServices->m_login.RegisterStateHandler(std::bind_front(&CViewHQMarket::OnSessionStateChanged, pInstance));
 
 	connect(m_ui->marketTabs, &QTabWidget::currentChanged, this, &CViewHQMarket::OnTabChanged);
-	connect(m_ui->rankingTable, &QTableWidget::cellClicked, this, &CViewHQMarket::OnRankingCellClicked);
+	connect(m_ui->rankingTable, &CUITable::OperationRequested, this, &CViewHQMarket::OnRankingOperation);
 	OnTabChanged(m_ui->marketTabs->currentIndex());
 }
 
@@ -182,12 +187,24 @@ void CViewHQMarket::OnTabChanged(int idx)
 	}
 }
 
-void CViewHQMarket::OnRankingCellClicked(int nRow, int)
+void CViewHQMarket::OnRankingOperation(const CTableOperation& operation)
 {
-	QTableWidgetItem* pItem = m_ui->rankingTable->item(nRow, 1);
-	if (nullptr != pItem)
+	if (TableOperationKind::Click != operation.m_kind && TableOperationKind::Activate != operation.m_kind)
 	{
-		SelectSector(pItem->data(Qt::UserRole).toString());
+		return;
+	}
+	if (m_rankingData.GetView().GetSourceId() != operation.m_generation)
+	{
+		return;
+	}
+	for (const auto& sector : m_sectors)
+	{
+		const auto mIter = m_sectorIds.find(sector.m_strCode);
+		if (m_sectorIds.end() != mIter && mIter->second == operation.m_rowId)
+		{
+			SelectSector(QString::fromStdString(sector.m_strCode));
+			return;
+		}
 	}
 }
 
@@ -224,7 +241,7 @@ void CViewHQMarket::RefreshSectors(const CSectorListEvent& ev)
 		delete pItem->widget();
 		delete pItem;
 	}
-	m_ui->rankingTable->setRowCount(0);
+	PublishTable(m_rankingData, *m_ui->rankingTable, {});
 	if (!ev.m_strError.empty())
 	{
 		m_ui->sectorState->setText(QString::fromStdString(ev.m_strError));
@@ -254,18 +271,18 @@ void CViewHQMarket::RefreshSectors(const CSectorListEvent& ev)
 		m_ui->sectorGrid->addWidget(pButton, nIndex / 5, nIndex % 5);
 	}
 	int nRankingCount = (std::min)(5, static_cast<int>(m_sectors.size()));
-	m_ui->rankingTable->setRowCount(nRankingCount);
-	for (int nIndex = 0; nIndex < nRankingCount; ++nIndex)
+	std::vector<CTableRow> rows;
+	for (int rank = 0; rank < nRankingCount; ++rank)
 	{
-		const CSectorInfo& sector = m_sectors[static_cast<std::size_t>(nIndex)];
-		QTableWidgetItem* pRank = new QTableWidgetItem(QString::number(nIndex + 1));
-		QTableWidgetItem* pName = new QTableWidgetItem(QString::fromStdString(sector.m_strName));
-		QTableWidgetItem* pPercent = new QTableWidgetItem(QString("%1%2%").arg(0.0 <= sector.m_fChangePercent ? "+" : "", QString::number(sector.m_fChangePercent, 'f', 2)));
-		pName->setData(Qt::UserRole, QString::fromStdString(sector.m_strCode));
-		m_ui->rankingTable->setItem(nIndex, 0, pRank);
-		m_ui->rankingTable->setItem(nIndex, 1, pName);
-		m_ui->rankingTable->setItem(nIndex, 2, pPercent);
+		const CSectorInfo& sector = m_sectors[rank];
+		const auto mIter = m_sectorIds.find(sector.m_strCode);
+		if (m_sectorIds.end() == mIter)
+		{
+			m_sectorIds.emplace(sector.m_strCode, m_nextSectorId++);
+		}
+		rows.push_back({ m_sectorIds.at(sector.m_strCode), { static_cast<std::uint64_t>(rank + 1), sector.m_strName, sector.m_fChangePercent } });
 	}
+	PublishTable(m_rankingData, *m_ui->rankingTable, rows);
 	SelectSector(m_strSelectedSectorCode.isEmpty() ? QString::fromStdString(m_sectors.front().m_strCode) : m_strSelectedSectorCode);
 }
 
@@ -276,16 +293,8 @@ void CViewHQMarket::SelectSector(const QString& strSectorCode)
 		return;
 	}
 	m_strSelectedSectorCode = strSectorCode;
-	m_ui->rankingTable->clearSelection();
-	for (int nIndex = 0; m_ui->rankingTable->rowCount() > nIndex; ++nIndex)
-	{
-		QTableWidgetItem* pName = m_ui->rankingTable->item(nIndex, 1);
-		if ((nullptr != pName) && (strSectorCode == pName->data(Qt::UserRole).toString()))
-		{
-			m_ui->rankingTable->selectRow(nIndex);
-			break;
-		}
-	}
+	const auto mIter = m_sectorIds.find(strSectorCode.toStdString());
+	m_ui->rankingTable->SelectRowId(m_sectorIds.end() == mIter ? 0 : mIter->second);
 	for (int nIndex = 0; m_ui->sectorGrid->count() > nIndex; ++nIndex)
 	{
 		QPushButton* pButton = qobject_cast<QPushButton*>(m_ui->sectorGrid->itemAt(nIndex)->widget());

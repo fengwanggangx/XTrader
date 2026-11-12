@@ -17,7 +17,6 @@
 #include <QPushButton>
 #include <QPointer>
 #include <QSortFilterProxyModel>
-#include <QStyledItemDelegate>
 #include <QStyle>
 #include <QRegularExpression>
 #include <QSignalBlocker>
@@ -26,6 +25,7 @@
 #include <QWidget>
 #include <algorithm>
 #include <map>
+#include <set>
 #include <iterator>
 
 namespace
@@ -60,50 +60,6 @@ namespace
 		return ((QTime(9, 30) <= time) && (QTime(11, 30) >= time)) || ((QTime(13, 0) <= time) && (QTime(15, 0) >= time));
 	}
 
-	class CMarketTableDelegate final : public QStyledItemDelegate
-	{
-	public:
-		explicit CMarketTableDelegate(QObject* parent) : QStyledItemDelegate(parent)
-		{
-		}
-
-	protected:
-		void initStyleOption(QStyleOptionViewItem* option, const QModelIndex& index) const override
-		{
-			QStyledItemDelegate::initStyleOption(option, index);
-			int nColumn = index.column();
-			if (0 == nColumn)
-			{
-				option->text = index.data().toString().section('.', 0, 0);
-			}
-			if ((2 <= nColumn) && (5 >= nColumn))
-			{
-				if (0.0 >= index.siblingAtColumn(2).data().toDouble())
-				{
-					option->text = "--";
-					return;
-				}
-				double fValue = index.data().toDouble();
-				option->text = QString::number(fValue, 'f', 2);
-				if (4 == nColumn)
-				{
-					option->text += "%";
-				}
-				if (((3 == nColumn) || (4 == nColumn)) && (0.0 < fValue))
-				{
-					option->text.prepend('+');
-				}
-			}
-			option->displayAlignment = 2 <= nColumn ? Qt::AlignRight | Qt::AlignVCenter : Qt::AlignLeft | Qt::AlignVCenter;
-			if ((2 == nColumn) || (3 == nColumn) || (4 == nColumn))
-			{
-				double fPercent = index.siblingAtColumn(4).data().toDouble();
-				QColor color = 0.0 <= fPercent ? QColor("#f04455") : QColor("#00b987");
-				option->palette.setColor(QPalette::Text, color);
-				option->palette.setColor(QPalette::HighlightedText, color);
-			}
-		}
-	};
 } // namespace
 
 class CMarketFilterProxyModel final : public QSortFilterProxyModel
@@ -124,7 +80,7 @@ public:
 protected:
 	bool filterAcceptsRow(int nRow, const QModelIndex& parent) const override
 	{
-		QString strCode = sourceModel()->index(nRow, 0, parent).data().toString();
+		QString strCode = sourceModel()->index(nRow, 0, parent).data(TableRawValueRole).toString();
 		if ((nullptr != m_watchlist) && !m_watchlist->contains(strCode.toStdString()))
 		{
 			return false;
@@ -166,7 +122,6 @@ CMarketPageController::CMarketPageController(CTraderServices& services, MarketTa
 		m_proxy->m_watchlist = &m_watchlist;
 	}
 	m_table->setModel(m_proxy);
-	m_table->setItemDelegate(new CMarketTableDelegate(m_table));
 	m_quoteUpdateState = std::make_shared<CQuoteTableUpdateState>();
 	QTimer* pQuoteTimer = new QTimer(this);
 	pQuoteTimer->setInterval(250);
@@ -180,13 +135,16 @@ CMarketPageController::CMarketPageController(CTraderServices& services, MarketTa
 		}
 	});
 	pQuoteTimer->start();
-	connect(m_table, &CUITable::RowSelected, this, [this]()
+	connect(m_table, &CUITable::OperationRequested, this, [this](const CTableOperation& operation)
 	{
-		RefreshSelection();
-	});
-	connect(m_table, &CUITable::ResultsChanged, this, [this]()
-	{
-		EnsureSelection();
+		if (TableOperationKind::Selection == operation.m_kind)
+		{
+			RefreshSelection();
+		}
+		else if (TableOperationKind::ResultsChanged == operation.m_kind)
+		{
+			EnsureSelection();
+		}
 	});
 	BindService();
 	m_pHistoryTimer = new QTimer(this);
@@ -335,7 +293,7 @@ QString CMarketPageController::AddWatchlist(const QString& strInput)
 		std::vector<std::string> matches;
 		for (int nRow = 0; nRowCount > nRow; ++nRow)
 		{
-			QString strKey = m_model->index(nRow, 0).data().toString();
+			QString strKey = m_model->index(nRow, 0).data(TableRawValueRole).toString();
 			QString strName = m_model->index(nRow, 1).data().toString();
 			QString strPinyinFullAliases = m_model->index(nRow, static_cast<int>(MarketQuoteColumn::PinyinFullAliases) - 1).data().toString();
 			QString strPinyinShortAliases = m_model->index(nRow, static_cast<int>(MarketQuoteColumn::PinyinShortAliases) - 1).data().toString();
@@ -362,7 +320,7 @@ QString CMarketPageController::AddWatchlist(const QString& strInput)
 
 QString CMarketPageController::RemoveSelectedWatchlist()
 {
-	CSecurity security = GetSecurity(m_table->currentIndex());
+	CSecurity security = GetSecurity(m_table->SelectedRowId());
 	if (!security.IsValid() || !m_watchlist.contains(security.String()))
 	{
 		return "请先选择要删除的自选证券";
@@ -461,20 +419,93 @@ void CMarketPageController::EnsureSelection()
 	RefreshSelection();
 }
 
-CSecurity CMarketPageController::GetSecurity(const QModelIndex& index) const
+CSecurity CMarketPageController::GetSecurity(_TyDataRowId rowId) const
 {
-	if (!index.isValid())
+	_TyDataValue code;
+	_TyDataValue name;
+	const CDataTableView& view = m_model->GetView();
+	if (!view.GetValueById(rowId, static_cast<_TyDataColumnId>(MarketQuoteColumn::Security), code) || !view.GetValueById(rowId, static_cast<_TyDataColumnId>(MarketQuoteColumn::Name), name))
 	{
 		return CSecurity();
 	}
-	CSecurity security = ParseSecurity(index.siblingAtColumn(0).data().toString().toStdString());
-	security.m_strName = index.siblingAtColumn(1).data().toString().toStdString();
+	CSecurity security = ParseSecurity(std::get<std::string>(code));
+	security.m_strName = std::get<std::string>(name);
 	return security;
+}
+
+void CMarketPageController::RefreshPresentation(const CDataTableView& view, const CDataChangeSet& changes, bool complete)
+{
+	bool reset = complete || m_model->GetPresentation().m_columns.empty() || changes.m_bStructureChanged;
+	if (reset)
+	{
+		CTablePresentation presentation;
+		for (std::size_t index = 0; index < view.GetSchema().size(); ++index)
+		{
+			const CDataColumnSchema& schema = view.GetSchema()[index];
+			CTableColumn column;
+			column.m_id = schema.m_id;
+			column.m_title = QString::fromStdString(schema.m_strName);
+			column.m_alignment = 2 <= index ? Qt::AlignRight | Qt::AlignVCenter : Qt::AlignLeft | Qt::AlignVCenter;
+			if (2 <= index && 5 >= index)
+			{
+				column.m_precision = 2;
+				column.m_signed = 3 == index || 4 == index;
+			}
+			if (4 == index)
+			{
+				column.m_suffix = "%";
+			}
+			presentation.m_columns.emplace_back(std::move(column));
+		}
+		m_model->SetPresentation(std::move(presentation));
+	}
+	std::set<_TyDataRowId> changed;
+	if (reset)
+	{
+		changed.insert(view.GetRowIds().begin(), view.GetRowIds().end());
+	}
+	else
+	{
+		for (const auto& cell : changes.m_changedCells)
+		{
+			changed.insert(cell.m_rowId);
+		}
+	}
+	std::map<std::pair<_TyDataRowId, _TyTableColumnId>, CTableCell> cells;
+	for (_TyDataRowId row : changed)
+	{
+		_TyDataValue code;
+		_TyDataValue price;
+		_TyDataValue percent;
+		if (!view.GetValueById(row, 1, code) || !view.GetValueById(row, 3, price) || !view.GetValueById(row, 5, percent))
+		{
+			continue;
+		}
+		cells[{ row, 1 }].m_display = QString::fromStdString(std::get<std::string>(code)).section('.', 0, 0);
+		double lastPrice = std::get<double>(price);
+		QBrush color(QColor(0.0 <= std::get<double>(percent) ? "#f04455" : "#00b987"));
+		for (_TyTableColumnId column = 3; column <= 6; ++column)
+		{
+			CTableCell cell;
+			if (0.0 >= lastPrice)
+			{
+				cell.m_display = "--";
+			}
+			if (5 >= column)
+			{
+				cell.m_foreground = color;
+			}
+			cells.emplace(std::make_pair(row, column), std::move(cell));
+		}
+	}
+	m_model->SetCells(std::move(cells));
 }
 
 void CMarketPageController::OnQuoteTableUpdate(const CDataTableView& view, const CDataChangeSet& changes)
 {
+	bool complete = m_model->GetView().GetSourceId() != view.GetSourceId() || m_model->GetView().GetVersion() + 1 != view.GetVersion();
 	m_model->SetView(view, changes);
+	RefreshPresentation(view, changes, complete);
 	bool bFilterChanged = changes.m_bStructureChanged || !changes.m_insertedRows.empty() || !changes.m_deletedRows.empty();
 	if (!bFilterChanged)
 	{
@@ -506,8 +537,7 @@ void CMarketPageController::RefreshSelection()
 	{
 		return;
 	}
-	QModelIndex current = m_table->currentIndex();
-	CSecurity security = GetSecurity(current);
+	CSecurity security = GetSecurity(m_table->SelectedRowId());
 	if (!security.IsValid())
 	{
 		m_stockTitle->setText("没有匹配的证券");
@@ -523,8 +553,12 @@ void CMarketPageController::RefreshSelection()
 		return;
 	}
 	m_stockTitle->setText(QString::fromStdString(security.m_strName + "  " + security.String()));
-	double fPrice = current.siblingAtColumn(2).data().toDouble();
-	double fPercent = current.siblingAtColumn(4).data().toDouble();
+	_TyDataValue priceValue;
+	_TyDataValue percentValue;
+	m_model->GetView().GetValueById(m_table->SelectedRowId(), 3, priceValue);
+	m_model->GetView().GetValueById(m_table->SelectedRowId(), 5, percentValue);
+	double fPrice = std::get<double>(priceValue);
+	double fPercent = std::get<double>(percentValue);
 	CQuote quote;
 	double fReferencePrice = 0.0;
 	if (m_pServices->m_hq.FindQuote(security, quote))
@@ -556,7 +590,7 @@ void CMarketPageController::RefreshSelection()
 
 void CMarketPageController::RequestHistory(CurveMode mode)
 {
-	CSecurity security = GetSecurity(m_table->currentIndex());
+	CSecurity security = GetSecurity(m_table->SelectedRowId());
 	if (!security.IsValid())
 	{
 		return;
@@ -603,7 +637,7 @@ void CMarketPageController::RequestMinuteHistory(bool bIncremental)
 	{
 		return;
 	}
-	CSecurity security = GetSecurity(m_table->currentIndex());
+	CSecurity security = GetSecurity(m_table->SelectedRowId());
 	if (!security.IsValid())
 	{
 		return;
@@ -662,7 +696,7 @@ void CMarketPageController::UpdateIntradayState()
 
 void CMarketPageController::HandleHistory(std::uint64_t nId, const std::string& strSecurity, MarketBarPeriod period, const std::vector<CMarketBar>& bars, const std::string& strError)
 {
-	if (strSecurity != GetSecurity(m_table->currentIndex()).String())
+	if (strSecurity != GetSecurity(m_table->SelectedRowId()).String())
 	{
 		return;
 	}

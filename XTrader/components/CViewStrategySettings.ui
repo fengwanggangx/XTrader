@@ -422,7 +422,7 @@
 									<property name="childrenCollapsible">
 										<bool>false</bool>
 									</property>
-									<widget class="QTableWidget" name="instancesTable">
+									<widget class="CUITable" name="instancesTable">
 										<property name="editTriggers">
 											<set>QAbstractItemView::NoEditTriggers</set>
 										</property>
@@ -444,51 +444,6 @@
 										<attribute name="horizontalHeaderStretchLastSection">
 											<bool>true</bool>
 										</attribute>
-										<column>
-											<property name="text">
-												<string>实例名称</string>
-											</property>
-										</column>
-										<column>
-											<property name="text">
-												<string>策略模板</string>
-											</property>
-										</column>
-										<column>
-											<property name="text">
-												<string>账户</string>
-											</property>
-										</column>
-										<column>
-											<property name="text">
-												<string>交易标的</string>
-											</property>
-										</column>
-										<column>
-											<property name="text">
-												<string>模式</string>
-											</property>
-										</column>
-										<column>
-											<property name="text">
-												<string>状态</string>
-											</property>
-										</column>
-										<column>
-											<property name="text">
-												<string>持仓</string>
-											</property>
-										</column>
-										<column>
-											<property name="text">
-												<string>今日盈亏</string>
-											</property>
-										</column>
-										<column>
-											<property name="text">
-												<string>更新时间</string>
-											</property>
-										</column>
 									</widget>
 									<widget class="QWidget" name="detailPage">
 										<layout class="QVBoxLayout" name="detailLayout" stretch="0,1">
@@ -517,7 +472,7 @@
 																</widget>
 															</item>
 															<item>
-																<widget class="QTableWidget" name="parametersTable">
+																<widget class="CUITable" name="parametersTable">
 																	<property name="editTriggers">
 																		<set>QAbstractItemView::NoEditTriggers</set>
 																	</property>
@@ -539,21 +494,6 @@
 																	<attribute name="horizontalHeaderStretchLastSection">
 																		<bool>true</bool>
 																	</attribute>
-																	<column>
-																		<property name="text">
-																			<string>参数</string>
-																		</property>
-																	</column>
-																	<column>
-																		<property name="text">
-																			<string>当前值</string>
-																		</property>
-																	</column>
-																	<column>
-																		<property name="text">
-																			<string>说明</string>
-																		</property>
-																	</column>
 																</widget>
 															</item>
 															<item>
@@ -587,7 +527,7 @@
 																</widget>
 															</item>
 															<item>
-																<widget class="QTableWidget" name="logsTable">
+																<widget class="CUITable" name="logsTable">
 																	<property name="editTriggers">
 																		<set>QAbstractItemView::NoEditTriggers</set>
 																	</property>
@@ -609,21 +549,6 @@
 																	<attribute name="horizontalHeaderStretchLastSection">
 																		<bool>true</bool>
 																	</attribute>
-																	<column>
-																		<property name="text">
-																			<string>时间</string>
-																		</property>
-																	</column>
-																	<column>
-																		<property name="text">
-																			<string>级别</string>
-																		</property>
-																	</column>
-																	<column>
-																		<property name="text">
-																			<string>内容</string>
-																		</property>
-																	</column>
 																	<property name="maximumSize">
 																		<size>
 																			<width>16777215</width>
@@ -681,6 +606,7 @@
 			</item>
 		</layout>
 	</widget>
-	<resources />
+	<customwidgets><customwidget><class>CUITable</class><extends>QTableView</extends><header>CUITable.h</header></customwidget></customwidgets>
+<resources />
 	<connections />
 </ui>

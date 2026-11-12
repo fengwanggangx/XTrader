@@ -13,15 +13,16 @@
     <item row="4" column="0"><widget class="QLabel" name="autoStartLabel"><property name="text"><string>自动启动</string></property></widget></item><item row="4" column="1"><widget class="QCheckBox" name="autoStartCheck"/></item>
    </layout></widget></item>
    <item><widget class="QGroupBox" name="parameterGroup"><property name="title"><string>策略参数</string></property><layout class="QVBoxLayout" name="parameterLayout">
-    <item><widget class="QTableWidget" name="parameterTable"><property name="columnCount"><number>2</number></property><column><property name="text"><string>参数名</string></property></column><column><property name="text"><string>参数值</string></property></column></widget></item>
+    <item><widget class="CUITable" name="parameterTable"></widget></item>
     <item><layout class="QHBoxLayout" name="parameterActionLayout"><item><spacer name="parameterSpacer"><property name="orientation"><enum>Qt::Orientation::Horizontal</enum></property><property name="sizeHint" stdset="0"><size><width>40</width><height>20</height></size></property></spacer></item><item><widget class="QPushButton" name="addParameterButton"><property name="text"><string>添加参数</string></property></widget></item><item><widget class="QPushButton" name="removeParameterButton"><property name="text"><string>删除参数</string></property></widget></item></layout></item>
    </layout></widget></item>
    <item><widget class="QGroupBox" name="subscriptionGroup"><property name="title"><string>订阅标的</string></property><layout class="QVBoxLayout" name="subscriptionLayout">
-    <item><widget class="QTableWidget" name="subscriptionTable"><property name="columnCount"><number>3</number></property><column><property name="text"><string>证券代码</string></property></column><column><property name="text"><string>交易所</string></property></column><column><property name="text"><string>行情通道</string></property></column></widget></item>
+    <item><widget class="CUITable" name="subscriptionTable"></widget></item>
     <item><layout class="QHBoxLayout" name="subscriptionActionLayout"><item><spacer name="subscriptionSpacer"><property name="orientation"><enum>Qt::Orientation::Horizontal</enum></property><property name="sizeHint" stdset="0"><size><width>40</width><height>20</height></size></property></spacer></item><item><widget class="QPushButton" name="addSubscriptionButton"><property name="text"><string>添加订阅</string></property></widget></item><item><widget class="QPushButton" name="removeSubscriptionButton"><property name="text"><string>删除订阅</string></property></widget></item></layout></item>
    </layout></widget></item>
    <item><widget class="QDialogButtonBox" name="buttonBox"><property name="standardButtons"><set>QDialogButtonBox::StandardButton::Cancel|QDialogButtonBox::StandardButton::Save</set></property></widget></item>
   </layout>
  </widget>
- <resources/><connections/>
+ <customwidgets><customwidget><class>CUITable</class><extends>QTableView</extends><header>CUITable.h</header></customwidget></customwidgets>
+<resources/><connections/>
 </ui>

@@ -54,7 +54,8 @@ private:
 	void UpdateIntradayState();
 	void HandleHistory(std::uint64_t nRequestId, const std::string& strSecurity, MarketBarPeriod period, const std::vector<CMarketBar>& bars, const std::string& strError);
 	void OnQuoteTableUpdate(const CDataTableView& view, const CDataChangeSet& changes);
-	CSecurity GetSecurity(const QModelIndex& index) const;
+	CSecurity GetSecurity(_TyDataRowId rowId) const;
+	void RefreshPresentation(const CDataTableView& view, const CDataChangeSet& changes, bool complete);
 
 	MarketTableMode m_mode;
 	std::string m_selectedSecurity;

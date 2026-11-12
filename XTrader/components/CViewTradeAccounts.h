@@ -5,16 +5,12 @@
 #include <array>
 #include <functional>
 #include <set>
-class QCheckBox;
+#include <map>
+#include "CTableData.h"
+
 class QLabel;
 class QPushButton;
-class QLineEdit;
-class QComboBox;
-class QTableView;
-class QTableWidget;
-class QTabWidget;
-class QStandardItemModel;
-class CTradeAccountModel;
+
 class CViewTradeAccounts final : public QWidget
 {
 	friend class CTradeAccountUiTests;
@@ -36,7 +32,8 @@ private:
 	void RefreshChecks();
 	void RemoveCheckedAccounts();
 	void EditAccount(bool bNew);
-	void Operate(_TyRequest type);
+	void Operate(_TyRequest type, const _TyAccountIndex& account);
+	void HandleTableOperation(const CTableOperation& operation);
 	void HandleResult(const CAccountService::CResult& result);
 	void RefreshStrategies();
 	const request::TradeAccountRecord* SelectedAccount() const;
@@ -45,9 +42,12 @@ private:
 	QLabel* m_heading{ nullptr };
 	QLabel* m_notice{ nullptr };
 	QLabel* m_checkedCount{ nullptr };
-	QTableWidget* m_strategies{ nullptr };
-	QTableWidget* m_logs{ nullptr };
-	QCheckBox* m_checkAll{ nullptr };
+	CUITable* m_strategies{ nullptr };
+	CUITable* m_logs{ nullptr };
+	CDataTable m_accountTable;
+	CDataTable m_strategyTable;
+	std::map<_TyAccountIndex, _TyDataRowId> m_rowIds;
+	_TyDataRowId m_nextRowId{ 1 };
 	std::set<_TyAccountIndex> m_checkedAccounts;
 	std::set<std::uint64_t> m_removeIds;
 	std::array<QLabel*, 4> m_funds{};
