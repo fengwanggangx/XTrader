@@ -154,7 +154,7 @@
     <ClCompile Include="components\CViewAShare.cpp" />
     <ClCompile Include="components\CDataTableModel.cpp" />
     <ClCompile Include="components\CUICurve.cpp" />
-    <ClCompile Include="components\CViewTradingAccounts.cpp" />
+    <ClCompile Include="components\CViewTradeAccounts.cpp" />
     <ClCompile Include="service\account\CAccountService.cpp" />
     <ClCompile Include="components\CViewStrategySettings.cpp" />
     <ClCompile Include="components\CStrategyEditDialog.cpp" />
@@ -280,7 +280,7 @@
     <ClInclude Include="system\CTraderServices.h" />
     <ClInclude Include="request\RequestCenter.h" />
     <ClInclude Include="request\MarketTypes.h" />
-    <ClInclude Include="components\CViewTradingAccounts.h" />
+    <ClInclude Include="components\CViewTradeAccounts.h" />
     <ClInclude Include="service\account\CAccountService.h" />
     <ClInclude Include="service\strategy\CStrategyService.h" />
     <ClInclude Include="service\hqmarket\CHQService.h" />

@@ -11,7 +11,7 @@ namespace net
 #include "service/hqmarket/CHQService.h"
 #include "components/CStrategyEditDialog.h"
 #include "components/CViewStrategySettings.h"
-#include "components/CViewTradingAccounts.h"
+#include "components/CViewTradeAccounts.h"
 #include <QPushButton>
 #include <QTabWidget>
 #include <QApplication>
@@ -134,15 +134,15 @@ bool CTraderCenter::IsAuthenticated() const noexcept
 {
 	return true;
 }
-CViewTradingAccounts::CViewTradingAccounts(CTraderServices& services, QWidget* parent) : QWidget(parent)
+CViewTradeAccounts::CViewTradeAccounts(CTraderServices& services, QWidget* parent) : QWidget(parent)
 {
 }
-CViewTradingAccounts::~CViewTradingAccounts() = default;
-void CViewTradingAccounts::showEvent(QShowEvent* event)
+CViewTradeAccounts::~CViewTradeAccounts() = default;
+void CViewTradeAccounts::showEvent(QShowEvent* event)
 {
 	QWidget::showEvent(event);
 }
-void CViewTradingAccounts::SetStrategyNavigation(std::function<void(std::uint64_t)>&& handler)
+void CViewTradeAccounts::SetStrategyNavigation(std::function<void(std::uint64_t)>&& handler)
 {
 	m_navigate = std::move(handler);
 }

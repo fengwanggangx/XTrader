@@ -1,6 +1,9 @@
-#include "CViewTradingAccounts.h"
+#include "CViewTradeAccounts.h"
 #include "../service/strategy/CStrategyService.h"
 #include "CTradeAccountLoginDialog.h"
+#include "../common/container.h"
+#include <QFrame>
+#include <QStyle>
 #include <QCheckBox>
 #include <QColor>
 #include <QHBoxLayout>
@@ -17,22 +20,39 @@
 #include <QTimer>
 #include <QVBoxLayout>
 
-CViewTradingAccounts::CViewTradingAccounts(CTraderServices& services, QWidget* parent) : QWidget(parent)
+CViewTradeAccounts::CViewTradeAccounts(CTraderServices& services, QWidget* parent) : QWidget(parent)
 {
 	m_pServices = &services;
-	setObjectName("tradingAccountsPage");
+	setObjectName("tradeAccountsPage");
 	QVBoxLayout* layout = new QVBoxLayout(this);
 	QHBoxLayout* actions = new QHBoxLayout();
 	m_add = new QPushButton("新增账户", this);
-	m_login = new QPushButton("登录账户", this);
-	m_disconnect = new QPushButton("断开账户", this);
 	m_remove = new QPushButton("移除账户", this);
 	QPushButton* refresh = new QPushButton("刷新", this);
 	actions->addWidget(m_add);
-	actions->addWidget(m_login);
-	actions->addWidget(m_disconnect);
 	actions->addWidget(m_remove);
 	actions->addWidget(refresh);
+	actions->setSpacing(12);
+	for (QPushButton* button : { m_add, m_remove, refresh })
+	{
+		button->setMinimumHeight(40);
+		button->setCursor(Qt::PointingHandCursor);
+		button->setStyleSheet("QPushButton { color: #334155; background: white; border: 1px solid #CBD5E1; border-radius: 6px; padding: 0 16px; } QPushButton:hover { background: #EFF6FF; border-color: #93B4EE; } QPushButton:disabled { color: #94A3B8; background: #F8FAFC; border-color: #E2E8F0; }");
+	}
+	m_add->setText("＋  新增账户");
+	m_add->setStyleSheet("QPushButton { color: white; background: #2563EB; border: 1px solid #2563EB; border-radius: 6px; padding: 0 18px; } QPushButton:hover { background: #1D4ED8; } QPushButton:disabled { color: #CBD5E1; background: #93B4EE; border-color: #93B4EE; }");
+	m_remove->setIcon(style()->standardIcon(QStyle::SP_TrashIcon));
+	refresh->setIcon(style()->standardIcon(QStyle::SP_BrowserReload));
+	QFrame* separator = new QFrame(this);
+	separator->setFrameShape(QFrame::VLine);
+	separator->setFixedHeight(24);
+	separator->setStyleSheet("color: #CBD5E1;");
+	actions->addSpacing(8);
+	actions->addWidget(separator);
+	actions->addSpacing(8);
+	m_checkedCount = new QLabel("已勾选 <span style='color: #2563EB;'>0</span> 个账户", this);
+	m_checkedCount->setStyleSheet("color: #475569;");
+	actions->addWidget(m_checkedCount);
 	actions->addStretch();
 	layout->addLayout(actions);
 	m_notice = new QLabel(this);
@@ -107,26 +127,10 @@ CViewTradingAccounts::CViewTradingAccounts(CTraderServices& services, QWidget* p
 	{
 		EditAccount(true);
 	});
-	connect(m_login, &QPushButton::clicked, this, [this]()
-	{
-		Operate(_TyRequest::TRADE_ACCOUNT_LOGIN);
-	});
-	connect(m_disconnect, &QPushButton::clicked, this,
-		[this]()
-	{
-		if (QMessageBox::Yes != QMessageBox::question(this, "断开交易账户", "断开此交易账户可能影响其他正在使用该账户的用户。确定断开吗？"))
-		{
-			return;
-		}
-		Operate(_TyRequest::TRADE_ACCOUNT_DISCONNECT);
-	});
-	connect(m_remove, &QPushButton::clicked, this, [this]()
-	{
-		Operate(_TyRequest::TRADE_ACCOUNT_REMOVE);
-	});
-	connect(refresh, &QPushButton::clicked, this, &CViewTradingAccounts::Refresh);
+	connect(m_remove, &QPushButton::clicked, this, &CViewTradeAccounts::RemoveCheckedAccounts);
+	connect(refresh, &QPushButton::clicked, this, &CViewTradeAccounts::Refresh);
 	connect(m_logs, &QTableWidget::itemSelectionChanged, this,
-		&CViewTradingAccounts::RefreshSelection);
+		&CViewTradeAccounts::RefreshSelection);
 	connect(m_strategies, &QTableWidget::cellDoubleClicked, this,
 		[this](int row, int)
 	{
@@ -137,7 +141,7 @@ CViewTradingAccounts::CViewTradingAccounts(CTraderServices& services, QWidget* p
 				m_strategies->item(row, 0)->data(Qt::UserRole).toULongLong());
 		}
 	});
-	QPointer<CViewTradingAccounts> self(this);
+	QPointer<CViewTradeAccounts> self(this);
 	m_accountToken = m_pServices->m_account.Subscribe(
 		[self](const CAccountService::CResult& result)
 	{
@@ -163,32 +167,33 @@ CViewTradingAccounts::CViewTradingAccounts(CTraderServices& services, QWidget* p
 			Refresh();
 		}
 	});
+	RefreshChecks();
 	timer->start(3000);
 }
 
-CViewTradingAccounts::~CViewTradingAccounts()
+CViewTradeAccounts::~CViewTradeAccounts()
 {
 	m_pServices->m_account.Unsubscribe(m_accountToken);
 }
 
-void CViewTradingAccounts::SetStrategyNavigation(
+void CViewTradeAccounts::SetStrategyNavigation(
 	std::function<void(std::uint64_t)>&& handler)
 {
 	m_navigate = std::move(handler);
 }
 
-void CViewTradingAccounts::showEvent(QShowEvent* event)
+void CViewTradeAccounts::showEvent(QShowEvent* event)
 {
 	QWidget::showEvent(event);
 	Refresh();
 }
 
-void CViewTradingAccounts::Refresh()
+void CViewTradeAccounts::Refresh()
 {
 	m_pServices->m_account.Send(_TyRequest::TRADE_ACCOUNT_LIST_QUERY);
 }
 
-void CViewTradingAccounts::RefreshRows()
+void CViewTradeAccounts::RefreshRows()
 {
 	m_logs->blockSignals(true);
 	m_logs->setRowCount(static_cast<int>(m_accounts.size()));
@@ -233,7 +238,7 @@ void CViewTradingAccounts::RefreshRows()
 		_TyAccountIndex key = AccountIndex(info);
 		connect(button, &QPushButton::clicked, this, [this, key]()
 		{
-			if (0 != m_operationId)
+			if (0 != m_operationId || !m_removeIds.empty())
 			{
 				return;
 			}
@@ -245,11 +250,17 @@ void CViewTradingAccounts::RefreshRows()
 					RefreshSelection();
 					if (request::ACCOUNT_CONNECTED == m_accounts[row].state())
 					{
-						m_disconnect->click();
+						if (QMessageBox::Yes == QMessageBox::question(this, "断开交易账户", "断开此交易账户可能影响其他正在使用该账户的用户。确定断开吗？"))
+						{
+							Operate(_TyRequest::TRADE_ACCOUNT_DISCONNECT);
+						}
 					}
 					else
 					{
-						m_login->click();
+						if (request::ACCOUNT_DISCONNECTED == m_accounts[row].state() || request::ACCOUNT_ERROR == m_accounts[row].state())
+						{
+							Operate(_TyRequest::TRADE_ACCOUNT_LOGIN);
+						}
 					}
 					return;
 				}
@@ -275,7 +286,7 @@ void CViewTradingAccounts::RefreshRows()
 }
 
 const request::TradeAccountRecord*
-CViewTradingAccounts::SelectedAccount() const
+CViewTradeAccounts::SelectedAccount() const
 {
 	for (const auto& account : m_accounts)
 	{
@@ -287,7 +298,7 @@ CViewTradingAccounts::SelectedAccount() const
 	return nullptr;
 }
 
-void CViewTradingAccounts::RefreshSelection()
+void CViewTradeAccounts::RefreshSelection()
 {
 	int row = m_logs->currentRow();
 	if (0 > row || m_accounts.size() <= static_cast<std::size_t>(row))
@@ -315,7 +326,7 @@ void CViewTradingAccounts::RefreshSelection()
 	RefreshButtons();
 }
 
-void CViewTradingAccounts::ClearDetails()
+void CViewTradeAccounts::ClearDetails()
 {
 	m_heading->setText("请选择账户");
 	for (QLabel* label : m_funds)
@@ -325,31 +336,37 @@ void CViewTradingAccounts::ClearDetails()
 	m_strategies->setRowCount(0);
 }
 
-void CViewTradingAccounts::RefreshButtons()
+void CViewTradeAccounts::RefreshButtons()
 {
 	for (int row = 0; row < m_logs->rowCount(); ++row)
 	{
 		QPushButton* button = m_logs->cellWidget(row, 7)->findChild<QPushButton*>("accountStateAction");
-		request::TradingAccountState state = m_accounts[row].state();
+		request::TradeAccountState state = m_accounts[row].state();
 		bool connected = request::ACCOUNT_CONNECTED == state;
 		bool idle = request::ACCOUNT_DISCONNECTED == state || request::ACCOUNT_ERROR == state;
 		button->setText(connected ? "断开" : idle ? "登录"
 												  : m_logs->item(row, 6)->text());
-		button->setEnabled(0 == m_operationId && (connected || idle));
+		button->setEnabled(0 == m_operationId && m_removeIds.empty() && (connected || idle));
 		button->setStyleSheet(connected
 								  ? "QPushButton { color: #475569; background: white; border: 1px solid #CBD5E1; border-radius: 4px; padding: 3px 12px; } QPushButton:disabled { color: #94A3B8; }"
 								  : "QPushButton { color: white; background: #2563EB; border: 1px solid #2563EB; border-radius: 4px; padding: 3px 12px; } QPushButton:disabled { color: #94A3B8; background: #F1F5F9; border-color: #E2E8F0; }");
 	}
-	const request::TradeAccountRecord* account = SelectedAccount();
-	m_login->setEnabled(0 == m_operationId && nullptr != account &&
-		(request::ACCOUNT_DISCONNECTED == account->state() || request::ACCOUNT_ERROR == account->state()));
-	m_disconnect->setEnabled(0 == m_operationId && nullptr != account &&
-							 request::ACCOUNT_CONNECTED == account->state());
-	m_remove->setEnabled(0 == m_operationId && nullptr != account &&
-		(request::ACCOUNT_DISCONNECTED == account->state() || request::ACCOUNT_ERROR == account->state()));
+	bool removable = !m_checkedAccounts.empty();
+	for (const auto& account : m_accounts)
+	{
+		if (container::with(m_checkedAccounts, AccountIndex(account)) &&
+			request::ACCOUNT_DISCONNECTED != account.state() && request::ACCOUNT_ERROR != account.state())
+		{
+			removable = false;
+			break;
+		}
+	}
+	m_add->setEnabled(0 == m_operationId && m_removeIds.empty());
+	m_remove->setEnabled(0 == m_operationId && m_removeIds.empty() && removable);
+	m_remove->setToolTip(removable ? "移除勾选的账户" : "请勾选已断开的账户；连接中的账户需先断开");
 }
 
-void CViewTradingAccounts::RefreshChecks()
+void CViewTradeAccounts::RefreshChecks()
 {
 	std::set<_TyAccountIndex> checked;
 	for (const auto& account : m_accounts)
@@ -366,9 +383,11 @@ void CViewTradingAccounts::RefreshChecks()
 	m_checkAll->setCheckState(m_checkedAccounts.empty() ? Qt::Unchecked : m_checkedAccounts.size() == m_accounts.size() ? Qt::Checked
 																														: Qt::PartiallyChecked);
 	m_checkAll->setEnabled(!m_accounts.empty());
+	m_checkedCount->setText(QString("已勾选 <span style='color: #2563EB;'>%1</span> 个账户").arg(static_cast<qulonglong>(m_checkedAccounts.size())));
+	RefreshButtons();
 }
 
-void CViewTradingAccounts::HandleResult(
+void CViewTradeAccounts::HandleResult(
 	const CAccountService::CResult& result)
 {
 	if (result.m_bSessionReset)
@@ -376,8 +395,20 @@ void CViewTradingAccounts::HandleResult(
 		m_accounts.clear();
 		m_selectedIndex = {};
 		m_operationId = 0;
+		m_removeIds.clear();
 		RefreshRows();
 		return;
+	}
+	if (0 != m_removeIds.erase(result.m_requestId))
+	{
+		if (result.m_error.empty())
+		{
+			m_checkedAccounts.erase(result.m_accountIndex);
+		}
+		if (m_removeIds.empty())
+		{
+			Refresh();
+		}
 	}
 	if (result.m_requestId == m_operationId)
 	{
@@ -409,7 +440,7 @@ void CViewTradingAccounts::HandleResult(
 	RefreshButtons();
 }
 
-void CViewTradingAccounts::RefreshStrategies()
+void CViewTradeAccounts::RefreshStrategies()
 {
 	m_strategies->setRowCount(0);
 	for (const auto& strategy : m_pServices->m_strategy.GetStrategies())
@@ -431,14 +462,36 @@ void CViewTradingAccounts::RefreshStrategies()
 	}
 }
 
-void CViewTradingAccounts::Operate(_TyRequest type)
+void CViewTradeAccounts::RemoveCheckedAccounts()
+{
+	if (!m_remove->isEnabled())
+	{
+		return;
+	}
+	m_notice->clear();
+	for (const auto& account : m_checkedAccounts)
+	{
+		std::uint64_t requestId = m_pServices->m_account.Send(_TyRequest::TRADE_ACCOUNT_REMOVE, account);
+		if (0 != requestId)
+		{
+			m_removeIds.insert(requestId);
+		}
+		else
+		{
+			m_notice->setText("部分账户的移除请求未发送，请稍后重试");
+		}
+	}
+	RefreshButtons();
+}
+
+void CViewTradeAccounts::Operate(_TyRequest type)
 {
 	m_operationId =
 		m_pServices->m_account.Send(type, m_selectedIndex);
 	RefreshButtons();
 }
 
-void CViewTradingAccounts::EditAccount(bool)
+void CViewTradeAccounts::EditAccount(bool)
 {
 	CTradeAccountLoginDialog dialog(*m_pServices, this);
 	if (QDialog::Accepted == dialog.exec())

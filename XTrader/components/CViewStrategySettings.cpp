@@ -1,7 +1,7 @@
 #include "CViewStrategySettings.h"
 #include "../system/CSession.h"
 #include "CStrategyEditDialog.h"
-#include "CViewTradingAccounts.h"
+#include "CViewTradeAccounts.h"
 #include "ui_CViewStrategySettings.h"
 #include <QTabWidget>
 
@@ -124,8 +124,8 @@ void CViewStrategySettings::Initialize(CTraderServices& services)
 		m_ui->strategyTabs->removeTab(1);
 	}
 	m_pInstances->horizontalHeaderItem(2)->setText("交易账户");
-	CViewTradingAccounts* accountsPage =
-		new CViewTradingAccounts(*m_pServices, m_ui->strategyTabs);
+	CViewTradeAccounts* accountsPage =
+		new CViewTradeAccounts(*m_pServices, m_ui->strategyTabs);
 	m_ui->strategyTabs->insertTab(0, accountsPage, "交易账户");
 	m_ui->strategyTabs->setCurrentIndex(0);
 	accountsPage->SetStrategyNavigation([this](std::uint64_t strategyId)

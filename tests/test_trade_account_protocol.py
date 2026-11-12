@@ -29,7 +29,7 @@ class IdentityProtocolTest(unittest.TestCase):
             messages=[m for f in descriptor.file for m in f.message_type]
             for message in messages:
                 self.assertNotIn('account_id',[field.name for field in message.field])
-            self.assertNotIn('TradingAccountType',[e.name for f in descriptor.file for e in f.enum_type])
+            self.assertNotIn('TradeAccountType',[e.name for f in descriptor.file for e in f.enum_type])
             self.assertNotIn('TradeAccountData',[m.name for m in messages])
         self.assertTrue(all(d==descriptors[0] for d in descriptors))
     def test_leading_zero_and_separate_identity_fields(self):

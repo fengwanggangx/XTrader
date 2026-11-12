@@ -296,7 +296,7 @@
     <ClCompile Include="database\CUserStorager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="components\CViewTradingAccounts.cpp">
+    <ClCompile Include="components\CViewTradeAccounts.cpp">
       <Filter>Source Files\components</Filter>
     </ClCompile>
     <ClCompile Include="service\account\CAccountService.cpp">
@@ -607,7 +607,7 @@
     <ClInclude Include="database\CUserStorager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="components\CViewTradingAccounts.h">
+    <ClInclude Include="components\CViewTradeAccounts.h">
       <Filter>Source Files\components</Filter>
     </ClInclude>
     <ClInclude Include="service\account\CAccountService.h">

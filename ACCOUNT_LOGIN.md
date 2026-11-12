@@ -11,7 +11,7 @@
 - `extra["password"]`：密码（不做 trim）
 - 不使用 Protobuf 账户 payload；响应按 id 关联。
 
-`TradingAccountInfo` 已移除。账户列表、策略账户选择等已有功能使用 `TradeAccountRecord` 响应记录，字段编号保持不变。账户名称修改也通过 extra["name"] 发送。
+`TradeAccountInfo` 已移除。账户列表、策略账户选择等已有功能使用 `TradeAccountRecord` 响应记录，字段编号保持不变。账户名称修改也通过 extra["name"] 发送。
 
 ## 券商与站点
 
