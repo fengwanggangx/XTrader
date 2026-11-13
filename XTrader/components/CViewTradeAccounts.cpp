@@ -56,23 +56,24 @@ CViewTradeAccounts::CViewTradeAccounts(CTraderServices& services, QWidget* paren
 	layout->addLayout(actions);
 	m_notice = new QLabel(this);
 	layout->addWidget(m_notice);
-	m_logs = new CUITable(this);
+	m_accountTableView = new CUITable(this);
 	DefineTable(m_accountTable, { { 1, "券商", DataType::String }, { 2, "站点", DataType::String }, { 3, "账号", DataType::String }, { 4, "账户名称", DataType::String }, { 5, "状态", DataType::String } });
-	PublishTable(m_accountTable, *m_logs, {});
+	PublishTable(m_accountTable, *m_accountTableView, {});
 	CTablePresentation presentation;
 	presentation.m_columns = { { TableCheckColumn, "" }, { TableSequenceColumn, "序号", Qt::AlignCenter }, { 1, "券商" }, { 2, "站点" }, { 3, "账号" }, { 4, "账户名称" }, { 5, "状态" }, { TableActionColumn, "操作" } };
-	m_logs->DataModel()->SetPresentation(std::move(presentation));
-	m_logs->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+	m_accountTableView->DataModel()->SetPresentation(std::move(presentation));
+	m_accountTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 	for (int column : { 0, 1, 7 })
 	{
-		m_logs->horizontalHeader()->setSectionResizeMode(column, QHeaderView::Fixed);
+		m_accountTableView->horizontalHeader()->setSectionResizeMode(column, QHeaderView::Fixed);
 	}
-	m_logs->setColumnWidth(0, 44);
-	m_logs->setColumnWidth(1, 60);
-	m_logs->setColumnWidth(7, 112);
-	m_logs->verticalHeader()->setDefaultSectionSize(48);
-	connect(m_logs, &CUITable::OperationRequested, this, &CViewTradeAccounts::HandleTableOperation);
-	layout->addWidget(m_logs);
+	m_accountTableView->setColumnWidth(0, 44);
+	m_accountTableView->setColumnWidth(1, 60);
+	m_accountTableView->setColumnWidth(7, 112);
+	m_accountTableView->SetHeaderTable(QStringLiteral("trade_accounts"));
+	m_accountTableView->verticalHeader()->setDefaultSectionSize(48);
+	connect(m_accountTableView, &CUITable::OperationRequested, this, &CViewTradeAccounts::HandleTableOperation);
+	layout->addWidget(m_accountTableView);
 	m_heading = new QLabel("请选择账户", this);
 	layout->addWidget(m_heading);
 	QHBoxLayout* funds = new QHBoxLayout();
@@ -86,6 +87,7 @@ CViewTradeAccounts::CViewTradeAccounts(CTraderServices& services, QWidget* paren
 	DefineTable(m_strategyTable, { { 1, "关联策略", DataType::String }, { 2, "策略类型", DataType::String } });
 	PublishTable(m_strategyTable, *m_strategies, {});
 	m_strategies->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+	m_strategies->SetHeaderTable(QStringLiteral("trade_account_strategies"));
 	layout->addWidget(m_strategies);
 	connect(m_add, &QPushButton::clicked, this, [this]()
 	{
@@ -178,7 +180,7 @@ void CViewTradeAccounts::RefreshRows()
 																																 : "未连接";
 		rows.push_back({ m_rowIds.at(key), { info.broker_name(), info.site(), info.account(), info.name(), state } });
 	}
-	PublishTable(m_accountTable, *m_logs, rows);
+	PublishTable(m_accountTable, *m_accountTableView, rows);
 	if (nullptr == SelectedAccount())
 	{
 		m_selectedIndex = {};
@@ -261,7 +263,7 @@ CViewTradeAccounts::SelectedAccount() const
 
 void CViewTradeAccounts::RefreshSelection()
 {
-	_TyDataRowId selected = m_logs->SelectedRowId();
+	_TyDataRowId selected = m_accountTableView->SelectedRowId();
 	const request::TradeAccountRecord* account = nullptr;
 	for (const auto& info : m_accounts)
 	{
@@ -309,7 +311,7 @@ void CViewTradeAccounts::ClearDetails()
 
 void CViewTradeAccounts::RefreshButtons()
 {
-	CTablePresentation presentation = m_logs->DataModel()->GetPresentation();
+	CTablePresentation presentation = m_accountTableView->DataModel()->GetPresentation();
 	presentation.m_cells.clear();
 	for (const auto& account : m_accounts)
 	{
@@ -326,7 +328,7 @@ void CViewTradeAccounts::RefreshButtons()
 												 : QString::fromStdString(std::get<std::string>(state));
 		presentation.m_cells[{ id, TableActionColumn }].m_actions = { { connected ? "disconnect" : "login", text, 0 == m_operationId && m_removeIds.empty() && (connected || idle), !connected } };
 	}
-	m_logs->DataModel()->SetPresentation(std::move(presentation));
+	m_accountTableView->DataModel()->SetPresentation(std::move(presentation));
 	bool removable = !m_checkedAccounts.empty();
 	for (const auto& account : m_accounts)
 	{
@@ -345,7 +347,7 @@ void CViewTradeAccounts::RefreshButtons()
 void CViewTradeAccounts::RefreshChecks()
 {
 	m_checkedAccounts.clear();
-	QVector<qulonglong> checked = m_logs->CheckedRowIds();
+	QVector<qulonglong> checked = m_accountTableView->CheckedRowIds();
 	for (const auto& account : m_accounts)
 	{
 		if (checked.contains(m_rowIds.at(AccountIndex(account))))

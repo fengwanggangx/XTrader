@@ -6,6 +6,7 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets Test)
 set(sourceRoot "${CMAKE_CURRENT_SOURCE_DIR}/../../XTrader")
 add_executable(TableComponentTests TableComponentTests.cpp
  "${sourceRoot}/basic/CDatable.cpp"
+ "${sourceRoot}/database/IDataBase.cpp"
  "${sourceRoot}/components/CDataTableModel.cpp"
  "${sourceRoot}/components/CDataTableModel.h"
  "${sourceRoot}/components/CUITable.cpp"

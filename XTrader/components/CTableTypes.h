@@ -4,6 +4,7 @@
 #include "../basic/CDatable.h"
 #include <QBrush>
 #include <QIcon>
+#include <QHeaderView>
 #include <QMetaType>
 #include <QStringList>
 #include <QVariant>
@@ -88,6 +89,15 @@ struct CTableCell
 	_TyTableActions m_actions;
 	bool m_checkable{ true };
 	bool m_enabled{ true };
+};
+
+struct CTableHeaderColumn
+{
+	QString m_title;
+	std::int64_t m_position{ 0 };
+	bool m_visible{ true };
+	QHeaderView::ResizeMode m_widthMode{ QHeaderView::Stretch };
+	int m_width{ 0 };
 };
 
 struct CTablePresentation

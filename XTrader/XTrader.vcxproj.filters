@@ -719,6 +719,6 @@
       <Filter>Source Files\scripts</Filter>
     </None>
     <None Include="exec\Debug\sql\table_create.sql" />
-    <None Include="exec\Release\sql\table_create.sql" />
+    <None Include="sql\table_header.sql" />
   </ItemGroup>
 </Project>

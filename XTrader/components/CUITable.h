@@ -16,6 +16,7 @@ public:
 	void setModel(QAbstractItemModel* model) override;
 	QAbstractItemModel* SourceModel() const;
 	CDataTableModel* DataModel() const;
+	void SetHeaderTable(const QString& table, QList<_TyTableColumnId> defaultHidden = {});
 	void SetSearchColumns(const QList<int>& columns);
 	void Search(const QString& text);
 	void Update();
@@ -40,8 +41,12 @@ protected:
 private:
 	void NotifyResults();
 	void RefreshHeader();
+	void ApplyHeaderLayout();
 	void RestoreSelection();
 	void SendOperation(TableOperationKind kind, const QModelIndex& index);
+	QString m_headerTable;
+	QList<_TyTableColumnId> m_defaultHiddenColumns;
+	bool m_defaultStretchLast{ false };
 	CTableSearchProxyModel* m_searchProxy{ nullptr };
 	CDataTableModel* m_defaultModel{ nullptr };
 	QCheckBox* m_checkAll{ nullptr };

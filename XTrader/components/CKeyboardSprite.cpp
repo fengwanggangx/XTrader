@@ -90,6 +90,7 @@ CKeyboardSprite::CKeyboardSprite(QWidget* pParent) : QWidget(pParent, Qt::Tool |
 	m_pResults->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Fixed);
 	m_pResults->setColumnWidth(0, 110);
 	m_pResults->setColumnWidth(2, 76);
+	m_pResults->SetHeaderTable(QStringLiteral("keyboard_results"));
 	m_pResults->verticalHeader()->setDefaultSectionSize(30);
 	connect(m_pResults, &CUITable::OperationRequested, this, [this](const CTableOperation& operation)
 	{

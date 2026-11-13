@@ -16,6 +16,7 @@
 #include <QSignalBlocker>
 #include <QScrollBar>
 #include <algorithm>
+#include <tuple>
 #include <QSortFilterProxyModel>
 #include <QStyledItemDelegate>
 
@@ -289,7 +290,11 @@ CUITable::CUITable(QWidget* parent) : QTableView(parent)
 	{
 		m_restoring = true;
 	});
-	connect(m_searchProxy, &QAbstractItemModel::modelReset, this, &CUITable::RestoreSelection);
+	connect(m_searchProxy, &QAbstractItemModel::modelReset, this, [this]()
+	{
+		ApplyHeaderLayout();
+		RestoreSelection();
+	});
 	connect(m_searchProxy, &QAbstractItemModel::layoutAboutToBeChanged, this, [this]()
 	{
 		m_restoring = true;
@@ -330,12 +335,14 @@ void CUITable::setModel(QAbstractItemModel* model)
 	CDataTableModel* dataModel = DataModel();
 	if (nullptr != dataModel)
 	{
+		dataModel->SetHeaderTable(m_headerTable);
 		m_operationConnection = connect(dataModel, &CDataTableModel::OperationRequested, this, [this](CTableOperation operation)
 		{
 			RefreshHeader();
 			emit OperationRequested(std::move(operation));
 		});
 	}
+	ApplyHeaderLayout();
 	RestoreSelection();
 }
 
@@ -358,6 +365,75 @@ CDataTableModel* CUITable::DataModel() const
 		model = nullptr == proxy ? nullptr : proxy->sourceModel();
 	}
 	return nullptr;
+}
+
+void CUITable::SetHeaderTable(const QString& table, QList<_TyTableColumnId> defaultHidden)
+{
+	m_headerTable = table;
+	m_defaultHiddenColumns = std::move(defaultHidden);
+	m_defaultStretchLast = horizontalHeader()->stretchLastSection();
+	CDataTableModel* dataModel = DataModel();
+	if (nullptr != dataModel)
+	{
+		dataModel->SetHeaderTable(table);
+	}
+	ApplyHeaderLayout();
+}
+
+void CUITable::ApplyHeaderLayout()
+{
+	CDataTableModel* dataModel = DataModel();
+	if (m_headerTable.isEmpty() || nullptr == dataModel)
+	{
+		return;
+	}
+	QHeaderView* header = horizontalHeader();
+	using _TyOrderedColumn = std::tuple<std::int64_t, _TyTableColumnId, int>;
+	std::vector<_TyOrderedColumn> configured;
+	std::vector<int> unconfigured;
+	int count = header->count();
+	for (int logical = 0; count > logical; ++logical)
+	{
+		_TyTableColumnId id = dataModel->headerData(logical, Qt::Horizontal, TableColumnIdRole).toULongLong();
+		const CTableHeaderColumn* config = dataModel->HeaderColumn(id);
+		if (nullptr == config)
+		{
+			setColumnHidden(logical, m_defaultHiddenColumns.contains(id));
+			unconfigured.push_back(logical);
+			continue;
+		}
+		configured.emplace_back(config->m_position, id, logical);
+	}
+	if (configured.empty())
+	{
+		return;
+	}
+
+	std::sort(configured.begin(), configured.end());
+	header->setStretchLastSection(false);
+	int visual = 0;
+	for (const auto& column : configured)
+	{
+		_TyTableColumnId id = std::get<1>(column);
+		int logical = std::get<2>(column);
+		header->moveSection(header->visualIndex(logical), visual++);
+		const CTableHeaderColumn* config = dataModel->HeaderColumn(id);
+		setColumnHidden(logical, !config->m_visible);
+		header->setSectionResizeMode(logical, config->m_widthMode);
+		if (QHeaderView::Fixed == config->m_widthMode)
+		{
+			header->resizeSection(logical, config->m_width);
+		}
+	}
+	for (int logical : unconfigured)
+	{
+		header->moveSection(header->visualIndex(logical), visual++);
+	}
+	if (m_defaultStretchLast && !unconfigured.empty() && !isColumnHidden(unconfigured.back()))
+	{
+		header->setStretchLastSection(true);
+	}
+	RefreshHeader();
 }
 
 void CUITable::SetSearchColumns(const QList<int>& columns)
@@ -516,7 +592,7 @@ void CUITable::RefreshHeader()
 			}
 		}
 	}
-	m_checkAll->setVisible(0 <= checkColumn && !horizontalHeader()->isHidden());
+	m_checkAll->setVisible(0 <= checkColumn && !isColumnHidden(checkColumn) && !horizontalHeader()->isHidden());
 	if (0 > checkColumn)
 	{
 		return;

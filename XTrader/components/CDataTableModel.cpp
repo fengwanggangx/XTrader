@@ -1,7 +1,85 @@
 #include "CDataTableModel.h"
+#include "../database/IDataBase.h"
 #include <algorithm>
 #include <type_traits>
 #include <limits>
+
+namespace
+{
+	std::map<QString, std::map<_TyTableColumnId, CTableHeaderColumn>> headerTables;
+}
+
+bool CDataTableModel::LoadHeaderConfig(db::IDataBase& db)
+{
+	headerTables.clear();
+	const db::CQueryTable& table = db.ExecQuery("SELECT c_table, c_caption, c_colid, c_pos, c_show, c_width_mode, c_width FROM table_header");
+	if (7 != table.m_columns.size())
+	{
+		return false;
+	}
+	for (const auto& row : table.m_rows)
+	{
+		if (7 != row.size())
+		{
+			continue;
+		}
+		const std::string* name = std::get_if<std::string>(&row[0]);
+		const std::string* title = std::get_if<std::string>(&row[1]);
+		const std::int64_t* id = std::get_if<std::int64_t>(&row[2]);
+		const std::int64_t* position = std::get_if<std::int64_t>(&row[3]);
+		const std::int64_t* visible = std::get_if<std::int64_t>(&row[4]);
+		const std::string* mode = std::get_if<std::string>(&row[5]);
+		const std::int64_t* width = std::get_if<std::int64_t>(&row[6]);
+		if (nullptr == name || nullptr == title || nullptr == id || nullptr == position || nullptr == visible || nullptr == mode)
+		{
+			continue;
+		}
+		CTableHeaderColumn config{ QString::fromStdString(*title), *position, 0 != *visible };
+		if ("fixed" == *mode)
+		{
+			if (nullptr == width || 0 >= *width || std::numeric_limits<int>::max() < *width)
+			{
+				continue;
+			}
+			config.m_widthMode = QHeaderView::Fixed;
+			config.m_width = static_cast<int>(*width);
+		}
+		else if ("contents" == *mode)
+		{
+			config.m_widthMode = QHeaderView::ResizeToContents;
+		}
+		else if ("stretch" != *mode)
+		{
+			continue;
+		}
+		headerTables[QString::fromStdString(*name)].emplace(static_cast<_TyTableColumnId>(*id), std::move(config));
+	}
+	return true;
+}
+
+void CDataTableModel::SetHeaderTable(const QString& table)
+{
+	if (table == m_headerTable)
+	{
+		return;
+	}
+	m_headerTable = table;
+	if (0 < columnCount())
+	{
+		emit headerDataChanged(Qt::Horizontal, 0, columnCount() - 1);
+	}
+}
+
+const CTableHeaderColumn* CDataTableModel::HeaderColumn(_TyTableColumnId id) const
+{
+	const auto tableIter = headerTables.find(m_headerTable);
+	if (headerTables.end() == tableIter)
+	{
+		return nullptr;
+	}
+	const auto columnIter = tableIter->second.find(id);
+	return tableIter->second.end() == columnIter ? nullptr : &columnIter->second;
+}
 
 CDataTableModel::CDataTableModel(QObject* parent) : QAbstractTableModel(parent)
 {
@@ -106,9 +184,23 @@ QVariant CDataTableModel::data(const QModelIndex& index, int role) const
 
 QVariant CDataTableModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
-	if (Qt::Horizontal != orientation || Qt::DisplayRole != role || 0 > section || columnCount() <= section)
+	if (Qt::Horizontal != orientation || 0 > section || columnCount() <= section)
 	{
 		return {};
+	}
+	_TyTableColumnId id = m_presentation.m_columns.empty() ? m_view.GetSchema()[section].m_id : m_presentation.m_columns[section].m_id;
+	if (TableColumnIdRole == role)
+	{
+		return QVariant::fromValue<qulonglong>(id);
+	}
+	if (Qt::DisplayRole != role)
+	{
+		return {};
+	}
+	const CTableHeaderColumn* config = HeaderColumn(id);
+	if (nullptr != config)
+	{
+		return config->m_title;
 	}
 	return m_presentation.m_columns.empty() ? QString::fromStdString(m_view.GetSchema()[section].m_strName) : m_presentation.m_columns[section].m_title;
 }

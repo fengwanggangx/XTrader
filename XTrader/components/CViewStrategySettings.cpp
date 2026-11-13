@@ -145,10 +145,6 @@ void CViewStrategySettings::Initialize(CTraderServices& services)
 	m_ui->todayProfitCard->hide();
 	m_ui->recentLogsLabel->hide();
 	m_ui->logsTable->hide();
-	for (int column : { 4, 6, 7, 8 })
-	{
-		m_pInstances->setColumnHidden(column, true);
-	}
 	while (1 < m_ui->strategyTabs->count())
 	{
 		m_ui->strategyTabs->removeTab(1);
@@ -182,6 +178,9 @@ void CViewStrategySettings::Initialize(CTraderServices& services)
 		table->horizontalHeader()->setSectionResizeMode(
 			QHeaderView::ResizeToContents);
 	}
+	m_pInstances->SetHeaderTable(QStringLiteral("strategy_instances"), { 5, 7, 8, 9 });
+	m_ui->parametersTable->SetHeaderTable(QStringLiteral("strategy_parameters"));
+	m_ui->logsTable->SetHeaderTable(QStringLiteral("strategy_logs"));
 	m_ui->detailSplitter->setStretchFactor(0, 1);
 	m_ui->detailSplitter->setStretchFactor(1, 1);
 	connect(m_ui->strategyTabs, &QTabWidget::currentChanged, this, [this]()

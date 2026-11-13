@@ -1,4 +1,5 @@
 #include "CTableData.h"
+#include "../../XTrader/database/IDataBase.h"
 #include <QApplication>
 #include <QAbstractItemModelTester>
 #include <QCheckBox>
@@ -20,6 +21,99 @@ namespace
 		{
 			throw std::runtime_error(message);
 		}
+	}
+
+	class CHeaderConfigDatabase final : public db::IDataBase
+	{
+	public:
+		int Connect(const db::CConnectParam&) override
+		{
+			return 0;
+		}
+
+		int Close() override
+		{
+			return 0;
+		}
+
+		int ExecUpdate(const std::string&) override
+		{
+			return 0;
+		}
+
+		const db::CQueryTable& ExecQuery(const std::string&) override
+		{
+			return m_result;
+		}
+
+		bool BeginTransaction() override
+		{
+			return false;
+		}
+
+		bool EndTransaction() override
+		{
+			return false;
+		}
+
+		bool RollBackTransaction() override
+		{
+			return false;
+		}
+
+		db::CQueryTable m_result;
+	};
+
+	void TestHeaderConfig()
+	{
+		CHeaderConfigDatabase db;
+		db.m_result.m_columns.resize(7);
+		db.m_result.m_rows =
+		{
+			{ std::string("accounts"), std::string("Custom"), std::int64_t(1), std::int64_t(0), std::int64_t(1), std::string("fixed"), std::int64_t(89) },
+			{ std::string("accounts"), std::string(""), static_cast<std::int64_t>(TableCheckColumn), std::int64_t(1), std::int64_t(0), std::string("fixed"), std::int64_t(44) },
+			{ std::string("accounts"), std::string("Actions"), static_cast<std::int64_t>(TableActionColumn), std::int64_t(2), std::int64_t(1), std::string("contents"), std::monostate() },
+			{ std::string("accounts"), std::string("Unknown"), std::int64_t(999), std::int64_t(0), std::int64_t(1), std::string("stretch"), std::monostate() }
+		};
+		Require(CDataTableModel::LoadHeaderConfig(db), "load header configuration");
+
+		CUITable widget;
+		CUITable related;
+		CDataTable table;
+		DefineTable(table, { { 1, "Name", DataType::String }, { 2, "Value", DataType::Int64 } });
+		PublishTable(table, widget, { { 101, { std::string("alpha"), std::int64_t(20) } }, { 202, { std::string("beta"), std::int64_t(3) } } });
+		PublishTable(table, related, {});
+		widget.SetHeaderTable(QStringLiteral("accounts"));
+		related.SetHeaderTable(QStringLiteral("related"));
+		CTablePresentation presentation;
+		presentation.m_columns = { { TableCheckColumn, "" }, { 1, "Name" }, { 2, "Value" }, { TableActionColumn, "Action" } };
+		presentation.m_cells[{ 101, TableActionColumn }].m_actions = { { "go", "Go", true } };
+		widget.DataModel()->SetPresentation(presentation);
+		widget.show();
+		QApplication::processEvents();
+
+		Require(widget.model()->headerData(1, Qt::Horizontal).toString() == "Custom", "configured caption");
+		Require(related.model()->headerData(0, Qt::Horizontal).toString() == "Name", "table layouts are independent");
+		Require(widget.horizontalHeader()->logicalIndex(0) == 1 && widget.horizontalHeader()->logicalIndex(3) == 2, "visual order and missing column fallback");
+		Require(widget.isColumnHidden(0) && widget.columnWidth(1) == 89, "hidden checkbox and fixed width");
+		Require(widget.findChild<QCheckBox*>()->isHidden(), "hidden section hides select-all");
+		widget.setSortingEnabled(true);
+		widget.sortByColumn(2, Qt::AscendingOrder);
+		Require(widget.model()->index(0, 2).data(TableRowIdRole).toULongLong() == 202, "visual reorder preserves logical sorting");
+		widget.SetSearchColumns({ 1 });
+		widget.Search("alpha");
+		Require(widget.ResultCount() == 1, "visual reorder preserves logical search");
+		Require(widget.SelectRowId(101), "select reordered row");
+		QSignalSpy operations(&widget, &CUITable::OperationRequested);
+		widget.TriggerAction(widget.model()->index(widget.currentIndex().row(), 3), "go");
+		Require(operations.size() == 1 && operations[0][0].value<CTableOperation>().m_columnId == TableActionColumn, "visual reorder preserves action column ID");
+		widget.DataModel()->SetPresentation({});
+		widget.DataModel()->SetPresentation(presentation);
+		Require(widget.horizontalHeader()->logicalIndex(0) == 1 && widget.isColumnHidden(0), "layout survives model reset");
+
+		db.m_result.Clear();
+		Require(!CDataTableModel::LoadHeaderConfig(db), "query failure reported");
+		Require(widget.DataModel()->headerData(1, Qt::Horizontal).toString() == "Name", "query failure clears cached captions");
 	}
 
 	void RunTests()
@@ -185,6 +279,7 @@ int main(int argc, char** argv)
 	try
 	{
 		RunTests();
+		TestHeaderConfig();
 		std::cout << "Table component tests passed\n";
 		return 0;
 	}

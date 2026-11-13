@@ -86,7 +86,7 @@ namespace db
 			column.m_strName = sqlite3_column_name(statement.get(), i);
 		}
 
-		while (SQLITE_ROW == sqlite3_step(statement.get()))
+		while (SQLITE_ROW == (nRet = sqlite3_step(statement.get())))
 		{
 			table.m_rows.emplace_back();
 			_TyQueryRow& row = table.m_rows.back();
@@ -119,6 +119,10 @@ namespace db
 					row.emplace_back(std::monostate());
 				}
 			}
+		}
+		if (SQLITE_DONE != nRet)
+		{
+			table.Clear();
 		}
 		return table;
 	}

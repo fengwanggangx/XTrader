@@ -349,7 +349,7 @@
     <None Include="request\v1\market.proto" />
     <None Include="scripts\main.lua" />
     <None Include="exec\Debug\sql\table_create.sql" />
-    <None Include="exec\Release\sql\table_create.sql" />
+    <None Include="sql\table_header.sql" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">
@@ -360,6 +360,8 @@
       <RuntimeDependency Include="$(SolutionDir)x64\$(Configuration)\*.dll" />
     </ItemGroup>
     <Copy SourceFiles="@(RuntimeDependency)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(ProjectDir)sql\table_header.sql" DestinationFolder="$(OutDir)sql" SkipUnchangedFiles="true" />
+    <Copy Condition="'$(Configuration)' != 'Debug'" SourceFiles="$(ProjectDir)exec\Debug\sql\table_create.sql" DestinationFolder="$(OutDir)sql" SkipUnchangedFiles="true" />
   </Target>
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

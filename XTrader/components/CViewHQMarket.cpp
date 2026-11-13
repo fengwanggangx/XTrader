@@ -59,6 +59,7 @@ void CViewHQMarket::Initialize(CTraderServices& services)
 	});
 	m_ui->rankingTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 	m_ui->rankingTable->horizontalHeader()->setFixedHeight(24);
+	m_ui->rankingTable->SetHeaderTable(QStringLiteral("market_ranking"));
 
 	CHQService& service = m_pServices->m_hq;
 	service.Initialize();

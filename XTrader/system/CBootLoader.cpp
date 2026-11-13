@@ -1,5 +1,7 @@
 #include "CBootLoader.h"
 #include "CTraderCenter.h"
+#include "../components/CDataTableModel.h"
+#include <QDebug>
 #include "../service/strategy/CStrategyService.h"
 #include "../service/hqmarket/CHQService.h"
 #include "../service/account/CAccountService.h"
@@ -66,6 +68,15 @@ bool CBootLoader::Initialize()
 			m_strLastError = "Failed to initialize Sqlite tables";
 			Finalize();
 			return false;
+		}
+
+		if (0 != db->ExecSqlFile(m_exec / "sql" / "table_header.sql"))
+		{
+			qWarning() << "Failed to initialize table_header in the local SQLite database";
+		}
+		if (!CDataTableModel::LoadHeaderConfig(*db))
+		{
+			qWarning() << "Failed to read table_header. Using default table layouts";
 		}
 
 		m_pSession = new CSession();

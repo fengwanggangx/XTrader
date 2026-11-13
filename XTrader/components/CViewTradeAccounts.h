@@ -43,7 +43,7 @@ private:
 	QLabel* m_notice{ nullptr };
 	QLabel* m_checkedCount{ nullptr };
 	CUITable* m_strategies{ nullptr };
-	CUITable* m_logs{ nullptr };
+	CUITable* m_accountTableView{ nullptr };
 	CDataTable m_accountTable;
 	CDataTable m_strategyTable;
 	std::map<_TyAccountIndex, _TyDataRowId> m_rowIds;

@@ -122,6 +122,31 @@ CMarketPageController::CMarketPageController(CTraderServices& services, MarketTa
 		m_proxy->m_watchlist = &m_watchlist;
 	}
 	m_table->setModel(m_proxy);
+	QString headerTable;
+	switch (mode)
+	{
+	case MarketTableMode::Watchlist:
+		headerTable = QStringLiteral("market_watchlist");
+		break;
+	case MarketTableMode::AShare:
+		headerTable = QStringLiteral("market_a_share");
+		break;
+	case MarketTableMode::Constituents:
+		headerTable = QStringLiteral("market_constituents");
+		break;
+	case MarketTableMode::Index:
+		headerTable = QStringLiteral("market_index");
+		break;
+	case MarketTableMode::HongKong:
+		headerTable = QStringLiteral("market_hong_kong");
+		break;
+	}
+	QList<_TyTableColumnId> hiddenColumns{ 6, 8, 9, 10, 11, 12, 13 };
+	if (MarketTableMode::Constituents != mode)
+	{
+		hiddenColumns.append({ 4, 7 });
+	}
+	m_table->SetHeaderTable(headerTable, std::move(hiddenColumns));
 	m_quoteUpdateState = std::make_shared<CQuoteTableUpdateState>();
 	QTimer* pQuoteTimer = new QTimer(this);
 	pQuoteTimer->setInterval(250);
@@ -517,11 +542,6 @@ void CMarketPageController::OnQuoteTableUpdate(const CDataTableView& view, const
 				   (static_cast<_TyDataColumnId>(MarketQuoteColumn::PinyinFullAliases) == change.m_columnId) ||
 				   (static_cast<_TyDataColumnId>(MarketQuoteColumn::PinyinShortAliases) == change.m_columnId);
 		});
-	}
-	int nColumnCount = m_model->columnCount();
-	for (int nColumn = 0; nColumnCount > nColumn; ++nColumn)
-	{
-		m_table->setColumnHidden(nColumn, MarketTableMode::Constituents == m_mode ? ((5 == nColumn) || (7 <= nColumn)) : ((3 == nColumn) || (5 <= nColumn)));
 	}
 	if (bFilterChanged)
 	{

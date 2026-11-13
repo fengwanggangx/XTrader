@@ -79,6 +79,8 @@ void CStrategyEditDialog::InitializeUI()
 	m_ui->subscriptionTable->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed | QAbstractItemView::SelectedClicked);
 	m_ui->parameterTable->horizontalHeader()->setStretchLastSection(true);
 	m_ui->subscriptionTable->horizontalHeader()->setStretchLastSection(true);
+	m_ui->parameterTable->SetHeaderTable(QStringLiteral("strategy_edit_parameters"));
+	m_ui->subscriptionTable->SetHeaderTable(QStringLiteral("strategy_edit_subscriptions"));
 	connect(m_ui->addParameterButton, &QPushButton::clicked, this,
 		&CStrategyEditDialog::OnAddParameter);
 	connect(m_ui->removeParameterButton, &QPushButton::clicked, this,
