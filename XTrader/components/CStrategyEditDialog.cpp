@@ -1,9 +1,15 @@
 #include "CStrategyEditDialog.h"
 #include "../service/account/CAccountService.h"
+#include "CSinglePixelBorder.h"
+#include "CUIStyle.h"
 #include <QComboBox>
 #include <QFormLayout>
+#include <QFrame>
+#include <QMouseEvent>
 #include <QPointer>
 #include <QSet>
+#include <QStyledItemDelegate>
+#include <QWindow>
 #include "../service/strategy/CStrategyService.h"
 
 #include "ui_CStrategyEditDialog.h"
@@ -12,11 +18,52 @@
 #include <QMessageBox>
 #include "CTableData.h"
 
+namespace
+{
+	class CComboItemDelegate final : public QStyledItemDelegate
+	{
+	public:
+		explicit CComboItemDelegate(QComboBox& combo) : QStyledItemDelegate(combo.view()), m_combo(combo)
+		{
+		}
+
+		QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override
+		{
+			QSize size = QStyledItemDelegate::sizeHint(option, index);
+			size.setHeight(m_combo.height());
+			return size;
+		}
+
+	private:
+		QComboBox& m_combo;
+	};
+
+	void PrepareCombo(QComboBox& combo)
+	{
+		combo.setFrame(false);
+		combo.setItemDelegate(new CComboItemDelegate(combo));
+		combo.view()->setFrameShape(QFrame::NoFrame);
+		QFrame* pPopup = qobject_cast<QFrame*>(combo.view()->parentWidget());
+		if (nullptr != pPopup)
+		{
+			pPopup->setFrameShape(QFrame::NoFrame);
+		}
+		CSinglePixelBorder::Install(*combo.view());
+	}
+}
+
 CStrategyEditDialog::CStrategyEditDialog(CTraderServices& services, QWidget* pParent)
 	: QDialog(pParent), m_ui(std::make_unique<Ui::CStrategyEditDialogClass>())
 {
 	m_pServices = &services;
+	setWindowFlags(Qt::Dialog | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint);
 	m_ui->setupUi(this);
+	UIStyle::Apply(*this, ":/styles/strategy-edit.qss");
+	m_ui->titleFrame->installEventFilter(this);
+	m_ui->titleLabel->installEventFilter(this);
+	connect(m_ui->closeButton, &QPushButton::clicked, this, &QDialog::reject);
+	connect(m_ui->saveButton, &QPushButton::clicked, this, &CStrategyEditDialog::OnAccept);
+	connect(m_ui->cancelButton, &QPushButton::clicked, this, &QDialog::reject);
 	InitializeUI();
 }
 
@@ -27,7 +74,19 @@ CStrategyEditDialog::~CStrategyEditDialog()
 
 void CStrategyEditDialog::InitializeUI()
 {
+	m_ui->bodyLayout->setStretch(1, 1);
+	m_ui->bodyLayout->setStretch(2, 1);
 	m_accounts = new QComboBox(this);
+	m_accounts->setFixedHeight(27);
+	m_accounts->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+	m_accounts->setMinimumContentsLength(8);
+	m_accounts->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
+	PrepareCombo(*m_accounts);
+	CSinglePixelBorder::Install(*m_accounts);
+	connect(m_accounts, &QComboBox::currentTextChanged, m_accounts, [this](const QString& text)
+	{
+		m_accounts->setToolTip(text);
+	});
 	RefreshAccounts();
 	QPointer<CStrategyEditDialog> safeThis(this);
 	m_accountToken = m_pServices->m_account.Subscribe([safeThis](const CAccountService::CResult&)
@@ -89,13 +148,32 @@ void CStrategyEditDialog::InitializeUI()
 		&CStrategyEditDialog::OnAddSubscription);
 	connect(m_ui->removeSubscriptionButton, &QPushButton::clicked, this,
 		&CStrategyEditDialog::OnRemoveSubscription);
-	connect(m_ui->buttonBox, &QDialogButtonBox::accepted, this,
-		&CStrategyEditDialog::OnAccept);
-	connect(m_ui->buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
+	m_ui->nameEdit->setFrame(false);
+	m_ui->queueLimitSpin->setFrame(false);
+	PrepareCombo(*m_ui->typeCombo);
+	for (QWidget* pControl :
+		{ static_cast<QWidget*>(m_ui->nameEdit),
+			static_cast<QWidget*>(m_ui->typeCombo),
+			static_cast<QWidget*>(m_ui->queueLimitSpin) })
+	{
+		CSinglePixelBorder::Install(*pControl);
+	}
+	CSinglePixelBorder::Install(*this);
+	CSinglePixelBorder::Install(*m_ui->titleFrame, 0.0, Qt::BottomEdge);
+	CSinglePixelBorder::Install(*m_ui->divider, 0.0, Qt::TopEdge);
+	CSinglePixelBorder::Install(*m_ui->cancelButton, 4.0);
+	for (QPushButton* pButton :
+		{ m_ui->addParameterButton, m_ui->removeParameterButton,
+			m_ui->addSubscriptionButton, m_ui->removeSubscriptionButton })
+	{
+		CSinglePixelBorder::Install(*pButton, 4.0);
+	}
 }
 
 void CStrategyEditDialog::SetStrategy(const request::StrategyInfo& strategy)
 {
+	m_ui->titleLabel->setText("修改策略");
+	setWindowTitle("修改策略");
 	m_strategyId = strategy.strategy_id();
 	m_originalAccount = AccountIndex(strategy);
 	m_accounts->setCurrentIndex(-1);
@@ -333,4 +411,18 @@ void CStrategyEditDialog::RefreshAccounts()
 	{
 		m_accounts->setCurrentIndex(index);
 	}
+}
+
+bool CStrategyEditDialog::eventFilter(QObject* pObject, QEvent* pEvent)
+{
+	if (((m_ui->titleFrame == pObject) || (m_ui->titleLabel == pObject)) &&
+		(QEvent::MouseButtonPress == pEvent->type()))
+	{
+		QMouseEvent* pMouse = static_cast<QMouseEvent*>(pEvent);
+		if ((Qt::LeftButton == pMouse->button()) && (nullptr != windowHandle()))
+		{
+			return windowHandle()->startSystemMove();
+		}
+	}
+	return QDialog::eventFilter(pObject, pEvent);
 }

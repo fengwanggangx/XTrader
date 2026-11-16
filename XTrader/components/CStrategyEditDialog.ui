@@ -1,28 +1,579 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>CStrategyEditDialogClass</class>
- <widget class="QDialog" name="CStrategyEditDialogClass">
-  <property name="geometry"><rect><x>0</x><y>0</y><width>680</width><height>650</height></rect></property><property name="windowTitle"><string>新增策略</string></property>
-  <layout class="QVBoxLayout" name="rootLayout">
-   <item><widget class="QLabel" name="titleLabel"><property name="font"><font><pointsize>14</pointsize><bold>true</bold></font></property><property name="text"><string>策略配置</string></property></widget></item>
-   <item><widget class="QGroupBox" name="basicGroup"><property name="title"><string>基础信息</string></property><layout class="QFormLayout" name="basicLayout">
-    <item row="0" column="0"><widget class="QLabel" name="nameLabel"><property name="text"><string>策略名称</string></property></widget></item><item row="0" column="1"><widget class="QLineEdit" name="nameEdit"><property name="placeholderText"><string>请输入策略名称</string></property></widget></item>
-    <item row="1" column="0"><widget class="QLabel" name="typeLabel"><property name="text"><string>策略类型</string></property></widget></item><item row="1" column="1"><widget class="QComboBox" name="typeCombo"><property name="editable"><bool>true</bool></property><item><property name="text"><string>moving_average</string></property></item></widget></item>
-    <item row="2" column="0"><widget class="QLabel" name="queueLimitLabel"><property name="text"><string>事件队列上限</string></property></widget></item><item row="2" column="1"><widget class="QSpinBox" name="queueLimitSpin"><property name="minimum"><number>100</number></property><property name="maximum"><number>1000000</number></property><property name="value"><number>4096</number></property></widget></item>
-    <item row="3" column="0"><widget class="QLabel" name="enabledLabel"><property name="text"><string>启用策略</string></property></widget></item><item row="3" column="1"><widget class="QCheckBox" name="enabledCheck"><property name="checked"><bool>true</bool></property></widget></item>
-    <item row="4" column="0"><widget class="QLabel" name="autoStartLabel"><property name="text"><string>自动启动</string></property></widget></item><item row="4" column="1"><widget class="QCheckBox" name="autoStartCheck"/></item>
-   </layout></widget></item>
-   <item><widget class="QGroupBox" name="parameterGroup"><property name="title"><string>策略参数</string></property><layout class="QVBoxLayout" name="parameterLayout">
-    <item><widget class="CUITable" name="parameterTable"></widget></item>
-    <item><layout class="QHBoxLayout" name="parameterActionLayout"><item><spacer name="parameterSpacer"><property name="orientation"><enum>Qt::Orientation::Horizontal</enum></property><property name="sizeHint" stdset="0"><size><width>40</width><height>20</height></size></property></spacer></item><item><widget class="QPushButton" name="addParameterButton"><property name="text"><string>添加参数</string></property></widget></item><item><widget class="QPushButton" name="removeParameterButton"><property name="text"><string>删除参数</string></property></widget></item></layout></item>
-   </layout></widget></item>
-   <item><widget class="QGroupBox" name="subscriptionGroup"><property name="title"><string>订阅标的</string></property><layout class="QVBoxLayout" name="subscriptionLayout">
-    <item><widget class="CUITable" name="subscriptionTable"></widget></item>
-    <item><layout class="QHBoxLayout" name="subscriptionActionLayout"><item><spacer name="subscriptionSpacer"><property name="orientation"><enum>Qt::Orientation::Horizontal</enum></property><property name="sizeHint" stdset="0"><size><width>40</width><height>20</height></size></property></spacer></item><item><widget class="QPushButton" name="addSubscriptionButton"><property name="text"><string>添加订阅</string></property></widget></item><item><widget class="QPushButton" name="removeSubscriptionButton"><property name="text"><string>删除订阅</string></property></widget></item></layout></item>
-   </layout></widget></item>
-   <item><widget class="QDialogButtonBox" name="buttonBox"><property name="standardButtons"><set>QDialogButtonBox::StandardButton::Cancel|QDialogButtonBox::StandardButton::Save</set></property></widget></item>
-  </layout>
- </widget>
- <customwidgets><customwidget><class>CUITable</class><extends>QTableView</extends><header>CUITable.h</header></customwidget></customwidgets>
-<resources/><connections/>
+	<class>CStrategyEditDialogClass</class>
+	<widget class="QDialog" name="CStrategyEditDialogClass">
+		<property name="geometry">
+			<rect>
+				<x>0</x>
+				<y>0</y>
+				<width>442</width>
+				<height>700</height>
+			</rect>
+		</property>
+		<property name="windowTitle">
+			<string>新增策略</string>
+		</property>
+		<property name="sizeGripEnabled">
+			<bool>false</bool>
+		</property>
+		<layout class="QVBoxLayout" name="rootLayout">
+			<property name="leftMargin">
+				<number>1</number>
+			</property>
+			<property name="topMargin">
+				<number>1</number>
+			</property>
+			<property name="rightMargin">
+				<number>1</number>
+			</property>
+			<property name="bottomMargin">
+				<number>1</number>
+			</property>
+			<property name="spacing">
+				<number>0</number>
+			</property>
+			<item>
+				<widget class="QFrame" name="titleFrame">
+					<property name="minimumSize">
+						<size>
+							<width>0</width>
+							<height>33</height>
+						</size>
+					</property>
+					<property name="maximumSize">
+						<size>
+							<width>16777215</width>
+							<height>33</height>
+						</size>
+					</property>
+					<layout class="QHBoxLayout" name="titleLayout">
+						<property name="leftMargin">
+							<number>10</number>
+						</property>
+						<property name="topMargin">
+							<number>0</number>
+						</property>
+						<property name="rightMargin">
+							<number>6</number>
+						</property>
+						<property name="bottomMargin">
+							<number>0</number>
+						</property>
+						<item>
+							<widget class="QLabel" name="titleLabel">
+								<property name="text">
+									<string>新增策略</string>
+								</property>
+							</widget>
+						</item>
+						<item>
+							<spacer name="titleSpacer">
+								<property name="orientation">
+									<enum>Qt::Horizontal</enum>
+								</property>
+								<property name="sizeHint" stdset="0">
+									<size>
+										<width>40</width>
+										<height>20</height>
+									</size>
+								</property>
+							</spacer>
+						</item>
+						<item>
+							<widget class="QPushButton" name="closeButton">
+								<property name="accessibleName">
+									<string>关闭</string>
+								</property>
+								<property name="toolTip">
+									<string>关闭</string>
+								</property>
+								<property name="autoDefault">
+									<bool>false</bool>
+								</property>
+								<property name="minimumSize">
+									<size>
+										<width>22</width>
+										<height>22</height>
+									</size>
+								</property>
+								<property name="maximumSize">
+									<size>
+										<width>22</width>
+										<height>22</height>
+									</size>
+								</property>
+							</widget>
+						</item>
+					</layout>
+				</widget>
+			</item>
+			<item>
+				<widget class="QWidget" name="body">
+					<layout class="QVBoxLayout" name="bodyLayout">
+						<property name="leftMargin">
+							<number>20</number>
+						</property>
+						<property name="topMargin">
+							<number>16</number>
+						</property>
+						<property name="rightMargin">
+							<number>20</number>
+						</property>
+						<property name="bottomMargin">
+							<number>8</number>
+						</property>
+						<property name="spacing">
+							<number>12</number>
+						</property>
+						<item>
+							<widget class="QGroupBox" name="basicGroup">
+								<property name="title">
+									<string>基础信息</string>
+								</property>
+								<layout class="QFormLayout" name="basicLayout">
+									<property name="verticalSpacing">
+										<number>10</number>
+									</property>
+									<property name="horizontalSpacing">
+										<number>12</number>
+									</property>
+									<property name="leftMargin">
+										<number>0</number>
+									</property>
+									<property name="topMargin">
+										<number>0</number>
+									</property>
+									<property name="rightMargin">
+										<number>0</number>
+									</property>
+									<property name="bottomMargin">
+										<number>0</number>
+									</property>
+									<property name="fieldGrowthPolicy">
+										<enum>QFormLayout::AllNonFixedFieldsGrow</enum>
+									</property>
+									<item row="0" column="0">
+										<widget class="QLabel" name="nameLabel">
+											<property name="text">
+												<string>策略名称</string>
+											</property>
+										</widget>
+									</item>
+									<item row="0" column="1">
+										<widget class="QLineEdit" name="nameEdit">
+											<property name="placeholderText">
+												<string>请输入策略名称</string>
+											</property>
+											<property name="minimumSize">
+												<size>
+													<width>0</width>
+													<height>27</height>
+												</size>
+											</property>
+											<property name="maximumSize">
+												<size>
+													<width>16777215</width>
+													<height>27</height>
+												</size>
+											</property>
+										</widget>
+									</item>
+									<item row="1" column="0">
+										<widget class="QLabel" name="typeLabel">
+											<property name="text">
+												<string>策略类型</string>
+											</property>
+										</widget>
+									</item>
+									<item row="1" column="1">
+										<widget class="QComboBox" name="typeCombo">
+											<property name="editable">
+												<bool>true</bool>
+											</property>
+											<property name="minimumSize">
+												<size>
+													<width>0</width>
+													<height>27</height>
+												</size>
+											</property>
+											<property name="maximumSize">
+												<size>
+													<width>16777215</width>
+													<height>27</height>
+												</size>
+											</property>
+											<item>
+												<property name="text">
+													<string>moving_average</string>
+												</property>
+											</item>
+										</widget>
+									</item>
+									<item row="2" column="0">
+										<widget class="QLabel" name="queueLimitLabel">
+											<property name="text">
+												<string>事件队列上限</string>
+											</property>
+										</widget>
+									</item>
+									<item row="2" column="1">
+										<widget class="QSpinBox" name="queueLimitSpin">
+											<property name="minimumSize">
+												<size>
+													<width>0</width>
+													<height>27</height>
+												</size>
+											</property>
+											<property name="maximumSize">
+												<size>
+													<width>16777215</width>
+													<height>27</height>
+												</size>
+											</property>
+											<property name="minimum">
+												<number>100</number>
+											</property>
+											<property name="maximum">
+												<number>1000000</number>
+											</property>
+											<property name="value">
+												<number>4096</number>
+											</property>
+										</widget>
+									</item>
+									<item row="3" column="0">
+										<widget class="QLabel" name="enabledLabel">
+											<property name="text">
+												<string>启用策略</string>
+											</property>
+										</widget>
+									</item>
+									<item row="3" column="1">
+										<widget class="QCheckBox" name="enabledCheck">
+											<property name="checked">
+												<bool>true</bool>
+											</property>
+										</widget>
+									</item>
+									<item row="4" column="0">
+										<widget class="QLabel" name="autoStartLabel">
+											<property name="text">
+												<string>自动启动</string>
+											</property>
+										</widget>
+									</item>
+									<item row="4" column="1">
+										<widget class="QCheckBox" name="autoStartCheck" />
+									</item>
+								</layout>
+							</widget>
+						</item>
+						<item>
+							<widget class="QGroupBox" name="parameterGroup">
+								<property name="title">
+									<string>策略参数</string>
+								</property>
+								<layout class="QVBoxLayout" name="parameterLayout">
+									<property name="leftMargin">
+										<number>0</number>
+									</property>
+									<property name="topMargin">
+										<number>0</number>
+									</property>
+									<property name="rightMargin">
+										<number>0</number>
+									</property>
+									<property name="bottomMargin">
+										<number>0</number>
+									</property>
+									<property name="spacing">
+										<number>8</number>
+									</property>
+									<item>
+										<widget class="CUITable" name="parameterTable">
+											<property name="minimumSize">
+												<size>
+													<width>0</width>
+													<height>80</height>
+												</size>
+											</property>
+										</widget>
+									</item>
+									<item>
+										<layout class="QHBoxLayout" name="parameterActionLayout">
+											<property name="spacing">
+												<number>12</number>
+											</property>
+											<item>
+												<spacer name="parameterSpacer">
+													<property name="orientation">
+														<enum>Qt::Horizontal</enum>
+													</property>
+													<property name="sizeHint" stdset="0">
+														<size>
+															<width>40</width>
+															<height>20</height>
+														</size>
+													</property>
+												</spacer>
+											</item>
+											<item>
+												<widget class="QPushButton" name="addParameterButton">
+													<property name="text">
+														<string>添加参数</string>
+													</property>
+													<property name="minimumSize">
+														<size>
+															<width>0</width>
+															<height>27</height>
+														</size>
+													</property>
+													<property name="maximumSize">
+														<size>
+															<width>16777215</width>
+															<height>27</height>
+														</size>
+													</property>
+												</widget>
+											</item>
+											<item>
+												<widget class="QPushButton" name="removeParameterButton">
+													<property name="text">
+														<string>删除参数</string>
+													</property>
+													<property name="minimumSize">
+														<size>
+															<width>0</width>
+															<height>27</height>
+														</size>
+													</property>
+													<property name="maximumSize">
+														<size>
+															<width>16777215</width>
+															<height>27</height>
+														</size>
+													</property>
+												</widget>
+											</item>
+										</layout>
+									</item>
+								</layout>
+							</widget>
+						</item>
+						<item>
+							<widget class="QGroupBox" name="subscriptionGroup">
+								<property name="title">
+									<string>订阅标的</string>
+								</property>
+								<layout class="QVBoxLayout" name="subscriptionLayout">
+									<property name="leftMargin">
+										<number>0</number>
+									</property>
+									<property name="topMargin">
+										<number>0</number>
+									</property>
+									<property name="rightMargin">
+										<number>0</number>
+									</property>
+									<property name="bottomMargin">
+										<number>0</number>
+									</property>
+									<property name="spacing">
+										<number>8</number>
+									</property>
+									<item>
+										<widget class="CUITable" name="subscriptionTable">
+											<property name="minimumSize">
+												<size>
+													<width>0</width>
+													<height>80</height>
+												</size>
+											</property>
+										</widget>
+									</item>
+									<item>
+										<layout class="QHBoxLayout" name="subscriptionActionLayout">
+											<property name="spacing">
+												<number>12</number>
+											</property>
+											<item>
+												<spacer name="subscriptionSpacer">
+													<property name="orientation">
+														<enum>Qt::Horizontal</enum>
+													</property>
+													<property name="sizeHint" stdset="0">
+														<size>
+															<width>40</width>
+															<height>20</height>
+														</size>
+													</property>
+												</spacer>
+											</item>
+											<item>
+												<widget class="QPushButton" name="addSubscriptionButton">
+													<property name="text">
+														<string>添加订阅</string>
+													</property>
+													<property name="minimumSize">
+														<size>
+															<width>0</width>
+															<height>27</height>
+														</size>
+													</property>
+													<property name="maximumSize">
+														<size>
+															<width>16777215</width>
+															<height>27</height>
+														</size>
+													</property>
+												</widget>
+											</item>
+											<item>
+												<widget class="QPushButton" name="removeSubscriptionButton">
+													<property name="text">
+														<string>删除订阅</string>
+													</property>
+													<property name="minimumSize">
+														<size>
+															<width>0</width>
+															<height>27</height>
+														</size>
+													</property>
+													<property name="maximumSize">
+														<size>
+															<width>16777215</width>
+															<height>27</height>
+														</size>
+													</property>
+												</widget>
+											</item>
+										</layout>
+									</item>
+								</layout>
+							</widget>
+						</item>
+					</layout>
+				</widget>
+			</item>
+			<item>
+				<widget class="QFrame" name="divider">
+					<property name="frameShape">
+						<enum>QFrame::NoFrame</enum>
+					</property>
+					<property name="minimumSize">
+						<size>
+							<width>0</width>
+							<height>1</height>
+						</size>
+					</property>
+					<property name="maximumSize">
+						<size>
+							<width>16777215</width>
+							<height>1</height>
+						</size>
+					</property>
+				</widget>
+			</item>
+			<item>
+				<widget class="QWidget" name="footer">
+					<property name="minimumSize">
+						<size>
+							<width>0</width>
+							<height>50</height>
+						</size>
+					</property>
+					<property name="maximumSize">
+						<size>
+							<width>16777215</width>
+							<height>50</height>
+						</size>
+					</property>
+					<layout class="QVBoxLayout" name="footerLayout">
+						<property name="leftMargin">
+							<number>20</number>
+						</property>
+						<property name="topMargin">
+							<number>12</number>
+						</property>
+						<property name="rightMargin">
+							<number>20</number>
+						</property>
+						<property name="bottomMargin">
+							<number>11</number>
+						</property>
+						<item>
+							<layout class="QHBoxLayout" name="buttonLayout">
+								<property name="spacing">
+									<number>12</number>
+								</property>
+								<item>
+									<spacer name="buttonSpacer">
+										<property name="orientation">
+											<enum>Qt::Horizontal</enum>
+										</property>
+										<property name="sizeHint" stdset="0">
+											<size>
+												<width>40</width>
+												<height>20</height>
+											</size>
+										</property>
+									</spacer>
+								</item>
+								<item>
+									<widget class="QPushButton" name="saveButton">
+										<property name="text">
+											<string>保存</string>
+										</property>
+										<property name="default">
+											<bool>true</bool>
+										</property>
+										<property name="minimumSize">
+											<size>
+												<width>60</width>
+												<height>27</height>
+											</size>
+										</property>
+										<property name="maximumSize">
+											<size>
+												<width>60</width>
+												<height>27</height>
+											</size>
+										</property>
+									</widget>
+								</item>
+								<item>
+									<widget class="QPushButton" name="cancelButton">
+										<property name="text">
+											<string>取消</string>
+										</property>
+										<property name="minimumSize">
+											<size>
+												<width>60</width>
+												<height>27</height>
+											</size>
+										</property>
+										<property name="maximumSize">
+											<size>
+												<width>60</width>
+												<height>27</height>
+											</size>
+										</property>
+									</widget>
+								</item>
+							</layout>
+						</item>
+					</layout>
+				</widget>
+			</item>
+		</layout>
+	</widget>
+	<customwidgets>
+		<customwidget>
+			<class>CUITable</class>
+			<extends>QTableView</extends>
+			<header>CUITable.h</header>
+		</customwidget>
+	</customwidgets>
+	<resources />
+	<connections />
 </ui>

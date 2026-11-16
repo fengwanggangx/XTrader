@@ -1,0 +1,76 @@
+QDialog#CStrategyEditDialogClass { background: #ffffff; color: #162033; font-size: 14px; border: 1px solid #cbd7e8; border-radius: 0px; outline: none; }
+QDialog#CStrategyEditDialogClass, QDialog#CStrategyEditDialogClass QWidget { font-family: "Microsoft YaHei"; font-weight: normal; }
+QDialog#CStrategyEditDialogClass QLabel { color: #162033; background: transparent; }
+QDialog#CStrategyEditDialogClass QComboBox, QDialog#CStrategyEditDialogClass QLineEdit, QDialog#CStrategyEditDialogClass QSpinBox { color: #162033; background: #ffffff; border: 1px solid #cbd7e8; border-radius: 0px; padding: 0px 6px; selection-background-color: #2563eb; }
+QDialog#CStrategyEditDialogClass QComboBox:focus, QDialog#CStrategyEditDialogClass QLineEdit:focus, QDialog#CStrategyEditDialogClass QSpinBox:focus { border: 1px solid #2563eb; }
+QDialog#CStrategyEditDialogClass QComboBox:disabled, QDialog#CStrategyEditDialogClass QLineEdit:disabled, QDialog#CStrategyEditDialogClass QSpinBox:disabled { color: #68778c; background: #f4f7fb; }
+QDialog#CStrategyEditDialogClass QComboBox QAbstractItemView { border: 1px solid #cbd7e8; border-radius: 0px; outline: none; color: #162033; background: white; selection-background-color: #edf5fd; selection-color: #162033; }
+QDialog#CStrategyEditDialogClass QPushButton { border: 1px solid #cbd7e8; border-radius: 0px; background: white; color: #162033; padding: 0px 16px; }
+QDialog#CStrategyEditDialogClass QPushButton:hover { background: #f0f5ff; }
+QDialog#CStrategyEditDialogClass #saveButton { background: #2563eb; color: white; }
+QDialog#CStrategyEditDialogClass #saveButton:hover { background: #1d4ed8; }
+QDialog#CStrategyEditDialogClass #saveButton:disabled { background: #93b4ee; }
+QDialog#CStrategyEditDialogClass #divider { background: transparent; border: none; }
+
+QDialog#CStrategyEditDialogClass QGroupBox { border: 1px solid #cbd7e8; border-radius: 4px; margin-top: 12px; padding: 10px 12px 12px 12px; background: transparent; }
+QDialog#CStrategyEditDialogClass QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top left; left: 12px; padding: 0px 6px; color: #162033; background: #ffffff; }
+QDialog#CStrategyEditDialogClass QCheckBox { color: #162033; spacing: 6px; }
+
+QDialog#CStrategyEditDialogClass QComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: top right; width: 32px; border: none; background: transparent; }
+QDialog#CStrategyEditDialogClass QComboBox::down-arrow { image: url(:/trade/chevron.svg); width: 16px; height: 16px; }
+
+QDialog#CStrategyEditDialogClass #titleFrame { background: #f7f9fd; border: none; border-bottom: none; }
+QDialog#CStrategyEditDialogClass #titleLabel { font-size: 14px; }
+QDialog#CStrategyEditDialogClass #closeButton { border: none; background: transparent; image: url(:/window/close-white.png); image-position: center; padding: 0; }
+QDialog#CStrategyEditDialogClass #closeButton:hover { margin: 1px; background: #fee2e2; }
+
+QDialog#CStrategyEditDialogClass #saveButton, QDialog#CStrategyEditDialogClass #cancelButton, QDialog#CStrategyEditDialogClass #addParameterButton, QDialog#CStrategyEditDialogClass #removeParameterButton, QDialog#CStrategyEditDialogClass #addSubscriptionButton, QDialog#CStrategyEditDialogClass #removeSubscriptionButton { border: none; outline: none; border-radius: 4px; }
+
+/* Borders are drawn once in physical pixels by CSinglePixelBorder. */
+QDialog#CStrategyEditDialogClass,
+QDialog#CStrategyEditDialogClass:active,
+QDialog#CStrategyEditDialogClass:!active,
+QDialog#CStrategyEditDialogClass QLineEdit,
+QDialog#CStrategyEditDialogClass QLineEdit:focus,
+QDialog#CStrategyEditDialogClass QLineEdit:hover,
+QDialog#CStrategyEditDialogClass QLineEdit:disabled,
+QDialog#CStrategyEditDialogClass QComboBox,
+QDialog#CStrategyEditDialogClass QComboBox:focus,
+QDialog#CStrategyEditDialogClass QComboBox:hover,
+QDialog#CStrategyEditDialogClass QComboBox:on,
+QDialog#CStrategyEditDialogClass QComboBox QAbstractItemView,
+QDialog#CStrategyEditDialogClass QComboBox QAbstractItemView:focus,
+QDialog#CStrategyEditDialogClass QSpinBox,
+QDialog#CStrategyEditDialogClass QSpinBox:focus,
+QDialog#CStrategyEditDialogClass QSpinBox:hover,
+QDialog#CStrategyEditDialogClass QPushButton,
+QDialog#CStrategyEditDialogClass QPushButton:focus,
+QDialog#CStrategyEditDialogClass QPushButton:pressed,
+QDialog#CStrategyEditDialogClass QPushButton:hover,
+QDialog#CStrategyEditDialogClass QPushButton:default { border: none; outline: none; }
+QDialog#CStrategyEditDialogClass QWidget#singlePixelBorder { background: transparent; border: none; color: #cbd7e8; selection-background-color: #2563eb; }
+
+/* Table cell editors keep their own frame; CSinglePixelBorder is not installed for them. */
+QDialog#CStrategyEditDialogClass QTableView QComboBox, QDialog#CStrategyEditDialogClass QTableView QLineEdit, QDialog#CStrategyEditDialogClass QTableView QSpinBox { border: 1px solid #cbd7e8; border-radius: 0px; padding: 0px 6px; }
+
+QDialog#CStrategyEditDialogClass #titleFrame > QWidget#singlePixelBorder, QDialog#CStrategyEditDialogClass #divider > QWidget#singlePixelBorder { color: #e2e8f0; }
+
+CMainWindow[darkTheme="true"] QDialog#CStrategyEditDialogClass { background: #122130; color: #dce8f6; }
+CMainWindow[darkTheme="true"] QDialog#CStrategyEditDialogClass QLabel { color: #dce8f6; }
+CMainWindow[darkTheme="true"] QDialog#CStrategyEditDialogClass QComboBox, CMainWindow[darkTheme="true"] QDialog#CStrategyEditDialogClass QLineEdit, CMainWindow[darkTheme="true"] QDialog#CStrategyEditDialogClass QSpinBox { background: #0f1e2d; color: #dce8f6; placeholder-text-color: #8fa8bc; }
+CMainWindow[darkTheme="true"] QDialog#CStrategyEditDialogClass QComboBox QAbstractItemView { background: #0f1e2d; color: #dce8f6; selection-background-color: #1e3e81; selection-color: #ffffff; }
+CMainWindow[darkTheme="true"] QDialog#CStrategyEditDialogClass QGroupBox { border-color: #203b52; }
+CMainWindow[darkTheme="true"] QDialog#CStrategyEditDialogClass QGroupBox::title { color: #dce8f6; background: #122130; }
+CMainWindow[darkTheme="true"] QDialog#CStrategyEditDialogClass QCheckBox { color: #dce8f6; }
+CMainWindow[darkTheme="true"] QDialog#CStrategyEditDialogClass #titleFrame { background: #14283a; }
+CMainWindow[darkTheme="true"] QDialog#CStrategyEditDialogClass #closeButton { image: url(:/window/close-black.png); }
+CMainWindow[darkTheme="true"] QDialog#CStrategyEditDialogClass #closeButton:hover { background: #f04455; }
+CMainWindow[darkTheme="true"] QDialog#CStrategyEditDialogClass #cancelButton { background: #0f1e2d; color: #dce8f6; }
+CMainWindow[darkTheme="true"] QDialog#CStrategyEditDialogClass #cancelButton:hover { background: #203b52; }
+CMainWindow[darkTheme="true"] QDialog#CStrategyEditDialogClass QPushButton { background: #0f1e2d; color: #dce8f6; border: none; }
+CMainWindow[darkTheme="true"] QDialog#CStrategyEditDialogClass QPushButton:hover { background: #203b52; }
+CMainWindow[darkTheme="true"] QDialog#CStrategyEditDialogClass #saveButton { background: #2563eb; color: #ffffff; }
+CMainWindow[darkTheme="true"] QDialog#CStrategyEditDialogClass #saveButton:hover { background: #1d4ed8; }
+CMainWindow[darkTheme="true"] QDialog#CStrategyEditDialogClass #saveButton:disabled { background: #37546c; color: #c8d8e7; }
+CMainWindow[darkTheme="true"] QDialog#CStrategyEditDialogClass QWidget#singlePixelBorder { color: #37546c; selection-background-color: #1683ff; }
+CMainWindow[darkTheme="true"] QDialog#CStrategyEditDialogClass #titleFrame > QWidget#singlePixelBorder, CMainWindow[darkTheme="true"] QDialog#CStrategyEditDialogClass #divider > QWidget#singlePixelBorder { color: #203b52; }

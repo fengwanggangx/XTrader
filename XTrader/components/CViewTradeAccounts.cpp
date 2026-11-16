@@ -55,12 +55,11 @@ CViewTradeAccounts::CViewTradeAccounts(CTraderServices& services, QWidget* paren
 	actions->setSpacing(12);
 	for (QPushButton* button : { m_add, m_remove, refresh })
 	{
-		button->setFixedSize(60, 27);
+		button->setFixedSize(64, 28);
 		button->setIconSize(QSize(16, 16));
 		button->setCursor(Qt::PointingHandCursor);
 		button->setStyleSheet("QPushButton { color: palette(button-text); background: palette(button); border: 1px solid palette(mid); border-radius: 4px; padding: 0; } QPushButton:hover { border-color: palette(link); } QPushButton:disabled { color: palette(dark); background: palette(window); border-color: palette(mid); }");
 	}
-	refresh->setFixedSize(64, 28);
 	m_add->setStyleSheet(m_add->styleSheet() + " QPushButton:enabled { background: transparent; }");
 	QColor secondaryIconColor("#52769F");
 	m_add->setIcon(MakeTradeIcon(":/trade/add_record.svg", secondaryIconColor));

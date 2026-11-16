@@ -8,6 +8,7 @@
         <file alias="trade/connected.svg">images/connected.svg</file>
         <file alias="trade/disconnected.svg">images/disconnected.svg</file>
         <file alias="styles/trade-account-login.qss">components/trade-account-login.qss</file>
+        <file alias="styles/strategy-edit.qss">components/strategy-edit.qss</file>
         <file alias="styles/theme-light.qss">components/theme-light.qss</file>
         <file alias="styles/theme-dark.qss">components/theme-dark.qss</file>
         <file alias="styles/theme.qss">components/theme.qss</file>

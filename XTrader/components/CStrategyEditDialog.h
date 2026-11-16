@@ -45,6 +45,9 @@ private:
 	void RefreshAccounts();
 	void ApplyEdit(const CTableOperation& operation, CDataTable& table, std::vector<CTableRow>& rows, CUITable& widget);
 
+protected:
+	bool eventFilter(QObject* pObject, QEvent* pEvent) override;
+
 private:
 	std::unique_ptr<Ui::CStrategyEditDialogClass> m_ui;
 	CDataTable m_parameterData;
