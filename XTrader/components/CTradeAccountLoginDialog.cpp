@@ -71,8 +71,7 @@ CTradeAccountLoginDialog::CTradeAccountLoginDialog(CTraderServices& services, QW
 	}
 	CSinglePixelBorder::Install(*m_ui->titleFrame, 0.0, Qt::BottomEdge);
 	CSinglePixelBorder::Install(*m_ui->divider, 0.0, Qt::TopEdge);
-	CSinglePixelBorder::Install(*m_ui->loginButton, 5.0);
-	CSinglePixelBorder::Install(*m_ui->cancelButton, 5.0);
+	CSinglePixelBorder::Install(*m_ui->cancelButton, 4.0);
 	connect(m_ui->brokerCombo, &QComboBox::currentIndexChanged, this,
 		[this](int index)
 	{

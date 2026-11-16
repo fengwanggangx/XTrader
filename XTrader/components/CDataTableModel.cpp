@@ -12,14 +12,14 @@ namespace
 bool CDataTableModel::LoadHeaderConfig(db::IDataBase& db)
 {
 	headerTables.clear();
-	const db::CQueryTable& table = db.ExecQuery("SELECT c_table, c_caption, c_colid, c_pos, c_show, c_width_mode, c_width FROM table_header");
-	if (7 != table.m_columns.size())
+	const db::CQueryTable& table = db.ExecQuery("SELECT c_table, c_caption, c_colid, c_pos, c_show, c_width_mode, c_width, c_align FROM table_header");
+	if (8 != table.m_columns.size())
 	{
 		return false;
 	}
 	for (const auto& row : table.m_rows)
 	{
-		if (7 != row.size())
+		if (8 != row.size())
 		{
 			continue;
 		}
@@ -30,11 +30,15 @@ bool CDataTableModel::LoadHeaderConfig(db::IDataBase& db)
 		const std::int64_t* visible = std::get_if<std::int64_t>(&row[4]);
 		const std::string* mode = std::get_if<std::string>(&row[5]);
 		const std::int64_t* width = std::get_if<std::int64_t>(&row[6]);
-		if (nullptr == name || nullptr == title || nullptr == id || nullptr == position || nullptr == visible || nullptr == mode)
+		const std::int64_t* alignment = std::get_if<std::int64_t>(&row[7]);
+		if (nullptr == name || nullptr == title || nullptr == id || nullptr == position || nullptr == visible || nullptr == mode
+			|| nullptr == alignment || 0 > *alignment || 3 <= *alignment)
 		{
 			continue;
 		}
 		CTableHeaderColumn config{ QString::fromStdString(*title), *position, 0 != *visible };
+		static constexpr Qt::Alignment alignments[]{ Qt::AlignCenter, Qt::AlignLeft | Qt::AlignVCenter, Qt::AlignRight | Qt::AlignVCenter };
+		config.m_alignment = alignments[*alignment];
 		if ("fixed" == *mode)
 		{
 			if (nullptr == width || 0 >= *width || std::numeric_limits<int>::max() < *width)
@@ -64,9 +68,15 @@ void CDataTableModel::SetHeaderTable(const QString& table)
 		return;
 	}
 	m_headerTable = table;
-	if (0 < columnCount())
+	int columns = columnCount();
+	if (0 < columns)
 	{
-		emit headerDataChanged(Qt::Horizontal, 0, columnCount() - 1);
+		emit headerDataChanged(Qt::Horizontal, 0, columns - 1);
+		int rows = rowCount();
+		if (0 < rows)
+		{
+			emit dataChanged(index(0, 0), index(rows - 1, columns - 1), { Qt::TextAlignmentRole });
+		}
 	}
 }
 
@@ -131,7 +141,10 @@ QVariant CDataTableModel::data(const QModelIndex& index, int role) const
 	case TableChoicesRole:
 		return column.m_choices;
 	case Qt::TextAlignmentRole:
-		return static_cast<int>(column.m_alignment);
+	{
+		const CTableHeaderColumn* config = HeaderColumn(column.m_id);
+		return static_cast<int>(nullptr == config ? column.m_alignment : config->m_alignment);
+	}
 	case Qt::ForegroundRole:
 		if (nullptr != cell && Qt::NoBrush != cell->m_foreground.style())
 		{
@@ -193,11 +206,15 @@ QVariant CDataTableModel::headerData(int section, Qt::Orientation orientation, i
 	{
 		return QVariant::fromValue<qulonglong>(id);
 	}
+	const CTableHeaderColumn* config = HeaderColumn(id);
+	if (Qt::TextAlignmentRole == role && nullptr != config)
+	{
+		return static_cast<int>(config->m_alignment);
+	}
 	if (Qt::DisplayRole != role)
 	{
 		return {};
 	}
-	const CTableHeaderColumn* config = HeaderColumn(id);
 	if (nullptr != config)
 	{
 		return config->m_title;

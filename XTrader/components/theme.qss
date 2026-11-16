@@ -26,6 +26,7 @@ QScrollBar::handle { border-radius: 4px; min-width: 12px; min-height: 12px; }
 QScrollBar::add-line, QScrollBar::sub-line { width: 0; height: 0; }
 QScrollBar::add-page, QScrollBar::sub-page { background: transparent; }
 QHeaderView::section { background: #f7f9fc; color: #68778c; border: none; border-bottom: 1px solid #e6ebf2; padding: 6px; }
+QHeaderView#tradeAccountsHeader::section:first, QHeaderView#tradeAccountsHeader::section:middle { border-right: 1px solid #e6ebf2; }
 QLineEdit { background: #ffffff; border: 1px solid #dce3ed; border-radius: 5px; padding: 6px 9px; }
 QPushButton { border: 1px solid #dce3ed; border-radius: 5px; background: #ffffff; color: #536176; padding: 5px 10px; }
 QPushButton:hover { border-color: #1677ff; color: #1677ff; }
@@ -71,6 +72,7 @@ CMainWindow[darkTheme="true"] QScrollBar::handle { background: #37546c; }
 CMainWindow[darkTheme="true"] QScrollBar::handle:hover { background: #526f88; }
 CMainWindow[darkTheme="true"] QPushButton:disabled { color: #718ba0; border-color: #203b52; }
 CMainWindow[darkTheme="true"] QHeaderView::section { background: #14283a; color: #8fa8bc; border-bottom-color: #203b52; }
+CMainWindow[darkTheme="true"] QHeaderView#tradeAccountsHeader::section:first, CMainWindow[darkTheme="true"] QHeaderView#tradeAccountsHeader::section:middle { border-right-color: #203b52; }
 CMainWindow[darkTheme="true"] QLineEdit { background: #0f1e2d; border-color: #203b52; color: #dce8f6; }
 CMainWindow[darkTheme="true"] QPushButton { border-color: #203b52; background: #122130; color: #a9bdd0; }
 CMainWindow[darkTheme="true"] QPushButton:hover { border-color: #1683ff; color: #ffffff; }

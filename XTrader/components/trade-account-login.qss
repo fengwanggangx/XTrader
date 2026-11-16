@@ -20,7 +20,7 @@ QDialog#CTradeAccountLoginDialog #titleLabel { font-size: 14px; }
 QDialog#CTradeAccountLoginDialog #closeButton { border: none; background: transparent; image: url(:/window/close-white.png); image-position: center; padding: 0; }
 QDialog#CTradeAccountLoginDialog #closeButton:hover { margin: 1px; background: #fee2e2; }
 
-QDialog#CTradeAccountLoginDialog #loginButton, QDialog#CTradeAccountLoginDialog #cancelButton { border: none; outline: none; border-radius: 5px; }
+QDialog#CTradeAccountLoginDialog #loginButton, QDialog#CTradeAccountLoginDialog #cancelButton { border: none; outline: none; border-radius: 4px; }
 
 /* Borders are drawn once in physical pixels by CSinglePixelBorder. */
 QDialog#CTradeAccountLoginDialog,
@@ -42,8 +42,6 @@ QDialog#CTradeAccountLoginDialog QPushButton:pressed,
 QDialog#CTradeAccountLoginDialog QPushButton:hover,
 QDialog#CTradeAccountLoginDialog QPushButton:default { border: none; outline: none; }
 QDialog#CTradeAccountLoginDialog QWidget#singlePixelBorder { background: transparent; border: none; color: #cbd7e8; selection-background-color: #2563eb; }
-QDialog#CTradeAccountLoginDialog #loginButton > QWidget#singlePixelBorder { color: #2563eb; }
-QDialog#CTradeAccountLoginDialog #loginButton:disabled > QWidget#singlePixelBorder { color: #93b4ee; }
 
 QDialog#CTradeAccountLoginDialog #titleFrame > QWidget#singlePixelBorder, QDialog#CTradeAccountLoginDialog #divider > QWidget#singlePixelBorder { color: #e2e8f0; }
 
@@ -59,6 +57,4 @@ CMainWindow[darkTheme="true"] QDialog#CTradeAccountLoginDialog #cancelButton:hov
 CMainWindow[darkTheme="true"] QDialog#CTradeAccountLoginDialog #loginButton:disabled { background: #37546c; color: #c8d8e7; }
 CMainWindow[darkTheme="true"] QDialog#CTradeAccountLoginDialog #errorLabel { color: #ff8592; }
 CMainWindow[darkTheme="true"] QDialog#CTradeAccountLoginDialog QWidget#singlePixelBorder { color: #37546c; selection-background-color: #1683ff; }
-CMainWindow[darkTheme="true"] QDialog#CTradeAccountLoginDialog #loginButton > QWidget#singlePixelBorder { color: #2563eb; }
-CMainWindow[darkTheme="true"] QDialog#CTradeAccountLoginDialog #loginButton:disabled > QWidget#singlePixelBorder { color: #37546c; }
 CMainWindow[darkTheme="true"] QDialog#CTradeAccountLoginDialog #titleFrame > QWidget#singlePixelBorder, CMainWindow[darkTheme="true"] QDialog#CTradeAccountLoginDialog #divider > QWidget#singlePixelBorder { color: #203b52; }

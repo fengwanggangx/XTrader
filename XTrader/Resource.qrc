@@ -2,6 +2,11 @@
     <qresource prefix="/">
         <file alias="trade/chevron.svg">images/trade-chevron.svg</file>
         <file alias="trade/password-eye.svg">images/trade-password-eye.svg</file>
+        <file alias="trade/add_record.svg">images/add_record.svg</file>
+        <file alias="trade/del_record.svg">images/del_record.svg</file>
+        <file alias="trade/refresh.svg">images/refresh.svg</file>
+        <file alias="trade/connected.svg">images/connected.svg</file>
+        <file alias="trade/disconnected.svg">images/disconnected.svg</file>
         <file alias="styles/trade-account-login.qss">components/trade-account-login.qss</file>
         <file alias="styles/theme-light.qss">components/theme-light.qss</file>
         <file alias="styles/theme-dark.qss">components/theme-dark.qss</file>

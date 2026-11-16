@@ -1,23 +1,44 @@
 #include "CViewTradeAccounts.h"
 #include "../service/strategy/CStrategyService.h"
 #include "CTradeAccountLoginDialog.h"
+#include "CTradeAccountInfoDialog.h"
 #include "../common/container.h"
 #include <QFrame>
-#include <QStyle>
 #include <QColor>
 #include <QHBoxLayout>
 #include <QHeaderView>
+#include <QIcon>
 #include <QLabel>
 #include <QLocale>
 #include <QMessageBox>
 #include <QMetaObject>
+#include <QPainter>
+#include <QPixmap>
 #include <QPointer>
 #include <QPushButton>
 #include <QShowEvent>
 #include <QSignalBlocker>
+#include <QSvgRenderer>
 #include "CTableData.h"
 #include <QTimer>
 #include <QVBoxLayout>
+
+namespace
+{
+	QIcon MakeTradeIcon(const QString& path, const QColor& color)
+	{
+		QSvgRenderer svg(path);
+		QPixmap pixmap(32, 32);
+		pixmap.setDevicePixelRatio(2);
+		pixmap.fill(Qt::transparent);
+		QPainter painter(&pixmap);
+		svg.render(&painter, QRectF(0, 0, 16, 16));
+		painter.setCompositionMode(QPainter::CompositionMode_SourceIn);
+		painter.fillRect(0, 0, 16, 16, color);
+		painter.end();
+		return QIcon(pixmap);
+	}
+}
 
 CViewTradeAccounts::CViewTradeAccounts(CTraderServices& services, QWidget* parent) : QWidget(parent)
 {
@@ -25,8 +46,8 @@ CViewTradeAccounts::CViewTradeAccounts(CTraderServices& services, QWidget* paren
 	setObjectName("tradeAccountsPage");
 	QVBoxLayout* layout = new QVBoxLayout(this);
 	QHBoxLayout* actions = new QHBoxLayout();
-	m_add = new QPushButton("新增账户", this);
-	m_remove = new QPushButton("移除账户", this);
+	m_add = new QPushButton("新增", this);
+	m_remove = new QPushButton("删除", this);
 	QPushButton* refresh = new QPushButton("刷新", this);
 	actions->addWidget(m_add);
 	actions->addWidget(m_remove);
@@ -34,14 +55,16 @@ CViewTradeAccounts::CViewTradeAccounts(CTraderServices& services, QWidget* paren
 	actions->setSpacing(12);
 	for (QPushButton* button : { m_add, m_remove, refresh })
 	{
-		button->setMinimumHeight(40);
+		button->setFixedSize(60, 27);
+		button->setIconSize(QSize(16, 16));
 		button->setCursor(Qt::PointingHandCursor);
-		button->setStyleSheet("QPushButton { color: palette(button-text); background: palette(button); border: 1px solid palette(mid); border-radius: 6px; padding: 0 16px; } QPushButton:hover { border-color: palette(link); } QPushButton:disabled { color: palette(dark); background: palette(window); border-color: palette(mid); }");
+		button->setStyleSheet("QPushButton { color: palette(button-text); background: palette(button); border: 1px solid palette(mid); border-radius: 4px; padding: 0; } QPushButton:hover { border-color: palette(link); } QPushButton:disabled { color: palette(dark); background: palette(window); border-color: palette(mid); }");
 	}
-	m_add->setText("＋  新增账户");
-	m_add->setStyleSheet("QPushButton { color: white; background: #2563EB; border: 1px solid #2563EB; border-radius: 6px; padding: 0 18px; } QPushButton:hover { background: #1D4ED8; } QPushButton:disabled { color: #CBD5E1; background: #93B4EE; border-color: #93B4EE; }");
-	m_remove->setIcon(style()->standardIcon(QStyle::SP_TrashIcon));
-	refresh->setIcon(style()->standardIcon(QStyle::SP_BrowserReload));
+	m_add->setStyleSheet(m_add->styleSheet() + " QPushButton:enabled { background: transparent; }");
+	QColor secondaryIconColor("#52769F");
+	m_add->setIcon(MakeTradeIcon(":/trade/add_record.svg", secondaryIconColor));
+	m_remove->setIcon(MakeTradeIcon(":/trade/del_record.svg", secondaryIconColor));
+	refresh->setIcon(MakeTradeIcon(":/trade/refresh.svg", secondaryIconColor));
 	QFrame* separator = new QFrame(this);
 	separator->setFrameShape(QFrame::VLine);
 	separator->setFixedHeight(24);
@@ -57,19 +80,19 @@ CViewTradeAccounts::CViewTradeAccounts(CTraderServices& services, QWidget* paren
 	m_notice = new QLabel(this);
 	layout->addWidget(m_notice);
 	m_accountTableView = new CUITable(this);
+	m_accountTableView->horizontalHeader()->setObjectName("tradeAccountsHeader");
 	DefineTable(m_accountTable, { { 1, "券商", DataType::String }, { 2, "站点", DataType::String }, { 3, "账号", DataType::String }, { 4, "账户名称", DataType::String }, { 5, "状态", DataType::String } });
 	PublishTable(m_accountTable, *m_accountTableView, {});
 	CTablePresentation presentation;
-	presentation.m_columns = { { TableCheckColumn, "" }, { TableSequenceColumn, "序号", Qt::AlignCenter }, { 1, "券商" }, { 2, "站点" }, { 3, "账号" }, { 4, "账户名称" }, { 5, "状态" }, { TableActionColumn, "操作" } };
+	presentation.m_columns = { { TableCheckColumn, "" }, { TableSequenceColumn, "序号", Qt::AlignCenter }, { 1, "券商" }, { 2, "站点" }, { 3, "账号" }, { 4, "账户名称" }, { 5, "状态", Qt::AlignCenter } };
 	m_accountTableView->DataModel()->SetPresentation(std::move(presentation));
 	m_accountTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-	for (int column : { 0, 1, 7 })
+	for (int column : { 0, 1 })
 	{
 		m_accountTableView->horizontalHeader()->setSectionResizeMode(column, QHeaderView::Fixed);
 	}
 	m_accountTableView->setColumnWidth(0, 44);
 	m_accountTableView->setColumnWidth(1, 60);
-	m_accountTableView->setColumnWidth(7, 112);
 	m_accountTableView->SetHeaderTable(QStringLiteral("trade_accounts"));
 	m_accountTableView->verticalHeader()->setDefaultSectionSize(48);
 	connect(m_accountTableView, &CUITable::OperationRequested, this, &CViewTradeAccounts::HandleTableOperation);
@@ -206,6 +229,22 @@ void CViewTradeAccounts::HandleTableOperation(const CTableOperation& operation)
 		RefreshSelection();
 		return;
 	}
+	if (TableOperationKind::Activate == operation.m_kind)
+	{
+		if (TableCheckColumn != operation.m_columnId && 5 != operation.m_columnId)
+		{
+			for (const auto& account : m_accounts)
+			{
+				if (operation.m_rowId == m_rowIds.at(AccountIndex(account)))
+				{
+					CTradeAccountInfoDialog dialog(account, this);
+					dialog.exec();
+					break;
+				}
+			}
+		}
+		return;
+	}
 	if (TableOperationKind::Action != operation.m_kind || 0 != m_operationId || !m_removeIds.empty())
 	{
 		return;
@@ -311,6 +350,10 @@ void CViewTradeAccounts::ClearDetails()
 
 void CViewTradeAccounts::RefreshButtons()
 {
+	static const QColor connectedColor("#199B61");
+	static const QColor disconnectedColor("#DC2626");
+	static const QIcon connectedIcon = MakeTradeIcon(":/trade/connected.svg", connectedColor);
+	static const QIcon disconnectedIcon = MakeTradeIcon(":/trade/disconnected.svg", disconnectedColor);
 	CTablePresentation presentation = m_accountTableView->DataModel()->GetPresentation();
 	presentation.m_cells.clear();
 	for (const auto& account : m_accounts)
@@ -318,15 +361,19 @@ void CViewTradeAccounts::RefreshButtons()
 		_TyDataRowId id = m_rowIds.at(AccountIndex(account));
 		bool connected = request::ACCOUNT_CONNECTED == account.state();
 		bool idle = request::ACCOUNT_DISCONNECTED == account.state() || request::ACCOUNT_ERROR == account.state();
-		if (connected)
+		if (connected || idle)
 		{
-			presentation.m_cells[{ id, 5 }].m_foreground = QBrush(QColor("#199B61"));
+			CTableCell& cell = presentation.m_cells[{ id, 5 }];
+			bool enabled = 0 == m_operationId && m_removeIds.empty();
+			cell.m_tooltip = connected ? "已连接" : request::ACCOUNT_ERROR == account.state() ? "错误" : "未连接";
+			if (enabled)
+			{
+				cell.m_tooltip += connected ? " · 点击断开" : " · 点击登录";
+			}
+			cell.m_actions = { { connected ? "disconnect" : "login", connected ? "断开" : "登录", enabled, false,
+				connected ? connectedIcon : disconnectedIcon, QSize(24, 24), connected ? disconnectedIcon : connectedIcon,
+				connected ? disconnectedColor : connectedColor } };
 		}
-		_TyDataValue state;
-		m_accountTable.GetView().GetValueById(id, 5, state);
-		QString text = connected ? "断开" : idle ? "登录"
-												 : QString::fromStdString(std::get<std::string>(state));
-		presentation.m_cells[{ id, TableActionColumn }].m_actions = { { connected ? "disconnect" : "login", text, 0 == m_operationId && m_removeIds.empty() && (connected || idle), !connected } };
 	}
 	m_accountTableView->DataModel()->SetPresentation(std::move(presentation));
 	bool removable = !m_checkedAccounts.empty();

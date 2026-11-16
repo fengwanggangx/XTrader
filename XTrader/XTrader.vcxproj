@@ -140,6 +140,7 @@
     <ClCompile Include="components\CServerSiteDialog.cpp" />
     <ClCompile Include="components\CServerSettingsDialog.cpp" />
     <ClCompile Include="components\CTradeAccountLoginDialog.cpp" />
+    <ClCompile Include="components\CTradeAccountInfoDialog.cpp" />
     <ClCompile Include="components\CMainWindow.cpp" />
     <ClCompile Include="components\CKeyboardSprite.cpp" />
     <ClCompile Include="components\CRiskSettings.cpp" />
@@ -247,6 +248,7 @@
     <QtUic Include="components\CServerSiteDialog.ui" />
     <QtUic Include="components\CServerSettingsDialog.ui" />
     <QtUic Include="components\CTradeAccountLoginDialog.ui" />
+    <QtUic Include="components\CTradeAccountInfoDialog.ui" />
     <QtUic Include="components\CMainWindow.ui" />
     <QtUic Include="components\CRiskSettings.ui" />
     <QtUic Include="components\CSystemSettings.ui" />
@@ -297,6 +299,7 @@
     <ClInclude Include="common\utility.h" />
     <ClInclude Include="components\CServerSettingsDialog.h" />
     <ClInclude Include="components\CTradeAccountLoginDialog.h" />
+    <ClInclude Include="components\CTradeAccountInfoDialog.h" />
     <ClInclude Include="components\CSinglePixelBorder.h" />
     <ClInclude Include="components\CServerSiteDialog.h" />
     <ClInclude Include="components\CRiskSettings.h" />

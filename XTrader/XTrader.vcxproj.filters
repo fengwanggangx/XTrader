@@ -110,6 +110,7 @@
       <Filter>Source Files\components</Filter>
     </ClCompile>
     <ClCompile Include="components\CTradeAccountLoginDialog.cpp"><Filter>Source Files\components</Filter></ClCompile>
+    <ClCompile Include="components\CTradeAccountInfoDialog.cpp"><Filter>Source Files\components</Filter></ClCompile>
     <ClCompile Include="components\CServerSettingsDialog.cpp">
       <Filter>Source Files\components</Filter>
     </ClCompile>
@@ -354,6 +355,7 @@
       <Filter>Form Files\components</Filter>
     </QtUic>
     <QtUic Include="components\CTradeAccountLoginDialog.ui"><Filter>Form Files\components</Filter></QtUic>
+    <QtUic Include="components\CTradeAccountInfoDialog.ui"><Filter>Form Files\components</Filter></QtUic>
     <QtUic Include="components\CServerSettingsDialog.ui">
       <Filter>Form Files\components</Filter>
     </QtUic>
@@ -576,6 +578,7 @@
     </ClInclude>
     <ClInclude Include="components\CSinglePixelBorder.h"><Filter>Source Files\components</Filter></ClInclude>
     <ClInclude Include="components\CTradeAccountLoginDialog.h"><Filter>Source Files\components</Filter></ClInclude>
+    <ClInclude Include="components\CTradeAccountInfoDialog.h"><Filter>Source Files\components</Filter></ClInclude>
     <ClInclude Include="components\CServerSettingsDialog.h">
       <Filter>Source Files\components</Filter>
     </ClInclude>

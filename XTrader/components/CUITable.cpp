@@ -80,20 +80,73 @@ namespace
 			m_pressedIndex = QPersistentModelIndex();
 			m_pressedAction.clear();
 		}
-		static QRect ActionRect(const QRect& rect, int count, int item)
+
+		QRect CheckRect(const QStyleOptionViewItem& option) const
 		{
-			int width = (rect.width() - 16 - (count - 1) * 6) / count;
-			return QRect(rect.left() + 8 + item * (width + 6), rect.top() + 7, width, rect.height() - 14);
+			QRect cell = option.rect;
+			cell.setWidth(m_table->columnWidth(option.index.column()));
+			QSize size = m_table->style()->subElementRect(QStyle::SE_ItemViewItemCheckIndicator, &option, m_table).size();
+			return QStyle::alignedRect(option.direction, Qt::AlignCenter, size, cell);
+		}
+
+		static QRect ActionRect(const QRect& rect, const _TyTableActions& actions, int item)
+		{
+			int width = (rect.width() - 16 - (actions.size() - 1) * 6) / actions.size();
+			QRect slot(rect.left() + 8 + item * (width + 6), rect.top() + 7, width, rect.height() - 14);
+			const QSize& size = actions[item].m_size;
+			if (!size.isValid())
+			{
+				return slot;
+			}
+			QRect button(QPoint(), size.boundedTo(slot.size()));
+			button.moveCenter(slot.center());
+			return button;
 		}
 		void paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const override
 		{
+			if (TableCheckColumn == index.data(TableColumnIdRole).toULongLong())
+			{
+				QStyleOptionViewItem check(option);
+				initStyleOption(&check, index);
+				QStyleOptionViewItem cell(check);
+				cell.features.setFlag(QStyleOptionViewItem::HasCheckIndicator, false);
+				m_table->style()->drawControl(QStyle::CE_ItemViewItem, &cell, painter, m_table);
+				check.rect = CheckRect(check);
+				check.state &= ~(QStyle::State_HasFocus | QStyle::State_On | QStyle::State_Off | QStyle::State_NoChange);
+				check.state |= Qt::Checked == check.checkState ? QStyle::State_On : QStyle::State_Off;
+				m_table->style()->drawPrimitive(QStyle::PE_IndicatorItemViewItemCheck, &check, painter, m_table);
+				return;
+			}
 			_TyTableActions actions = index.data(TableActionsRole).value<_TyTableActions>();
+			if (1 == actions.size() && !actions.front().m_hoverIcon.isNull())
+			{
+				const CTableAction& action = actions.front();
+				QStyleOptionViewItem cell(option);
+				initStyleOption(&cell, index);
+				cell.text.clear();
+				m_table->style()->drawControl(QStyle::CE_ItemViewItem, &cell, painter, m_table);
+				QRect rect = ActionRect(option.rect, actions, 0);
+				bool hovered = action.m_enabled && 0 != (index.flags() & Qt::ItemIsEnabled)
+					&& rect.contains(m_table->viewport()->mapFromGlobal(QCursor::pos()));
+				if (hovered && action.m_hoverBorder.isValid())
+				{
+					painter->save();
+					painter->setRenderHint(QPainter::Antialiasing);
+					painter->setPen(action.m_hoverBorder);
+					painter->setBrush(Qt::NoBrush);
+					painter->drawRoundedRect(QRectF(rect).adjusted(0.5, 0.5, -0.5, -0.5), 4, 4);
+					painter->restore();
+				}
+				const QIcon& icon = hovered ? action.m_hoverIcon : action.m_icon;
+				icon.paint(painter, QStyle::alignedRect(option.direction, Qt::AlignCenter, QSize(16, 16), rect));
+				return;
+			}
 			QStyledItemDelegate::paint(painter, option, index);
 			for (int item = 0; item < actions.size(); ++item)
 			{
 				const CTableAction& action = actions[item];
 				bool enabled = action.m_enabled && 0 != (index.flags() & Qt::ItemIsEnabled);
-				QRect rect = ActionRect(option.rect, actions.size(), item).adjusted(0, 0, -1, -1);
+				QRect rect = ActionRect(option.rect, actions, item);
 				QPalette colors = m_table->palette();
 				QColor accent = colors.color(QPalette::Link);
 				QColor background = action.m_primary && enabled ? accent : colors.color(QPalette::Button);
@@ -111,7 +164,7 @@ namespace
 				painter->setRenderHint(QPainter::Antialiasing);
 				painter->setPen(action.m_primary && enabled ? accent : colors.color(QPalette::Mid));
 				painter->setBrush(background);
-				painter->drawRoundedRect(rect, 4, 4);
+				painter->drawRoundedRect(rect.adjusted(0, 0, -1, -1), 4, 4);
 				QRect textRect = rect.adjusted(6, 0, -6, 0);
 				if (!action.m_icon.isNull())
 				{
@@ -126,6 +179,25 @@ namespace
 		}
 		bool editorEvent(QEvent* event, QAbstractItemModel* model, const QStyleOptionViewItem& option, const QModelIndex& index) override
 		{
+			if (TableCheckColumn == index.data(TableColumnIdRole).toULongLong()
+				&& (QEvent::MouseButtonPress == event->type() || QEvent::MouseButtonRelease == event->type() || QEvent::MouseButtonDblClick == event->type()))
+			{
+				QStyleOptionViewItem check(option);
+				initStyleOption(&check, index);
+				QMouseEvent* mouse = static_cast<QMouseEvent*>(event);
+				Qt::ItemFlags flags = index.flags();
+				if (0 == (flags & Qt::ItemIsUserCheckable) || 0 == (flags & Qt::ItemIsEnabled)
+					|| Qt::LeftButton != mouse->button() || !CheckRect(check).contains(mouse->position().toPoint()))
+				{
+					return false;
+				}
+				if (QEvent::MouseButtonRelease != event->type())
+				{
+					return true;
+				}
+				Qt::CheckState state = Qt::Checked == check.checkState ? Qt::Unchecked : Qt::Checked;
+				return model->setData(index, state, Qt::CheckStateRole);
+			}
 			_TyTableActions actions = index.data(TableActionsRole).value<_TyTableActions>();
 			if (!actions.isEmpty())
 			{
@@ -138,7 +210,7 @@ namespace
 					}
 					for (int item = 0; item < actions.size(); ++item)
 					{
-						if (!actions[item].m_enabled || !ActionRect(option.rect, actions.size(), item).contains(mouse->position().toPoint()))
+						if (!actions[item].m_enabled || !ActionRect(option.rect, actions, item).contains(mouse->position().toPoint()))
 						{
 							continue;
 						}
@@ -659,7 +731,7 @@ void CUITable::mouseMoveEvent(QMouseEvent* event)
 	bool actionable = false;
 	for (int item = 0; item < actions.size(); ++item)
 	{
-		if (actions[item].m_enabled && CTableDelegate::ActionRect(visualRect(index), actions.size(), item).contains(event->position().toPoint()))
+		if (actions[item].m_enabled && CTableDelegate::ActionRect(visualRect(index), actions, item).contains(event->position().toPoint()))
 		{
 			actionable = true;
 			break;
@@ -667,6 +739,10 @@ void CUITable::mouseMoveEvent(QMouseEvent* event)
 	}
 	viewport()->setCursor(actionable ? Qt::PointingHandCursor : Qt::ArrowCursor);
 	QTableView::mouseMoveEvent(event);
+	if (1 == actions.size() && !actions.front().m_hoverIcon.isNull())
+	{
+		viewport()->update(visualRect(index));
+	}
 }
 
 void CUITable::mouseReleaseEvent(QMouseEvent* event)
@@ -688,6 +764,7 @@ void CUITable::leaveEvent(QEvent* event)
 {
 	viewport()->unsetCursor();
 	QTableView::leaveEvent(event);
+	viewport()->update();
 }
 
 void CUITable::keyPressEvent(QKeyEvent* event)

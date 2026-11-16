@@ -3,9 +3,11 @@
 
 #include "../basic/CDatable.h"
 #include <QBrush>
+#include <QColor>
 #include <QIcon>
 #include <QHeaderView>
 #include <QMetaType>
+#include <QSize>
 #include <QStringList>
 #include <QVariant>
 #include <QVector>
@@ -51,6 +53,9 @@ struct CTableAction
 	bool m_enabled{ true };
 	bool m_primary{ false };
 	QIcon m_icon;
+	QSize m_size;
+	QIcon m_hoverIcon;
+	QColor m_hoverBorder;
 };
 Q_DECLARE_METATYPE(CTableAction)
 using _TyTableActions = QVector<CTableAction>;
@@ -98,6 +103,7 @@ struct CTableHeaderColumn
 	bool m_visible{ true };
 	QHeaderView::ResizeMode m_widthMode{ QHeaderView::Stretch };
 	int m_width{ 0 };
+	Qt::Alignment m_alignment{ Qt::AlignLeft | Qt::AlignVCenter };
 };
 
 struct CTablePresentation
