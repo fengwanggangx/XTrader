@@ -370,29 +370,7 @@ void CStrategyEditDialog::RefreshAccounts()
 	m_accounts->clear();
 	for (const auto& account : m_pServices->m_account.GetAccounts())
 	{
-		QString state;
-		switch (account.state())
-		{
-		case request::ACCOUNT_CONNECTED:
-			state = "已连接";
-			break;
-		case request::ACCOUNT_CONNECTING:
-			state = "连接中";
-			break;
-		case request::ACCOUNT_SYNCHRONIZING:
-			state = "同步中";
-			break;
-		case request::ACCOUNT_RECONNECTING:
-			state = "重连中";
-			break;
-		case request::ACCOUNT_ERROR:
-			state = "连接失败";
-			break;
-		default:
-			state = "未连接";
-			break;
-		}
-		QString label = QString("%1 (#%2) / %3 / %4（%5） [%6]").arg(QString::fromStdString(account.broker_name())).arg(account.broker_id()).arg(QString::fromStdString(account.site()), QString::fromStdString(account.account()), QString::fromStdString(account.name()), state);
+		QString label = QString("[%1]-%2").arg(QString::fromStdString(account.broker_name()), QString::fromStdString(account.account()));
 		m_accounts->addItem(label, QString::fromStdString(EncodeAccount(AccountIndex(account))));
 	}
 	int index = m_accounts->findData(selected);

@@ -299,7 +299,7 @@ bool CStrategyService::ValidateStrategy(const request::StrategyInfo& strategy, s
 	}
 	if (1000000 < strategy.event_queue_limit())
 	{
-		error = "事件队列上限不能超过 1000000";
+		error = "队列上限不能超过 1000000";
 		return false;
 	}
 	std::size_t shortWindow = 5;

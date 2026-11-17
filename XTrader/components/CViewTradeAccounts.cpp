@@ -60,7 +60,6 @@ CViewTradeAccounts::CViewTradeAccounts(CTraderServices& services, QWidget* paren
 		button->setCursor(Qt::PointingHandCursor);
 		button->setStyleSheet("QPushButton { color: palette(button-text); background: palette(button); border: 1px solid palette(mid); border-radius: 4px; padding: 0; } QPushButton:hover { border-color: palette(link); } QPushButton:disabled { color: palette(dark); background: palette(window); border-color: palette(mid); }");
 	}
-	m_add->setStyleSheet(m_add->styleSheet() + " QPushButton:enabled { background: transparent; }");
 	QColor secondaryIconColor("#52769F");
 	m_add->setIcon(MakeTradeIcon(":/trade/add_record.svg", secondaryIconColor));
 	m_remove->setIcon(MakeTradeIcon(":/trade/del_record.svg", secondaryIconColor));

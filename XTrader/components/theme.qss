@@ -20,6 +20,11 @@ QTableView { background: #ffffff; alternate-background-color: #f8fafd; border: n
 QTabWidget::pane { background: #f4f7fb; border: 1px solid #e4eaf2; top: -1px; }
 QComboBox { background: #ffffff; color: #344258; border: 1px solid #dce3ed; border-radius: 5px; padding: 5px 9px; }
 QComboBox QAbstractItemView { background: #ffffff; color: #344258; selection-background-color: #edf5fd; selection-color: #162033; }
+QComboBox#statusCombo { background: #ffffff; color: #162033; border: 1px solid #cbd7e8; border-radius: 0px; padding: 0px 6px; }
+QComboBox#statusCombo QAbstractItemView { border: 1px solid #cbd7e8; border-radius: 0px; outline: none; color: #162033; background: #ffffff; selection-background-color: #edf5fd; selection-color: #162033; }
+QComboBox#statusCombo::drop-down { subcontrol-origin: padding; subcontrol-position: top right; width: 32px; border: none; background: transparent; }
+QComboBox#statusCombo::down-arrow { image: url(:/trade/chevron.svg); width: 16px; height: 16px; }
+QLineEdit#searchEdit { padding: 0px 9px; }
 QScrollBar:vertical { width: 12px; margin: 0; }
 QScrollBar:horizontal { height: 12px; margin: 0; }
 QScrollBar::handle { border-radius: 4px; min-width: 12px; min-height: 12px; }
@@ -67,6 +72,8 @@ CMainWindow[darkTheme="true"] QLabel { color: #dce8f6; }
 CMainWindow[darkTheme="true"] QTabWidget::pane { background: #122130; border-color: #203b52; }
 CMainWindow[darkTheme="true"] QComboBox { background: #0f1e2d; color: #dce8f6; border-color: #203b52; }
 CMainWindow[darkTheme="true"] QComboBox QAbstractItemView { background: #0f1e2d; color: #dce8f6; selection-background-color: #1e3e81; selection-color: #ffffff; }
+CMainWindow[darkTheme="true"] QComboBox#statusCombo { background: #0f1e2d; color: #dce8f6; border-color: #203b52; }
+CMainWindow[darkTheme="true"] QComboBox#statusCombo QAbstractItemView { background: #0f1e2d; color: #dce8f6; selection-background-color: #1e3e81; selection-color: #ffffff; }
 CMainWindow[darkTheme="true"] QScrollBar:vertical, CMainWindow[darkTheme="true"] QScrollBar:horizontal { background: #0f1e2d; }
 CMainWindow[darkTheme="true"] QScrollBar::handle { background: #37546c; }
 CMainWindow[darkTheme="true"] QScrollBar::handle:hover { background: #526f88; }

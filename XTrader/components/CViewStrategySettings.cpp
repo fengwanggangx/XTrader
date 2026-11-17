@@ -11,12 +11,39 @@
 #include <QPointer>
 #include <QStringList>
 #include <QTabBar>
+#include <QColor>
+#include <QIcon>
+#include <QPainter>
+#include <QPixmap>
+#include <QSvgRenderer>
 #include "CTableData.h"
 #include <QTimer>
 #include <QSortFilterProxyModel>
 
 namespace
 {
+	QIcon MakeToolbarIcon(const QString& strPath)
+	{
+		QSvgRenderer svg(strPath);
+		QPixmap pixmap(32, 32);
+		pixmap.setDevicePixelRatio(2);
+		pixmap.fill(Qt::transparent);
+		QPainter painter(&pixmap);
+		svg.render(&painter, QRectF(0, 0, 16, 16));
+		painter.setCompositionMode(QPainter::CompositionMode_SourceIn);
+		painter.fillRect(0, 0, 16, 16, QColor("#52769F"));
+		painter.end();
+		return QIcon(pixmap);
+	}
+
+	void StyleToolbarButton(QPushButton* pButton, const QString& strIconPath)
+	{
+		pButton->setFixedSize(64, 28);
+		pButton->setIconSize(QSize(16, 16));
+		pButton->setCursor(Qt::PointingHandCursor);
+		pButton->setIcon(MakeToolbarIcon(strIconPath));
+		pButton->setStyleSheet("QPushButton { color: palette(button-text); background: palette(button); border: 1px solid palette(mid); border-radius: 4px; padding: 0; } QPushButton:hover { border-color: palette(link); } QPushButton:disabled { color: palette(dark); background: palette(window); border-color: palette(mid); }");
+	}
 	QString RuntimeStatus(bool enabled,
 		const CStrategyService::CRuntimeSnapshot* snapshot,
 		bool stale)
@@ -103,8 +130,14 @@ void CViewStrategySettings::Initialize(CTraderServices& services)
 	}
 	m_pServices = &services;
 	m_ui->setupUi(this);
+	StyleToolbarButton(m_ui->newButton, ":/trade/add_record.svg");
+	StyleToolbarButton(m_ui->pauseButton, ":/strategy/stop.svg");
+	StyleToolbarButton(m_ui->startButton, ":/strategy/start.svg");
+	StyleToolbarButton(m_ui->stopButton, ":/strategy/cancel.svg");
+	StyleToolbarButton(m_ui->deleteButton, ":/trade/del_record.svg");
 	QPushButton* refreshButton = new QPushButton("刷新", this);
-	m_ui->toolbarLayout->addWidget(refreshButton);
+	StyleToolbarButton(refreshButton, ":/trade/refresh.svg");
+	m_ui->toolbarLayout->insertWidget(5, refreshButton);
 	connect(refreshButton, &QPushButton::clicked, this, [this]()
 	{
 		if (m_pServices->m_strategy.IsAuthenticated())

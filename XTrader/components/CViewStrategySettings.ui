@@ -294,11 +294,11 @@
 								</layout>
 							</item>
 							<item>
-								<layout class="QHBoxLayout" name="toolbarLayout" stretch="0,0,0,0,0,0,1,0">
+								<layout class="QHBoxLayout" name="toolbarLayout" stretch="0,0,0,0,0,1,0,0">
 									<item>
 										<widget class="QPushButton" name="newButton">
 											<property name="text">
-												<string>+ 新建实例</string>
+												<string>新增</string>
 											</property>
 											<property name="enabled">
 												<bool>false</bool>
@@ -375,6 +375,18 @@
 									</item>
 									<item>
 										<widget class="QLineEdit" name="searchEdit">
+											<property name="minimumSize">
+												<size>
+													<width>260</width>
+													<height>28</height>
+												</size>
+											</property>
+											<property name="maximumSize">
+												<size>
+													<width>260</width>
+													<height>28</height>
+												</size>
+											</property>
 											<property name="placeholderText">
 												<string>搜索实例、标的或模板</string>
 											</property>
@@ -385,6 +397,18 @@
 									</item>
 									<item>
 										<widget class="QComboBox" name="statusCombo">
+											<property name="minimumSize">
+												<size>
+													<width>120</width>
+													<height>28</height>
+												</size>
+											</property>
+											<property name="maximumSize">
+												<size>
+													<width>16777215</width>
+													<height>28</height>
+												</size>
+											</property>
 											<item>
 												<property name="text">
 													<string>全部状态</string>

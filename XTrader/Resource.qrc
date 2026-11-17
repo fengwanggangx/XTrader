@@ -5,6 +5,9 @@
         <file alias="trade/add_record.svg">images/add_record.svg</file>
         <file alias="trade/del_record.svg">images/del_record.svg</file>
         <file alias="trade/refresh.svg">images/refresh.svg</file>
+        <file alias="strategy/start.svg">images/start.svg</file>
+        <file alias="strategy/stop.svg">images/stop.svg</file>
+        <file alias="strategy/cancel.svg">images/cancel.svg</file>
         <file alias="trade/connected.svg">images/connected.svg</file>
         <file alias="trade/disconnected.svg">images/disconnected.svg</file>
         <file alias="styles/trade-account-login.qss">components/trade-account-login.qss</file>

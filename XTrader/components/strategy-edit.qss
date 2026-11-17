@@ -13,7 +13,7 @@ QDialog#CStrategyEditDialogClass #saveButton:disabled { background: #93b4ee; }
 QDialog#CStrategyEditDialogClass #divider { background: transparent; border: none; }
 
 QDialog#CStrategyEditDialogClass QGroupBox { border: 1px solid #cbd7e8; border-radius: 4px; margin-top: 12px; padding: 10px 12px 12px 12px; background: transparent; }
-QDialog#CStrategyEditDialogClass QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top left; left: 12px; padding: 0px 6px; color: #162033; background: #ffffff; }
+QDialog#CStrategyEditDialogClass QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top left; left: 12px; top: 2px; padding: 0px 6px; color: #162033; background: #ffffff; }
 QDialog#CStrategyEditDialogClass QCheckBox { color: #162033; spacing: 6px; }
 
 QDialog#CStrategyEditDialogClass QComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: top right; width: 32px; border: none; background: transparent; }
@@ -25,6 +25,10 @@ QDialog#CStrategyEditDialogClass #closeButton { border: none; background: transp
 QDialog#CStrategyEditDialogClass #closeButton:hover { margin: 1px; background: #fee2e2; }
 
 QDialog#CStrategyEditDialogClass #saveButton, QDialog#CStrategyEditDialogClass #cancelButton, QDialog#CStrategyEditDialogClass #addParameterButton, QDialog#CStrategyEditDialogClass #removeParameterButton, QDialog#CStrategyEditDialogClass #addSubscriptionButton, QDialog#CStrategyEditDialogClass #removeSubscriptionButton { border: none; outline: none; border-radius: 4px; }
+
+/* The four list buttons show a single symbol: a larger, regular-weight + / − glyph, centered.
+   The 3px bottom padding compensates the font's descent so the glyph sits optically in the middle. */
+QDialog#CStrategyEditDialogClass #addParameterButton, QDialog#CStrategyEditDialogClass #removeParameterButton, QDialog#CStrategyEditDialogClass #addSubscriptionButton, QDialog#CStrategyEditDialogClass #removeSubscriptionButton { padding: 0px 0px 3px 0px; font-size: 20px; font-weight: 400; text-align: center; }
 
 /* Borders are drawn once in physical pixels by CSinglePixelBorder. */
 QDialog#CStrategyEditDialogClass,
@@ -53,6 +57,9 @@ QDialog#CStrategyEditDialogClass QWidget#singlePixelBorder { background: transpa
 /* Table cell editors keep their own frame; CSinglePixelBorder is not installed for them. */
 QDialog#CStrategyEditDialogClass QTableView QComboBox, QDialog#CStrategyEditDialogClass QTableView QLineEdit, QDialog#CStrategyEditDialogClass QTableView QSpinBox { border: 1px solid #cbd7e8; border-radius: 0px; padding: 0px 6px; }
 
+/* Header cells keep a vertical divider; the trailing edge stays open. */
+QDialog#CStrategyEditDialogClass QHeaderView::section:first, QDialog#CStrategyEditDialogClass QHeaderView::section:middle { border-right: 1px solid #e6ebf2; }
+
 QDialog#CStrategyEditDialogClass #titleFrame > QWidget#singlePixelBorder, QDialog#CStrategyEditDialogClass #divider > QWidget#singlePixelBorder { color: #e2e8f0; }
 
 CMainWindow[darkTheme="true"] QDialog#CStrategyEditDialogClass { background: #122130; color: #dce8f6; }
@@ -74,3 +81,4 @@ CMainWindow[darkTheme="true"] QDialog#CStrategyEditDialogClass #saveButton:hover
 CMainWindow[darkTheme="true"] QDialog#CStrategyEditDialogClass #saveButton:disabled { background: #37546c; color: #c8d8e7; }
 CMainWindow[darkTheme="true"] QDialog#CStrategyEditDialogClass QWidget#singlePixelBorder { color: #37546c; selection-background-color: #1683ff; }
 CMainWindow[darkTheme="true"] QDialog#CStrategyEditDialogClass #titleFrame > QWidget#singlePixelBorder, CMainWindow[darkTheme="true"] QDialog#CStrategyEditDialogClass #divider > QWidget#singlePixelBorder { color: #203b52; }
+CMainWindow[darkTheme="true"] QDialog#CStrategyEditDialogClass QHeaderView::section:first, CMainWindow[darkTheme="true"] QDialog#CStrategyEditDialogClass QHeaderView::section:middle { border-right-color: #203b52; }
