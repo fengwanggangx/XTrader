@@ -125,6 +125,7 @@ bool CTraderCenter::OnRequestReply(const CRequest& req)
 	case _TyRequest::STRATEGY_RUNTIME_QUERY:
 	case _TyRequest::STRATEGY_START:
 	case _TyRequest::STRATEGY_PAUSE:
+	case _TyRequest::STRATEGY_ACTION:
 	case _TyRequest::STRATEGY_STOP:
 		return m_pServices->m_strategy.OnRequestReply(req);
 	case _TyRequest::TRADE_ACCOUNT_LOGIN:

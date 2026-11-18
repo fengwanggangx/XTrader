@@ -1,16 +1,20 @@
 #include "CStrategyEditDialog.h"
 #include "../service/account/CAccountService.h"
+#include "../service/strategy/CStrategyService.h"
 #include "CSinglePixelBorder.h"
 #include "CUIStyle.h"
+#include <QCheckBox>
 #include <QComboBox>
 #include <QFormLayout>
 #include <QFrame>
+#include <QLineEdit>
 #include <QMouseEvent>
 #include <QPointer>
+#include <QScrollArea>
 #include <QSet>
+#include <QSignalBlocker>
 #include <QStyledItemDelegate>
 #include <QWindow>
-#include "../service/strategy/CStrategyService.h"
 
 #include "ui_CStrategyEditDialog.h"
 
@@ -103,10 +107,47 @@ void CStrategyEditDialog::InitializeUI()
 		}
 	});
 	m_ui->typeCombo->setEditable(false);
+	m_ui->typeCombo->clear();
+	m_ui->typeCombo->addItem("双均线交叉", "dual_ma_cross");
+	m_ui->typeCombo->addItem("止盈止损", "take_profit_stop_loss");
+	m_ui->typeCombo->addItem("移动止盈", "trailing_take_profit");
+	m_ui->typeCombo->addItem("价格突破", "price_breakout");
+	m_ui->enabledCheck->setChecked(false);
+	m_ui->autoStartCheck->setChecked(false);
+	QScrollArea* area = new QScrollArea(m_ui->parameterGroup);
+	area->setWidgetResizable(true);
+	QWidget* form = new QWidget(area);
+	m_parameterForm = new QFormLayout(form);
+	area->setWidget(form);
+	m_ui->parameterLayout->addWidget(area);
+	m_ui->parameterTable->hide();
+	m_ui->addParameterButton->hide();
+	m_ui->removeParameterButton->hide();
+	m_ui->subscriptionTable->hide();
+	m_ui->addSubscriptionButton->hide();
+	m_ui->removeSubscriptionButton->hide();
+	QWidget* instrument = new QWidget(m_ui->subscriptionGroup);
+	QFormLayout* instrumentForm = new QFormLayout(instrument);
+	m_securityEdit = new QLineEdit(instrument);
+	m_securityEdit->setObjectName("strategy_security");
+	m_securityEdit->setPlaceholderText("六位股票代码");
+	m_exchange = new QComboBox(instrument);
+	m_exchange->setObjectName("strategy_exchange");
+	m_exchange->addItems({ "SSE", "SZSE", "BSE" });
+	instrumentForm->addRow("股票代码", m_securityEdit);
+	instrumentForm->addRow("交易所", m_exchange);
+	m_ui->subscriptionLayout->addWidget(instrument);
+	connect(m_ui->typeCombo, &QComboBox::currentIndexChanged, this,
+		[this]()
+	{
+		BuildFields(
+			m_ui->typeCombo->currentData().toString().toStdString());
+	});
 	m_ui->queueLimitSpin->setMinimum(1);
 	DefineTable(m_parameterData, { { 1, "参数名", DataType::String }, { 2, "参数值", DataType::String } });
 	DefineTable(m_subscriptionData, { { 1, "证券代码", DataType::String }, { 2, "交易所", DataType::String }, { 3, "行情通道", DataType::String } });
-	m_parameters = { { m_nextDraftId++, { std::string("short_window"), std::string("5") } }, { m_nextDraftId++, { std::string("long_window"), std::string("20") } } };
+	m_parameters.clear();
+	BuildFields("dual_ma_cross");
 	PublishTable(m_parameterData, *m_ui->parameterTable, m_parameters);
 	PublishTable(m_subscriptionData, *m_ui->subscriptionTable, m_subscriptions);
 	CTablePresentation parameters;
@@ -180,13 +221,29 @@ void CStrategyEditDialog::SetStrategy(const request::StrategyInfo& strategy)
 	RefreshAccounts();
 	m_accounts->setCurrentIndex(m_accounts->findData(QString::fromStdString(EncodeAccount(m_originalAccount))));
 	m_ui->nameEdit->setText(QString::fromStdString(strategy.strategy_name()));
-	if (0 > m_ui->typeCombo->findText(QString::fromStdString(strategy.strategy_type())))
+	m_ui->typeCombo->setCurrentIndex(m_ui->typeCombo->findData(
+		QString::fromStdString(strategy.strategy_type())));
+	m_ui->typeCombo->setEnabled(0 == m_strategyId);
+	m_accounts->setEnabled(0 == m_strategyId);
+	m_securityEdit->setEnabled(0 == m_strategyId);
+	m_exchange->setEnabled(0 == m_strategyId);
+	m_configRevision = strategy.config_revision();
+	std::map<std::string, std::string> values;
+	for (const auto& [key, value] : strategy.parameters())
 	{
-		m_ui->typeCombo->addItem(QString::fromStdString(strategy.strategy_type()));
+		values.emplace(key, value);
 	}
-	m_ui->typeCombo->setCurrentText(
-		QString::fromStdString(strategy.strategy_type()));
-	m_ui->queueLimitSpin->setValue(static_cast<int>(0 == strategy.event_queue_limit() ? 4096 : strategy.event_queue_limit()));
+	BuildFields(strategy.strategy_type(), values);
+	if (0 < strategy.subscriptions_size())
+	{
+		m_securityEdit->setText(
+			QString::fromStdString(strategy.subscriptions(0).security()));
+		m_exchange->setCurrentText(
+			QString::fromStdString(strategy.subscriptions(0).exchange()));
+	}
+	m_ui->queueLimitSpin->setValue(static_cast<int>(
+		0 == strategy.event_queue_limit() ? 4096
+										  : strategy.event_queue_limit()));
 	m_ui->enabledCheck->setChecked(strategy.enabled());
 	m_ui->autoStartCheck->setChecked(strategy.auto_start());
 	m_parameters.clear();
@@ -205,42 +262,55 @@ void CStrategyEditDialog::SetStrategy(const request::StrategyInfo& strategy)
 
 request::StrategyInfo CStrategyEditDialog::GetStrategy() const
 {
-	request::StrategyInfo strategy;
-	strategy.set_strategy_id(m_strategyId);
+	request::StrategyInfo result;
+	result.set_strategy_id(m_strategyId);
+	result.set_config_revision(m_configRevision);
 	_TyAccountIndex account;
 	if (DecodeAccount(m_accounts->currentData().toString().toStdString(),
 			account))
 	{
-		SetAccountIdentity(account, strategy);
+		SetAccountIdentity(account, result);
 	}
-	strategy.set_strategy_name(m_ui->nameEdit->text().trimmed().toStdString());
-	strategy.set_strategy_type(
-		m_ui->typeCombo->currentText().trimmed().toStdString());
-	strategy.set_event_queue_limit(
-		static_cast<std::uint32_t>(m_ui->queueLimitSpin->value()));
-	strategy.set_enabled(m_ui->enabledCheck->isChecked());
-	strategy.set_auto_start(m_ui->autoStartCheck->isChecked());
-	for (const auto& row : m_parameters)
+	result.set_strategy_name(m_ui->nameEdit->text().trimmed().toStdString());
+	result.set_strategy_type(
+		m_ui->typeCombo->currentData().toString().toStdString());
+	result.set_event_queue_limit(m_ui->queueLimitSpin->value());
+	result.set_enabled(m_ui->enabledCheck->isChecked());
+	result.set_auto_start(m_ui->autoStartCheck->isChecked());
+	for (const auto& [key, field] : m_fields)
 	{
-		QString key = QString::fromStdString(std::get<std::string>(row.m_values[0])).trimmed();
-		if (!key.isEmpty())
+		std::string value;
+		if (QCheckBox* box = qobject_cast<QCheckBox*>(field); nullptr != box)
 		{
-			(*strategy.mutable_parameters())[key.toStdString()] = QString::fromStdString(std::get<std::string>(row.m_values[1])).trimmed().toStdString();
+			value = box->isChecked() ? "1" : "0";
+		}
+		else if (QComboBox* combo = qobject_cast<QComboBox*>(field);
+			nullptr != combo)
+		{
+			value = combo->currentData().toString().toStdString();
+		}
+		else if (QLineEdit* edit = qobject_cast<QLineEdit*>(field);
+			nullptr != edit)
+		{
+			value = edit->text().trimmed().toStdString();
+		}
+		if (!value.empty())
+		{
+			(*result.mutable_parameters())[key] = value;
 		}
 	}
-	for (const auto& row : m_subscriptions)
+	request::StrategySubscription* quote = result.add_subscriptions();
+	quote->set_security(m_securityEdit->text().trimmed().toStdString());
+	quote->set_exchange(m_exchange->currentText().toStdString());
+	quote->set_channel("quote");
+	if ("dual_ma_cross" == result.strategy_type())
 	{
-		QString security = QString::fromStdString(std::get<std::string>(row.m_values[0])).trimmed();
-		if (security.isEmpty())
-		{
-			continue;
-		}
-		request::StrategySubscription* subscription = strategy.add_subscriptions();
-		subscription->set_security(security.toStdString());
-		subscription->set_exchange(std::get<std::string>(row.m_values[1]));
-		subscription->set_channel(std::get<std::string>(row.m_values[2]));
+		request::StrategySubscription* bar = result.add_subscriptions();
+		bar->CopyFrom(*quote);
+		bar->set_channel("1d" == result.parameters().at("bar_period") ? "bar_1d"
+																	  : "bar_1m");
 	}
-	return strategy;
+	return result;
 }
 
 void CStrategyEditDialog::ApplyEdit(const CTableOperation& operation, CDataTable& table, std::vector<CTableRow>& rows, CUITable& widget)
@@ -356,7 +426,7 @@ void CStrategyEditDialog::OnAccept()
 
 void CStrategyEditDialog::SetAccountLocked(bool locked)
 {
-	m_accounts->setEnabled(!locked);
+	m_accounts->setEnabled(!locked && (0 == m_strategyId));
 	m_accounts->setToolTip(locked ? "运行期间不能更换交易账户" : "");
 }
 
@@ -425,4 +495,107 @@ bool CStrategyEditDialog::eventFilter(QObject* pObject, QEvent* pEvent)
 		}
 	}
 	return QDialog::eventFilter(pObject, pEvent);
+}
+
+void CStrategyEditDialog::BuildFields(
+	const std::string& type, const std::map<std::string, std::string>& values)
+{
+	while (0 < m_parameterForm->rowCount())
+	{
+		m_parameterForm->removeRow(0);
+	}
+	m_fields.clear();
+	m_parameters.clear();
+	auto text = [this, &values](const std::string& key, const QString& label,
+					const std::string& fallback = {})
+	{
+		QLineEdit* edit = new QLineEdit(this);
+		edit->setObjectName(QString::fromStdString("strategy_" + key));
+		const auto mIter = values.find(key);
+		edit->setText(QString::fromStdString(
+			values.end() == mIter ? fallback : mIter->second));
+		edit->setPlaceholderText("请填写数值");
+		m_fields.emplace(key, edit);
+		m_parameterForm->addRow(label, edit);
+	};
+	auto choice =
+		[this, &values](const std::string& key, const QString& label,
+			const std::vector<std::pair<QString, QString>>& options)
+	{
+		QComboBox* combo = new QComboBox(this);
+		combo->setObjectName(QString::fromStdString("strategy_" + key));
+		for (const auto& option : options)
+		{
+			combo->addItem(option.first, option.second);
+		}
+		const auto mIter = values.find(key);
+		if (values.end() != mIter)
+		{
+			combo->setCurrentIndex(
+				combo->findData(QString::fromStdString(mIter->second)));
+		}
+		m_fields.emplace(key, combo);
+		m_parameterForm->addRow(label, combo);
+	};
+	auto flag = [this, &values](const std::string& key, const QString& label,
+					bool fallback)
+	{
+		QCheckBox* box = new QCheckBox(this);
+		box->setObjectName(QString::fromStdString("strategy_" + key));
+		const auto mIter = values.find(key);
+		box->setChecked(values.end() == mIter ? fallback : "1" == mIter->second);
+		m_fields.emplace(key, box);
+		m_parameterForm->addRow(label, box);
+	};
+	if ("dual_ma_cross" == type)
+	{
+		choice("ma_type", "均线算法",
+			{ { "简单均线 SMA", "sma" }, { "指数均线 EMA", "ema" } });
+		choice("bar_period", "K 线周期", { { "一分钟", "1m" }, { "日线", "1d" } });
+		text("short_window", "短窗口", "5");
+		text("long_window", "长窗口", "20");
+	}
+	if ("take_profit_stop_loss" == type)
+	{
+		flag("take_profit_enabled", "启用止盈", false);
+		choice("take_profit_mode", "止盈模式",
+			{ { "盈利比例 (%)", "percent" }, { "指定价格", "price" } });
+		text("take_profit_value", "止盈阈值");
+		flag("stop_loss_enabled", "启用止损", true);
+		choice("stop_loss_mode", "止损模式",
+			{ { "亏损比例 (%)", "percent" }, { "指定价格", "price" } });
+		text("stop_loss_value", "止损阈值");
+	}
+	if ("trailing_take_profit" == type)
+	{
+		choice("activation_mode", "启动模式",
+			{ { "盈利比例 (%)", "percent" }, { "指定价格", "price" } });
+		text("activation_value", "启动阈值");
+		choice("drawdown_mode", "回撤模式",
+			{ { "回撤比例 (%)", "percent" }, { "价格差", "amount" } });
+		text("drawdown_value", "回撤阈值");
+	}
+	if ("price_breakout" == type)
+	{
+		text("trigger_price", "突破价格");
+		choice("direction", "穿越方向", { { "向上", "up" }, { "向下", "down" } });
+		choice("action", "交易方向", { { "买入", "buy" }, { "卖出", "sell" } });
+	}
+	if (("dual_ma_cross" == type) || ("price_breakout" == type))
+	{
+		choice("buy_mode", "买入模式",
+			{ { "固定数量", "quantity" },
+				{ "固定金额 (元)", "amount" },
+				{ "可用资金比例 (%)", "funds_ratio" } });
+		text("buy_value", "买入数值", "100");
+	}
+	choice("sell_mode", "卖出模式",
+		{ { "全部持仓", "all" },
+			{ "固定数量", "quantity" },
+			{ "总持仓比例 (%)", "position_ratio" } });
+	text("sell_value", "卖出数值（非全仓时必填）");
+	if ("dual_ma_cross" != type)
+	{
+		flag("auto_rearm", "自动重新布防", false);
+	}
 }

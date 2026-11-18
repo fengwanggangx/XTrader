@@ -368,4 +368,7 @@
   </Target>
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <ItemGroup>
+    <ClInclude Include="service\strategy\StrategySettings.h" />
+  </ItemGroup>
 </Project>

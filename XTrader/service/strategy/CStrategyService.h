@@ -46,6 +46,8 @@ public:
 		std::uint64_t m_queueLength{ 0 };
 		std::uint64_t m_activeOrders{ 0 };
 		std::string m_lastError;
+		std::string m_businessState;
+		std::string m_detailsJson;
 	};
 	using _TyRuntimeMap = std::unordered_map<std::uint64_t, CRuntimeSnapshot>;
 	using _TyOperationResultHandler = std::function<void(const COperationResult&)>;
@@ -67,6 +69,8 @@ public:
 	std::uint64_t GetGeneration() const;
 	std::uint64_t GetSnapshot(_TyStrategyList& strategies, _TyRuntimeMap& runtimes, std::string& configError, std::string& runtimeError) const;
 	bool QueryRuntime();
+	std::uint64_t ActionStrategy(std::uint64_t id,
+		const std::string& action);
 	std::uint64_t AddStrategy(const request::StrategyInfo& strategy);
 	std::uint64_t ModifyStrategy(const request::StrategyInfo& strategy);
 	std::uint64_t DeleteStrategy(std::uint64_t id);

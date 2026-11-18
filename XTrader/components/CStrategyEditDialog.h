@@ -21,6 +21,8 @@ namespace Ui
 QT_END_NAMESPACE
 
 class QComboBox;
+class QFormLayout;
+class QLineEdit;
 
 class CStrategyEditDialog final : public QDialog
 {
@@ -43,7 +45,10 @@ private slots:
 private:
 	void InitializeUI();
 	void RefreshAccounts();
-	void ApplyEdit(const CTableOperation& operation, CDataTable& table, std::vector<CTableRow>& rows, CUITable& widget);
+	void BuildFields(const std::string& type,
+		const std::map<std::string, std::string>& values = {});
+	void ApplyEdit(const CTableOperation& operation, CDataTable& table,
+		std::vector<CTableRow>& rows, CUITable& widget);
 
 protected:
 	bool eventFilter(QObject* pObject, QEvent* pEvent) override;
@@ -60,6 +65,11 @@ private:
 	_TyAccountIndex m_originalAccount{};
 	std::uint64_t m_strategyId{ 0 };
 	QComboBox* m_accounts{ nullptr };
+	QFormLayout* m_parameterForm{ nullptr };
+	QLineEdit* m_securityEdit{ nullptr };
+	QComboBox* m_exchange{ nullptr };
+	std::map<std::string, QWidget*> m_fields;
+	std::uint64_t m_configRevision{ 0 };
 
 private:
 	CTraderServices* m_pServices{ nullptr };

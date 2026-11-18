@@ -3,6 +3,9 @@
 #include "CStrategyEditDialog.h"
 #include "CViewTradeAccounts.h"
 #include "ui_CViewStrategySettings.h"
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QMenu>
 #include <QTabWidget>
 
 #include <QHeaderView>
@@ -103,6 +106,76 @@ void CViewStrategySettings::Initialize(CTraderServices& services)
 	}
 	m_pServices = &services;
 	m_ui->setupUi(this);
+	QPushButton* actions = new QPushButton("策略操作", this);
+	QMenu* menu = new QMenu(actions);
+	actions->setMenu(menu);
+	m_ui->toolbarLayout->addWidget(actions);
+	const std::vector<std::pair<QString, std::string>> operations = {
+		{ "重新布防", "rearm" },
+		{ "解除买入保护锁", "unlock" },
+		{ "暂停退出任务", "pause_execution" },
+		{ "恢复退出任务", "resume_execution" },
+		{ "确认价格基准", "confirm_basis" },
+		{ "重新对账", "reconcile" }
+	};
+	for (const auto& [label, operation] : operations)
+	{
+		QAction* action = menu->addAction(label);
+		connect(action, &QAction::triggered, this, [this, operation]()
+		{
+			int row = SelectedStrategyRow();
+			if ((0 > row) ||
+				(static_cast<std::size_t>(row) >= m_strategies.size()) ||
+				!m_pServices->m_strategy.IsAuthenticated() ||
+				!m_pendingOperations.empty() || m_bConfigStale ||
+				m_bRuntimeStale)
+			{
+				return;
+			}
+			std::uint64_t requestId = m_pServices->m_strategy.ActionStrategy(
+				m_strategies[row].strategy_id(), operation);
+			if (0 != requestId)
+			{
+				m_pendingOperations.emplace(requestId, "策略操作");
+				RefreshConnection();
+			}
+		});
+	}
+	connect(menu->addAction("复制策略"), &QAction::triggered, this,
+		[this]()
+	{
+		int row = SelectedStrategyRow();
+		if ((0 > row) ||
+			(static_cast<std::size_t>(row) >= m_strategies.size()) ||
+			!m_pServices->m_strategy.IsAuthenticated() ||
+			!m_pendingOperations.empty() || m_bConfigStale)
+		{
+			return;
+		}
+		std::uint64_t generation =
+			m_pServices->m_strategy.GetGeneration();
+		request::StrategyInfo copy = m_strategies[row];
+		copy.set_strategy_id(0);
+		copy.set_config_revision(0);
+		copy.set_enabled(false);
+		copy.set_auto_start(false);
+		copy.set_strategy_name(copy.strategy_name() + " 副本");
+		CStrategyEditDialog dialog(*m_pServices, this);
+		dialog.SetStrategy(copy);
+		if ((QDialog::Accepted != dialog.exec()) ||
+			(generation != m_pServices->m_strategy.GetGeneration()) ||
+			!m_pServices->m_strategy.IsAuthenticated())
+		{
+			return;
+		}
+		std::uint64_t requestId =
+			m_pServices->m_strategy.AddStrategy(dialog.GetStrategy());
+		if (0 != requestId)
+		{
+			m_pendingOperations.emplace(requestId, "复制策略");
+			RefreshConnection();
+		}
+	});
 	QPushButton* refreshButton = new QPushButton("刷新", this);
 	m_ui->toolbarLayout->addWidget(refreshButton);
 	connect(refreshButton, &QPushButton::clicked, this, [this]()
@@ -530,10 +603,36 @@ void CViewStrategySettings::RefreshConnection()
 						   .arg(snapshot->m_marketAvailable ? "可用" : "不可用")
 						   .arg(snapshot->m_queueLength)
 						   .arg(snapshot->m_activeOrders);
-		if (!snapshot->m_lastError.empty())
+		runtimeText += "\n业务状态：" + QString::fromStdString(
+											snapshot->m_businessState);
+		QJsonObject details =
+			QJsonDocument::fromJson(
+				QByteArray::fromStdString(snapshot->m_detailsJson))
+				.object();
+		QString reason = details.value("reason").toString();
+		if (!reason.isEmpty())
+		{
+			runtimeText += "\n" + reason;
+		}
+		if (details.value("target_quantity").toDouble(-1) >= 0)
 		{
 			runtimeText +=
-				"\n最近错误：" + QString::fromStdString(snapshot->m_lastError);
+				QString("\n退出目标 %1 · 已成交 %2")
+					.arg(details.value("target_quantity").toDouble())
+					.arg(details.value("filled_quantity").toDouble());
+		}
+		if (details.value("highest_price_6").toDouble() > 0)
+		{
+			runtimeText +=
+				QString("\n跟踪最高价 %1")
+					.arg(details.value("highest_price_6").toDouble() /
+							 1000000.0,
+						0, 'f', 4);
+		}
+		if (!snapshot->m_lastError.empty())
+		{
+			runtimeText += "\n最近错误：" +
+						   QString::fromStdString(snapshot->m_lastError);
 		}
 	}
 	m_ui->runtimeLabel->setText(runtimeText);
