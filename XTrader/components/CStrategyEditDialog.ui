@@ -204,7 +204,7 @@
 											</property>
 											<item>
 												<property name="text">
-													<string>moving_average</string>
+													<string>dual_ma_cross</string>
 												</property>
 											</item>
 										</widget>

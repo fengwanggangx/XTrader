@@ -292,9 +292,10 @@ bool CStrategyService::ValidateStrategy(const request::StrategyInfo& strategy, s
 			return false;
 		}
 	}
-	if (!IsAccountValid(AccountIndex(strategy)) || ("moving_average" != strategy.strategy_type()))
+	if (!IsAccountValid(AccountIndex(strategy)) ||
+		("dual_ma_cross" != strategy.strategy_type()))
 	{
-		error = "请选择有效交易账户及支持的策略类型 moving_average";
+		error = "请选择有效交易账户及支持的策略类型 dual_ma_cross";
 		return false;
 	}
 	if (1000000 < strategy.event_queue_limit())

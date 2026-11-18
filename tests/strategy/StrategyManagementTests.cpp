@@ -71,7 +71,7 @@ namespace
 		request::StrategyInfo strategy;
 		strategy.set_strategy_id(42);
 		strategy.set_strategy_name("MA");
-		strategy.set_strategy_type("moving_average");
+		strategy.set_strategy_type("dual_ma_cross");
 		strategy.set_broker_id(1);
 		strategy.set_account("000123");
 		strategy.set_enabled(true);
