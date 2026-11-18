@@ -1,4 +1,5 @@
 #include "CStrategyService.h"
+#include "StrategySettings.h"
 
 #include "../../system/CTraderCenter.h"
 
@@ -229,7 +230,10 @@ std::uint64_t CStrategyService::DeleteStrategy(std::uint64_t id)
 
 std::uint64_t CStrategyService::ControlStrategy(_TyRequest type, std::uint64_t id)
 {
-	if ((0 == id) || ((_TyRequest::STRATEGY_START != type) && (_TyRequest::STRATEGY_PAUSE != type) && (_TyRequest::STRATEGY_STOP != type)))
+	if ((0 == id) || ((_TyRequest::STRATEGY_START != type) &&
+						 (_TyRequest::STRATEGY_PAUSE != type) &&
+						 (_TyRequest::STRATEGY_STOP != type) &&
+						 (_TyRequest::STRATEGY_ACTION != type)))
 	{
 		return 0;
 	}
@@ -266,84 +270,73 @@ bool CStrategyService::IsCacheValid() const
 
 bool CStrategyService::ValidateStrategy(const request::StrategyInfo& strategy, std::string& error)
 {
-	error.clear();
-	std::function<bool(const std::string&)> isBlank = [](const std::string& value)
+	if (strategy.strategy_name().empty() ||
+		!IsAccountValid(AccountIndex(strategy)))
 	{
-		return value.empty() || std::all_of(value.begin(), value.end(), [](unsigned char character)
-		{
-			return 0 != std::isspace(character);
-		});
-	};
-	if (isBlank(strategy.strategy_name()) || isBlank(strategy.strategy_type()))
-	{
-		error = "策略名称和类型不能为空";
+		error = "策略名称和交易账户不能为空";
 		return false;
 	}
-	if (0 == strategy.subscriptions_size())
-	{
-		error = "至少需要一个订阅标的";
-		return false;
-	}
-	for (const auto& subscription : strategy.subscriptions())
-	{
-		if (isBlank(subscription.security()) || isBlank(subscription.exchange()) || isBlank(subscription.channel()))
-		{
-			error = "订阅的证券、交易所和通道不能为空";
-			return false;
-		}
-	}
-	if (!IsAccountValid(AccountIndex(strategy)) || ("moving_average" != strategy.strategy_type()))
-	{
-		error = "请选择有效交易账户及支持的策略类型 moving_average";
-		return false;
-	}
-	if (1000000 < strategy.event_queue_limit())
-	{
-		error = "队列上限不能超过 1000000";
-		return false;
-	}
-	std::size_t shortWindow = 5;
-	std::size_t longWindow = 20;
+	::strategy::_TyParameters parameters;
 	for (const auto& [key, value] : strategy.parameters())
 	{
-		std::size_t parsed = 0;
-		std::from_chars_result result = std::from_chars(value.data(), value.data() + value.size(), parsed);
-		if ((("short_window" != key) && ("long_window" != key)) ||
-			(std::errc() != result.ec) ||
-			(value.data() + value.size() != result.ptr) ||
-			(0 == parsed) || (100000 < parsed))
-		{
-			error = "参数 " + key +
-					" 无效：仅支持 short_window、long_window，值必须为 "
-					"1～100000 的整数";
-			return false;
-		}
-		("short_window" == key ? shortWindow : longWindow) = parsed;
+		parameters.emplace(key, value);
 	}
-	if (shortWindow >= longWindow)
+	::strategy::CSettings settings;
+	if (!::strategy::CSettings::Read(strategy.strategy_type(), parameters,
+			settings, error))
 	{
-		error = "short_window 必须小于 long_window";
 		return false;
 	}
-	std::set<std::tuple<std::string, std::string, std::string>> subscriptions;
-	bool hasQuote = false;
+	if ((1000000 < strategy.event_queue_limit()) ||
+		(0 == strategy.subscriptions_size()))
+	{
+		error = "事件队列或标的配置无效";
+		return false;
+	}
+	const request::StrategySubscription& first = strategy.subscriptions(0);
+	if ((6 != first.security().size()) ||
+		!std::all_of(
+			first.security().begin(), first.security().end(),
+			[](char value)
+	{
+		return ('0' <= value) && ('9' >= value);
+	}) ||
+		(("SSE" != first.exchange()) && ("SZSE" != first.exchange()) &&
+			("BSE" != first.exchange())))
+	{
+		error = "仅支持沪深北股票标的";
+		return false;
+	}
+	bool quote = false, bar = false;
+	std::set<std::string> channels;
 	for (const auto& subscription : strategy.subscriptions())
 	{
-		if ((Exchange::unknown == ParseMarket(subscription.exchange())) || (("quote" != subscription.channel()) && ("depth" != subscription.channel())))
+		if ((subscription.security() != first.security()) ||
+			(subscription.exchange() != first.exchange()) ||
+			!channels.emplace(subscription.channel()).second)
 		{
-			error = "订阅交易所无效，通道仅支持 quote、depth";
+			error = "一个实例只能绑定一个标的，行情通道不能重复";
 			return false;
 		}
-		if (!subscriptions.emplace(subscription.security(), subscription.exchange(), subscription.channel()).second)
+		if ("quote" == subscription.channel())
 		{
-			error = "订阅标的重复";
+			quote = true;
+		}
+		else if ((::strategy::Kind::DualMaCross == settings.m_kind) &&
+				 (subscription.channel() ==
+					 ("1m" == settings.m_barPeriod ? "bar_1m" : "bar_1d")))
+		{
+			bar = true;
+		}
+		else
+		{
+			error = "行情通道与策略类型或周期不一致";
 			return false;
 		}
-		hasQuote = hasQuote || ("quote" == subscription.channel());
 	}
-	if (!hasQuote)
+	if (!quote || ((::strategy::Kind::DualMaCross == settings.m_kind) && !bar))
 	{
-		error = "均线策略至少需要一个 quote 订阅";
+		error = "缺少报价或对应 K 线订阅";
 		return false;
 	}
 	return true;
@@ -448,7 +441,12 @@ bool CStrategyService::OnRequestReply(const CRequest& response)
 			snapshot.m_queueLength = record.queue_length();
 			snapshot.m_activeOrders = record.active_orders();
 			snapshot.m_lastError = record.last_error();
-			if (!runtimes.emplace(record.strategy_id(), std::move(snapshot)).second)
+			snapshot.m_businessState = record.business_state();
+			snapshot.m_detailsJson = record.details_json();
+			if (!runtimes
+					.emplace(record.strategy_id(),
+						std::move(snapshot))
+					.second)
 			{
 				strError = "运行快照含重复策略";
 			}
@@ -464,7 +462,13 @@ bool CStrategyService::OnRequestReply(const CRequest& response)
 		return true;
 	}
 
-	if ((_TyRequest::STRATEGY_ADD != type) && (_TyRequest::STRATEGY_MODIFY != type) && (_TyRequest::STRATEGY_DELETE != type) && (_TyRequest::STRATEGY_START != type) && (_TyRequest::STRATEGY_PAUSE != type) && (_TyRequest::STRATEGY_STOP != type))
+	if ((_TyRequest::STRATEGY_ADD != type) &&
+		(_TyRequest::STRATEGY_MODIFY != type) &&
+		(_TyRequest::STRATEGY_DELETE != type) &&
+		(_TyRequest::STRATEGY_START != type) &&
+		(_TyRequest::STRATEGY_PAUSE != type) &&
+		(_TyRequest::STRATEGY_STOP != type) &&
+		(_TyRequest::STRATEGY_ACTION != type))
 	{
 		return false;
 	}
@@ -508,4 +512,19 @@ bool CStrategyService::IsAuthenticated() const noexcept
 bool CStrategyService::SendRequest(const CRequest& request)
 {
 	return (nullptr != m_pTraderCenter) && m_pTraderCenter->SendRequest(request);
+}
+
+std::uint64_t CStrategyService::ActionStrategy(std::uint64_t id,
+	const std::string& action)
+{
+	if (0 == id)
+	{
+		return 0;
+	}
+	Initialize();
+	CRequest request;
+	request.SetType(_TyRequest::STRATEGY_ACTION);
+	request.SetExtraData("strategy_id", std::to_string(id));
+	request.SetExtraData("action", action);
+	return SendRequest(request) ? request.GetId() : 0;
 }

@@ -724,4 +724,7 @@
     <None Include="exec\Debug\sql\table_create.sql" />
     <None Include="sql\table_header.sql" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="service\strategy\StrategySettings.h" />
+  </ItemGroup>
 </Project>

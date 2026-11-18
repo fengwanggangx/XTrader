@@ -35,3 +35,24 @@ target_link_libraries(StrategyManagementTests PRIVATE Qt6::Widgets libprotobufd 
 enable_testing()
 add_test(NAME StrategyManagementTests COMMAND StrategyManagementTests)
 set_tests_properties(StrategyManagementTests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+add_executable(FourStrategyUiTests FourStrategyUiTests.cpp
+ "${taskRoot}/components/CUIStyle.cpp"
+ "${taskRoot}/components/CUITable.cpp" "${taskRoot}/components/CUITable.h"
+ "${taskRoot}/components/CDataTableModel.cpp" "${taskRoot}/components/CDataTableModel.h"
+ "${taskRoot}/components/CStrategyEditDialog.cpp" "${taskRoot}/components/CStrategyEditDialog.h"
+ "${taskRoot}/service/strategy/CStrategyService.cpp"
+ "${taskRoot}/request/request.cpp" "${taskRoot}/request/request.pb.cc" "${taskRoot}/request/v1/market.pb.cc"
+ "${taskRoot}/request/RequestCenter.cpp" "${taskRoot}/request/MarketTypes.cpp" "${taskRoot}/basic/CDatable.cpp")
+target_compile_definitions(FourStrategyUiTests PRIVATE PROTOBUF_USE_DLLS NOMINMAX)
+target_compile_options(FourStrategyUiTests PRIVATE /utf-8 /w)
+target_include_directories(FourStrategyUiTests PRIVATE "${taskRoot}" "${taskRoot}/components" "${taskRoot}/request" "${taskRoot}/include/debug/protobuf" "${taskRoot}/include/debug/libevent" "${taskRoot}/include/debug/rapidjson")
+target_link_directories(FourStrategyUiTests PRIVATE "${taskRoot}/libs/debug")
+target_link_libraries(FourStrategyUiTests PRIVATE Qt6::Widgets libprotobufd abseil_dll ws2_32)
+add_test(NAME FourStrategyUiTests COMMAND FourStrategyUiTests)
+set_tests_properties(FourStrategyUiTests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+add_library(strategy_view_compile OBJECT "${taskRoot}/components/CViewStrategySettings.cpp")
+target_compile_definitions(strategy_view_compile PRIVATE PROTOBUF_USE_DLLS NOMINMAX)
+target_compile_options(strategy_view_compile PRIVATE /utf-8 /w)
+target_include_directories(strategy_view_compile PRIVATE "${taskRoot}" "${taskRoot}/components" "${taskRoot}/request" "${taskRoot}/include/debug/protobuf" "${taskRoot}/include/debug/libevent" "${taskRoot}/include/debug/rapidjson")
+target_link_libraries(strategy_view_compile PRIVATE Qt6::Widgets)
