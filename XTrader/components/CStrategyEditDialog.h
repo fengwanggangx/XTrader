@@ -22,6 +22,8 @@ QT_END_NAMESPACE
 
 class QComboBox;
 class QFormLayout;
+class QGridLayout;
+class QLabel;
 class QLineEdit;
 
 class CStrategyEditDialog final : public QDialog
@@ -47,11 +49,16 @@ private:
 	void RefreshAccounts();
 	void BuildFields(const std::string& type,
 		const std::map<std::string, std::string>& values = {});
+	void ResizeToContent();
+	void AlignLabelColumns();
+	void AddParameterField(const QString& label, QWidget* pField);
+	void UpdateSellValueRequired();
 	void ApplyEdit(const CTableOperation& operation, CDataTable& table,
 		std::vector<CTableRow>& rows, CUITable& widget);
 
 protected:
 	bool eventFilter(QObject* pObject, QEvent* pEvent) override;
+	void showEvent(QShowEvent* pEvent) override;
 
 private:
 	std::unique_ptr<Ui::CStrategyEditDialogClass> m_ui;
@@ -65,7 +72,11 @@ private:
 	_TyAccountIndex m_originalAccount{};
 	std::uint64_t m_strategyId{ 0 };
 	QComboBox* m_accounts{ nullptr };
-	QFormLayout* m_parameterForm{ nullptr };
+	QGridLayout* m_parameterGrid{ nullptr };
+	std::vector<QLabel*> m_parameterLabels;
+	QLabel* m_pSellRequired{ nullptr };
+	int m_nFieldCount{ 0 };
+	int m_nLabelWidth{ 0 };
 	QLineEdit* m_securityEdit{ nullptr };
 	QComboBox* m_exchange{ nullptr };
 	std::map<std::string, QWidget*> m_fields;

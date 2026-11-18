@@ -7,12 +7,16 @@
 #include <QComboBox>
 #include <QFormLayout>
 #include <QFrame>
+#include <QGridLayout>
+#include <QHBoxLayout>
+#include <QLabel>
 #include <QLineEdit>
 #include <QMouseEvent>
 #include <QPointer>
-#include <QScrollArea>
 #include <QSet>
+#include <QShowEvent>
 #include <QSignalBlocker>
+#include <QTimer>
 #include <QStyledItemDelegate>
 #include <QWindow>
 
@@ -78,9 +82,14 @@ CStrategyEditDialog::~CStrategyEditDialog()
 
 void CStrategyEditDialog::InitializeUI()
 {
-	m_ui->bodyLayout->setStretch(1, 1);
-	m_ui->bodyLayout->setStretch(2, 1);
+	for (QWidget* pGroup : { static_cast<QWidget*>(m_ui->basicGroup),
+			 static_cast<QWidget*>(m_ui->parameterGroup),
+			 static_cast<QWidget*>(m_ui->subscriptionGroup) })
+	{
+		pGroup->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+	}
 	m_accounts = new QComboBox(this);
+	m_accounts->setObjectName("strategy_account");
 	m_accounts->setFixedHeight(27);
 	m_accounts->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
 	m_accounts->setMinimumContentsLength(8);
@@ -114,12 +123,28 @@ void CStrategyEditDialog::InitializeUI()
 	m_ui->typeCombo->addItem("价格突破", "price_breakout");
 	m_ui->enabledCheck->setChecked(false);
 	m_ui->autoStartCheck->setChecked(false);
-	QScrollArea* area = new QScrollArea(m_ui->parameterGroup);
-	area->setWidgetResizable(true);
-	QWidget* form = new QWidget(area);
-	m_parameterForm = new QFormLayout(form);
-	area->setWidget(form);
-	m_ui->parameterLayout->addWidget(area);
+	QWidget* form = new QWidget(m_ui->parameterGroup);
+	m_parameterGrid = new QGridLayout(form);
+	m_parameterGrid->setContentsMargins(0, 0, 0, 0);
+	m_parameterGrid->setSpacing(0);
+	m_parameterGrid->setVerticalSpacing(10);
+	m_parameterGrid->setColumnMinimumWidth(1, 7);
+	m_parameterGrid->setColumnMinimumWidth(3, 30);
+	m_parameterGrid->setColumnMinimumWidth(5, 7);
+	m_parameterGrid->setColumnStretch(2, 1);
+	m_parameterGrid->setColumnStretch(6, 1);
+	// The legacy parameter table and its +/− row are unused; drop their layout
+	// items so the form starts right under the group title.
+	while (0 < m_ui->parameterLayout->count())
+	{
+		QLayoutItem* pItem = m_ui->parameterLayout->takeAt(0);
+		if (nullptr != pItem->widget())
+		{
+			pItem->widget()->hide();
+		}
+		delete pItem;
+	}
+	m_ui->parameterLayout->addWidget(form);
 	m_ui->parameterTable->hide();
 	m_ui->addParameterButton->hide();
 	m_ui->removeParameterButton->hide();
@@ -174,7 +199,7 @@ void CStrategyEditDialog::InitializeUI()
 	{
 		ApplyEdit(operation, m_subscriptionData, m_subscriptions, *m_ui->subscriptionTable);
 	});
-	m_ui->basicLayout->addRow("交易账户", m_accounts);
+	m_ui->basicLayout->insertRow(3, "交易账户", m_accounts);
 	m_ui->parameterTable->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed | QAbstractItemView::SelectedClicked);
 	m_ui->subscriptionTable->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed | QAbstractItemView::SelectedClicked);
 	m_ui->parameterTable->horizontalHeader()->setStretchLastSection(true);
@@ -478,23 +503,47 @@ bool CStrategyEditDialog::eventFilter(QObject* pObject, QEvent* pEvent)
 void CStrategyEditDialog::BuildFields(
 	const std::string& type, const std::map<std::string, std::string>& values)
 {
-	while (0 < m_parameterForm->rowCount())
+	while (0 < m_parameterGrid->count())
 	{
-		m_parameterForm->removeRow(0);
+		QLayoutItem* pItem = m_parameterGrid->takeAt(0);
+		if (nullptr != pItem->widget())
+		{
+			delete pItem->widget();
+		}
+		delete pItem;
 	}
 	m_fields.clear();
 	m_parameters.clear();
+	m_parameterLabels.clear();
+	m_nFieldCount = 0;
+	m_pSellRequired = nullptr;
 	auto text = [this, &values](const std::string& key, const QString& label,
-					const std::string& fallback = {})
+					const std::string& fallback = {}, bool bRequiredMark = false)
 	{
 		QLineEdit* edit = new QLineEdit(this);
 		edit->setObjectName(QString::fromStdString("strategy_" + key));
+		edit->setFrame(false);
+		edit->setFixedHeight(27);
+		CSinglePixelBorder::Install(*edit);
 		const auto mIter = values.find(key);
 		edit->setText(QString::fromStdString(
 			values.end() == mIter ? fallback : mIter->second));
 		edit->setPlaceholderText("请填写数值");
 		m_fields.emplace(key, edit);
-		m_parameterForm->addRow(label, edit);
+		if (!bRequiredMark)
+		{
+			AddParameterField(label, edit);
+			return;
+		}
+		QWidget* field = new QWidget(this);
+		QHBoxLayout* pLayout = new QHBoxLayout(field);
+		pLayout->setContentsMargins(0, 0, 0, 0);
+		pLayout->setSpacing(4);
+		m_pSellRequired = new QLabel(QStringLiteral("*"), field);
+		m_pSellRequired->setObjectName("strategyRequired");
+		pLayout->addWidget(m_pSellRequired, 0, Qt::AlignVCenter);
+		pLayout->addWidget(edit, 1);
+		AddParameterField(label, field);
 	};
 	auto choice =
 		[this, &values](const std::string& key, const QString& label,
@@ -502,6 +551,9 @@ void CStrategyEditDialog::BuildFields(
 	{
 		QComboBox* combo = new QComboBox(this);
 		combo->setObjectName(QString::fromStdString("strategy_" + key));
+		combo->setFixedHeight(27);
+		PrepareCombo(*combo);
+		CSinglePixelBorder::Install(*combo);
 		for (const auto& option : options)
 		{
 			combo->addItem(option.first, option.second);
@@ -513,17 +565,18 @@ void CStrategyEditDialog::BuildFields(
 				combo->findData(QString::fromStdString(mIter->second)));
 		}
 		m_fields.emplace(key, combo);
-		m_parameterForm->addRow(label, combo);
+		AddParameterField(label, combo);
 	};
 	auto flag = [this, &values](const std::string& key, const QString& label,
 					bool fallback)
 	{
-		QCheckBox* box = new QCheckBox(this);
+		QCheckBox* box = new QCheckBox(label, this);
 		box->setObjectName(QString::fromStdString("strategy_" + key));
+		box->setFixedHeight(27);
 		const auto mIter = values.find(key);
 		box->setChecked(values.end() == mIter ? fallback : "1" == mIter->second);
 		m_fields.emplace(key, box);
-		m_parameterForm->addRow(label, box);
+		AddParameterField(QString(), box);
 	};
 	if ("dual_ma_cross" == type)
 	{
@@ -536,10 +589,10 @@ void CStrategyEditDialog::BuildFields(
 	if ("take_profit_stop_loss" == type)
 	{
 		flag("take_profit_enabled", "启用止盈", false);
+		flag("stop_loss_enabled", "启用止损", true);
 		choice("take_profit_mode", "止盈模式",
 			{ { "盈利比例 (%)", "percent" }, { "指定价格", "price" } });
 		text("take_profit_value", "止盈阈值");
-		flag("stop_loss_enabled", "启用止损", true);
 		choice("stop_loss_mode", "止损模式",
 			{ { "亏损比例 (%)", "percent" }, { "指定价格", "price" } });
 		text("stop_loss_value", "止损阈值");
@@ -571,9 +624,112 @@ void CStrategyEditDialog::BuildFields(
 		{ { "全部持仓", "all" },
 			{ "固定数量", "quantity" },
 			{ "总持仓比例 (%)", "position_ratio" } });
-	text("sell_value", "卖出数值（非全仓时必填）");
+	text("sell_value", "卖出数值", {}, true);
 	if ("dual_ma_cross" != type)
 	{
-		flag("auto_rearm", "自动重新布防", false);
+		flag("auto_rearm", "自动布防", false);
+	}
+	const auto mMode = m_fields.find("sell_mode");
+	if ((m_fields.end() != mMode) && (nullptr != qobject_cast<QComboBox*>(mMode->second)))
+	{
+		connect(qobject_cast<QComboBox*>(mMode->second),
+			&QComboBox::currentIndexChanged, this, [this]()
+		{
+			UpdateSellValueRequired();
+		});
+	}
+	UpdateSellValueRequired();
+	AlignLabelColumns();
+	ResizeToContent();
+}
+
+void CStrategyEditDialog::UpdateSellValueRequired()
+{
+	if (nullptr == m_pSellRequired)
+	{
+		return;
+	}
+	bool bRequired = false;
+	const auto mMode = m_fields.find("sell_mode");
+	if ((m_fields.end() != mMode) && (nullptr != qobject_cast<QComboBox*>(mMode->second)))
+	{
+		bRequired = "all" != qobject_cast<QComboBox*>(mMode->second)->currentData().toString();
+	}
+	m_pSellRequired->setVisible(bRequired);
+}
+
+void CStrategyEditDialog::AddParameterField(const QString& label, QWidget* pField)
+{
+	const int nIndex = m_nFieldCount++;
+	const int nRow = nIndex / 2;
+	const bool bRight = 0 != (nIndex % 2);
+	if (!label.isEmpty())
+	{
+		QLabel* pLabel = new QLabel(label, this);
+		if (0 < m_nLabelWidth)
+		{
+			pLabel->setFixedWidth(m_nLabelWidth);
+		}
+		m_parameterLabels.emplace_back(pLabel);
+		m_parameterGrid->addWidget(pLabel, nRow, bRight ? 4 : 0,
+			Qt::AlignLeft | Qt::AlignVCenter);
+	}
+	pField->setMinimumWidth(0);
+	pField->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
+	m_parameterGrid->addWidget(pField, nRow, bRight ? 6 : 2);
+}
+
+void CStrategyEditDialog::AlignLabelColumns()
+{
+	// Keep the basic group's natural label column and give the parameter labels
+	// exactly the same width, so both groups' fields start at the same x.
+	int nWidth = 0;
+	for (int nRow = 0; nRow < m_ui->basicLayout->rowCount(); ++nRow)
+	{
+		QLayoutItem* pItem = m_ui->basicLayout->itemAt(nRow, QFormLayout::LabelRole);
+		if ((nullptr != pItem) && (nullptr != pItem->widget()))
+		{
+			const int nLabelWidth = pItem->widget()->sizeHint().width();
+			nWidth = (nLabelWidth > nWidth) ? nLabelWidth : nWidth;
+		}
+	}
+	if (0 >= nWidth)
+	{
+		return;
+	}
+	m_nLabelWidth = nWidth;
+	for (QLabel* pLabel : m_parameterLabels)
+	{
+		pLabel->setFixedWidth(nWidth);
+	}
+}
+
+void CStrategyEditDialog::ResizeToContent()
+{
+	QTimer::singleShot(0, this, [this]()
+	{
+		if (QLayout* pLayout = layout())
+		{
+			pLayout->activate();
+		}
+		const QSize hint = sizeHint();
+		if (hint.height() > 0)
+		{
+			resize(width(), hint.height());
+		}
+	});
+}
+
+void CStrategyEditDialog::showEvent(QShowEvent* pEvent)
+{
+	QDialog::showEvent(pEvent);
+	if (QLayout* pLayout = layout())
+	{
+		pLayout->activate();
+	}
+	const QSize hint = sizeHint();
+	if (hint.height() > 0)
+	{
+		resize(width(), hint.height());
 	}
 }

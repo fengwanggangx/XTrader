@@ -15,8 +15,9 @@ QDialog#CStrategyEditDialogClass #divider { background: transparent; border: non
 QDialog#CStrategyEditDialogClass QGroupBox { border: 1px solid #cbd7e8; border-radius: 4px; margin-top: 12px; padding: 10px 12px 12px 12px; background: transparent; }
 QDialog#CStrategyEditDialogClass QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top left; left: 12px; top: 2px; padding: 0px 6px; color: #162033; background: #ffffff; }
 QDialog#CStrategyEditDialogClass QCheckBox { color: #162033; spacing: 6px; }
+QDialog#CStrategyEditDialogClass QLabel#strategyRequired { color: #e5484d; }
 
-QDialog#CStrategyEditDialogClass QComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: top right; width: 32px; border: none; background: transparent; }
+QDialog#CStrategyEditDialogClass QComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: top right; width: 26px; border: none; background: transparent; }
 QDialog#CStrategyEditDialogClass QComboBox::down-arrow { image: url(:/trade/chevron.svg); width: 16px; height: 16px; }
 
 QDialog#CStrategyEditDialogClass #titleFrame { background: #f7f9fd; border: none; border-bottom: none; }
@@ -69,6 +70,7 @@ CMainWindow[darkTheme="true"] QDialog#CStrategyEditDialogClass QComboBox QAbstra
 CMainWindow[darkTheme="true"] QDialog#CStrategyEditDialogClass QGroupBox { border-color: #203b52; }
 CMainWindow[darkTheme="true"] QDialog#CStrategyEditDialogClass QGroupBox::title { color: #dce8f6; background: #122130; }
 CMainWindow[darkTheme="true"] QDialog#CStrategyEditDialogClass QCheckBox { color: #dce8f6; }
+CMainWindow[darkTheme="true"] QDialog#CStrategyEditDialogClass QLabel#strategyRequired { color: #ff6b6b; }
 CMainWindow[darkTheme="true"] QDialog#CStrategyEditDialogClass #titleFrame { background: #14283a; }
 CMainWindow[darkTheme="true"] QDialog#CStrategyEditDialogClass #closeButton { image: url(:/window/close-black.png); }
 CMainWindow[darkTheme="true"] QDialog#CStrategyEditDialogClass #closeButton:hover { background: #f04455; }
