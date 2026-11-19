@@ -1,3 +1,4 @@
+#include <map>
 #include "CStrategyService.h"
 #include "StrategySettings.h"
 
@@ -293,51 +294,58 @@ bool CStrategyService::ValidateStrategy(const request::StrategyInfo& strategy, s
 		error = "事件队列或标的配置无效";
 		return false;
 	}
-	const request::StrategySubscription& first = strategy.subscriptions(0);
-	if ((6 != first.security().size()) ||
-		!std::all_of(
-			first.security().begin(), first.security().end(),
-			[](char value)
-	{
-		return ('0' <= value) && ('9' >= value);
-	}) ||
-		(("SSE" != first.exchange()) && ("SZSE" != first.exchange()) &&
-			("BSE" != first.exchange())))
-	{
-		error = "仅支持沪深北股票标的";
-		return false;
-	}
-	bool quote = false, bar = false;
-	std::set<std::string> channels;
+	std::map<std::pair<std::string, std::string>, std::vector<const request::StrategySubscription*>> groups;
 	for (const auto& subscription : strategy.subscriptions())
 	{
-		if ((subscription.security() != first.security()) ||
-			(subscription.exchange() != first.exchange()) ||
-			!channels.emplace(subscription.channel()).second)
-		{
-			error = "一个实例只能绑定一个标的，行情通道不能重复";
-			return false;
-		}
-		if ("quote" == subscription.channel())
-		{
-			quote = true;
-		}
-		else if ((::strategy::Kind::DualMaCross == settings.m_kind) &&
-				 (subscription.channel() ==
-					 ("1m" == settings.m_barPeriod ? "bar_1m" : "bar_1d")))
-		{
-			bar = true;
-		}
-		else
-		{
-			error = "行情通道与策略类型或周期不一致";
-			return false;
-		}
+		groups[{ subscription.exchange(), subscription.security() }].push_back(&subscription);
 	}
-	if (!quote || ((::strategy::Kind::DualMaCross == settings.m_kind) && !bar))
+	for (const auto& entry : groups)
 	{
-		error = "缺少报价或对应 K 线订阅";
-		return false;
+		const request::StrategySubscription& first = *entry.second.front();
+		if ((6 != first.security().size()) ||
+			!std::all_of(
+				first.security().begin(), first.security().end(),
+				[](char value)
+		{
+			return ('0' <= value) && ('9' >= value);
+		}) ||
+			(("SSE" != first.exchange()) && ("SZSE" != first.exchange()) &&
+				("BSE" != first.exchange())))
+		{
+			error = "仅支持沪深北股票标的";
+			return false;
+		}
+		bool quote = false, bar = false;
+		std::set<std::string> channels;
+		for (const request::StrategySubscription* pSubscription : entry.second)
+		{
+			const request::StrategySubscription& subscription = *pSubscription;
+			if (!channels.emplace(subscription.channel()).second)
+			{
+				error = "行情通道不能重复";
+				return false;
+			}
+			if ("quote" == subscription.channel())
+			{
+				quote = true;
+			}
+			else if ((::strategy::Kind::DualMaCross == settings.m_kind) &&
+					 (subscription.channel() ==
+						 ("1m" == settings.m_barPeriod ? "bar_1m" : "bar_1d")))
+			{
+				bar = true;
+			}
+			else
+			{
+				error = "行情通道与策略类型或周期不一致";
+				return false;
+			}
+		}
+		if (!quote || ((::strategy::Kind::DualMaCross == settings.m_kind) && !bar))
+		{
+			error = "缺少报价或对应 K 线订阅";
+			return false;
+		}
 	}
 	return true;
 }

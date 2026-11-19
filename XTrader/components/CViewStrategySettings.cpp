@@ -538,6 +538,7 @@ void CViewStrategySettings::RefreshRows()
 			securities.append(QString::fromStdString(subscription.security() + "." +
 													 subscription.exchange()));
 		}
+		securities.removeDuplicates();
 		QString accountName = "账户 #" + QString::fromStdString(strategy.account());
 		for (const auto& account : accounts)
 		{
@@ -547,7 +548,7 @@ void CViewStrategySettings::RefreshRows()
 				break;
 			}
 		}
-		rows.push_back({ strategy.strategy_id(), { strategy.strategy_name(), strategy.strategy_type(), accountName.toStdString(), securities.join(", ").toStdString(), std::string(), RuntimeStatus(strategy.enabled(), snapshot, m_bRuntimeStale).toStdString(), std::string(), std::string(), std::string() } });
+		rows.push_back({ strategy.strategy_id(), { strategy.strategy_name(), strategy.strategy_type(), accountName.toStdString(), (QString::number(securities.size()) + " | " + securities.join(", ")).toStdString(), std::string(), RuntimeStatus(strategy.enabled(), snapshot, m_bRuntimeStale).toStdString(), std::string(), std::string(), std::string() } });
 		if (m_selectedStrategyId == strategy.strategy_id())
 		{
 			selectedRow = static_cast<int>(index);
@@ -642,6 +643,17 @@ void CViewStrategySettings::RefreshConnection()
 			QJsonDocument::fromJson(
 				QByteArray::fromStdString(snapshot->m_detailsJson))
 				.object();
+		QJsonObject securities = details.value("securities").toObject();
+		for (auto iter = securities.constBegin(); iter != securities.constEnd(); ++iter)
+		{
+			QJsonObject status = iter.value().toObject();
+			QJsonObject securityDetails = status.value("details").toObject();
+			runtimeText += QString("\n%1 · %2 · %3").arg(iter.key(), status.value("phase").toString(), securityDetails.value("reason").toString());
+			if (0 < securityDetails.value("client_order_id").toInteger())
+			{
+				runtimeText += QString(" · #%1").arg(securityDetails.value("client_order_id").toInteger());
+			}
+		}
 		QString reason = details.value("reason").toString();
 		if (!reason.isEmpty())
 		{

@@ -1,10 +1,12 @@
 #include "CStrategyEditDialog.h"
 #include "../service/account/CAccountService.h"
+#include "../service/hqmarket/CHQService.h"
 #include "../service/strategy/CStrategyService.h"
 #include "CSinglePixelBorder.h"
 #include "CUIStyle.h"
 #include <QCheckBox>
 #include <QComboBox>
+#include <QCompleter>
 #include <QFormLayout>
 #include <QFrame>
 #include <QGridLayout>
@@ -148,9 +150,6 @@ void CStrategyEditDialog::InitializeUI()
 	m_ui->parameterTable->hide();
 	m_ui->addParameterButton->hide();
 	m_ui->removeParameterButton->hide();
-	m_ui->subscriptionTable->hide();
-	m_ui->addSubscriptionButton->hide();
-	m_ui->removeSubscriptionButton->hide();
 	QWidget* instrument = new QWidget(m_ui->subscriptionGroup);
 	QFormLayout* instrumentForm = new QFormLayout(instrument);
 	m_securityEdit = new QLineEdit(instrument);
@@ -159,6 +158,24 @@ void CStrategyEditDialog::InitializeUI()
 	m_exchange = new QComboBox(instrument);
 	m_exchange->setObjectName("strategy_exchange");
 	m_exchange->addItems({ "SSE", "SZSE", "BSE" });
+	QStringList matches;
+	for (const auto& security : m_pServices->m_hq.GetSecurities())
+	{
+		if ((Exchange::sse == security.m_hq) || (Exchange::szse == security.m_hq) || (Exchange::bse == security.m_hq))
+		{
+			matches.append(QString::fromStdString(security.String() + " " + security.m_strName));
+		}
+	}
+	QCompleter* completer = new QCompleter(matches, m_securityEdit);
+	completer->setFilterMode(Qt::MatchContains);
+	completer->setCaseSensitivity(Qt::CaseInsensitive);
+	m_securityEdit->setCompleter(completer);
+	connect(completer, qOverload<const QString&>(&QCompleter::activated), this, [this](const QString& match)
+	{
+		QString security = match.section(' ', 0, 0);
+		m_securityEdit->setText(security.section('.', 0, 0));
+		m_exchange->setCurrentText(security.section('.', 1, 1));
+	});
 	instrumentForm->addRow("股票代码", m_securityEdit);
 	instrumentForm->addRow("交易所", m_exchange);
 	m_ui->subscriptionLayout->addWidget(instrument);
@@ -201,7 +218,7 @@ void CStrategyEditDialog::InitializeUI()
 	});
 	m_ui->basicLayout->insertRow(3, "交易账户", m_accounts);
 	m_ui->parameterTable->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed | QAbstractItemView::SelectedClicked);
-	m_ui->subscriptionTable->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed | QAbstractItemView::SelectedClicked);
+	m_ui->subscriptionTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
 	m_ui->parameterTable->horizontalHeader()->setStretchLastSection(true);
 	m_ui->subscriptionTable->horizontalHeader()->setStretchLastSection(true);
 	m_ui->parameterTable->SetHeaderTable(QStringLiteral("strategy_edit_parameters"));
@@ -251,6 +268,8 @@ void CStrategyEditDialog::SetStrategy(const request::StrategyInfo& strategy)
 	m_ui->typeCombo->setEnabled(0 == m_strategyId);
 	m_accounts->setEnabled(0 == m_strategyId);
 	m_securityEdit->setEnabled(0 == m_strategyId);
+	m_ui->addSubscriptionButton->setEnabled(0 == m_strategyId);
+	m_ui->removeSubscriptionButton->setEnabled(0 == m_strategyId);
 	m_exchange->setEnabled(0 == m_strategyId);
 	m_configRevision = strategy.config_revision();
 	std::map<std::string, std::string> values;
@@ -259,13 +278,7 @@ void CStrategyEditDialog::SetStrategy(const request::StrategyInfo& strategy)
 		values.emplace(key, value);
 	}
 	BuildFields(strategy.strategy_type(), values);
-	if (0 < strategy.subscriptions_size())
-	{
-		m_securityEdit->setText(
-			QString::fromStdString(strategy.subscriptions(0).security()));
-		m_exchange->setCurrentText(
-			QString::fromStdString(strategy.subscriptions(0).exchange()));
-	}
+
 	m_ui->queueLimitSpin->setValue(static_cast<int>(
 		0 == strategy.event_queue_limit() ? 4096
 										  : strategy.event_queue_limit()));
@@ -279,7 +292,10 @@ void CStrategyEditDialog::SetStrategy(const request::StrategyInfo& strategy)
 	}
 	for (const auto& subscription : strategy.subscriptions())
 	{
-		m_subscriptions.push_back({ m_nextDraftId++, { subscription.security(), subscription.exchange(), subscription.channel() } });
+		if ("quote" == subscription.channel())
+		{
+			m_subscriptions.push_back({ m_nextDraftId++, { subscription.security(), subscription.exchange(), subscription.channel() } });
+		}
 	}
 	PublishTable(m_parameterData, *m_ui->parameterTable, m_parameters);
 	PublishTable(m_subscriptionData, *m_ui->subscriptionTable, m_subscriptions);
@@ -324,16 +340,18 @@ request::StrategyInfo CStrategyEditDialog::GetStrategy() const
 			(*result.mutable_parameters())[key] = value;
 		}
 	}
-	request::StrategySubscription* quote = result.add_subscriptions();
-	quote->set_security(m_securityEdit->text().trimmed().toStdString());
-	quote->set_exchange(m_exchange->currentText().toStdString());
-	quote->set_channel("quote");
-	if ("dual_ma_cross" == result.strategy_type())
+	for (const auto& row : m_subscriptions)
 	{
-		request::StrategySubscription* bar = result.add_subscriptions();
-		bar->CopyFrom(*quote);
-		bar->set_channel("1d" == result.parameters().at("bar_period") ? "bar_1d"
-																	  : "bar_1m");
+		request::StrategySubscription* quote = result.add_subscriptions();
+		quote->set_security(std::get<std::string>(row.m_values[0]));
+		quote->set_exchange(std::get<std::string>(row.m_values[1]));
+		quote->set_channel("quote");
+		if ("dual_ma_cross" == result.strategy_type())
+		{
+			request::StrategySubscription* bar = result.add_subscriptions();
+			bar->CopyFrom(*quote);
+			bar->set_channel("1d" == result.parameters().at("bar_period") ? "bar_1d" : "bar_1m");
+		}
 	}
 	return result;
 }
@@ -386,7 +404,23 @@ void CStrategyEditDialog::OnRemoveParameter()
 
 void CStrategyEditDialog::OnAddSubscription()
 {
-	m_subscriptions.push_back({ m_nextDraftId++, { std::string(), std::string("SSE"), std::string("quote") } });
+	std::string security = m_securityEdit->text().trimmed().toStdString();
+	std::string exchange = m_exchange->currentText().toStdString();
+	if ((6 != security.size()) || (std::string::npos != security.find_first_not_of("0123456789")))
+	{
+		QMessageBox::warning(this, "标的校验", "请输入六位股票代码");
+		return;
+	}
+	for (const auto& row : m_subscriptions)
+	{
+		if ((security == std::get<std::string>(row.m_values[0])) && (exchange == std::get<std::string>(row.m_values[1])))
+		{
+			QMessageBox::warning(this, "标的校验", "已添加该股票");
+			return;
+		}
+	}
+	m_subscriptions.push_back({ m_nextDraftId++, { security, exchange, std::string("quote") } });
+	m_securityEdit->clear();
 	PublishTable(m_subscriptionData, *m_ui->subscriptionTable, m_subscriptions);
 	m_ui->subscriptionTable->SelectRowId(m_subscriptions.back().m_id);
 }
