@@ -6,23 +6,23 @@
 #include <QtWidgets/QApplication>
 #include <QIcon>
 
-#include <iostream>
-
 int main(int argc, char* argv[])
 {
 	QApplication application(argc, argv);
 	application.setApplicationName(QStringLiteral("XTrader"));
 	application.setWindowIcon(QIcon(":/branding/xtrader-app-icon.png"));
+	CLogger::Initialize("xtrader");
+	MLOG_INFO(md::modules::global, "Application starting");
 	CBootLoader boot;
 	if (!boot.Initialize())
 	{
-		std::cerr << boot.GetLastError() << '\n';
+		GLOBAL_LOG_ERR("{}", boot.GetLastError());
 		return boot.GetErrorCode();
 	}
 
 	if (!boot.Run())
 	{
-		std::cerr << boot.GetLastError() << '\n';
+		GLOBAL_LOG_ERR("{}", boot.GetLastError());
 		return boot.GetErrorCode();
 	}
 
@@ -42,6 +42,6 @@ int main(int argc, char* argv[])
 		}
 	}
 	boot.Finalize();
-	CLogger::InstancePtr()->ShutDown();
+	MLOG_INFO(md::modules::global, "Application stopped");
 	return result;
 }

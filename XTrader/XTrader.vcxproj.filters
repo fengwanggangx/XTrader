@@ -725,6 +725,13 @@
     <None Include="sql\table_header.sql" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="service\strategy\StrategySettings.h" />
+    <ClInclude Include="service\strategy\StrategySettings.h">
+      <Filter>Source Files\service\strategy</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="database\CQueryTable.h">
+      <Filter>Source Files\database</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
