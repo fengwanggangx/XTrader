@@ -11,6 +11,7 @@
 #include <QCursor>
 #include <QApplication>
 #include <QMenu>
+#include <QContextMenuEvent>
 #include <QPersistentModelIndex>
 #include <QPointer>
 #include <QSignalBlocker>
@@ -765,6 +766,20 @@ void CUITable::leaveEvent(QEvent* event)
 	viewport()->unsetCursor();
 	QTableView::leaveEvent(event);
 	viewport()->update();
+}
+
+void CUITable::contextMenuEvent(QContextMenuEvent* event)
+{
+	QModelIndex index = indexAt(event->pos());
+	if (QContextMenuEvent::Mouse != event->reason() || !index.isValid())
+	{
+		QTableView::contextMenuEvent(event);
+		return;
+	}
+	_TyDataRowId rowId = index.data(TableRowIdRole).toULongLong();
+	_TyTableColumnId columnId = index.data(TableColumnIdRole).toULongLong();
+	event->accept();
+	emit ContextMenuRequested(rowId, columnId, event->globalPos());
 }
 
 void CUITable::keyPressEvent(QKeyEvent* event)

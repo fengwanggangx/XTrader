@@ -1,5 +1,6 @@
 #include "CWatchlistService.h"
 #include "../../system/CTraderCenter.h"
+#include <algorithm>
 #include <sstream>
 #include <utility>
 
@@ -22,6 +23,7 @@ void CWatchlistService::SetTraderCenter(CTraderCenter* pCenter)
 			{
 				std::lock_guard<std::mutex> lock(m_mtx);
 				m_pending.clear();
+				m_snapshot.reset();
 			}
 			CWatchlistEvent event;
 			event.m_bReset = true;
@@ -38,6 +40,16 @@ _TyCallbackId CWatchlistService::Subscribe(std::function<void(const CWatchlistEv
 void CWatchlistService::Unsubscribe(_TyCallbackId token)
 {
 	m_events.Unsubscribe(token);
+}
+
+std::optional<bool> CWatchlistService::Contains(const std::string& security) const
+{
+	std::lock_guard<std::mutex> lock(m_mtx);
+	if (!m_snapshot.has_value())
+	{
+		return std::nullopt;
+	}
+	return m_snapshot->end() != std::ranges::find(*m_snapshot, security);
 }
 
 bool CWatchlistService::Query()
@@ -88,6 +100,7 @@ bool CWatchlistService::Send(_TyRequest type, const std::vector<std::string>& se
 
 bool CWatchlistService::OnRequestReply(const CRequest& response)
 {
+	CWatchlistEvent event;
 	{
 		std::lock_guard<std::mutex> lock(m_mtx);
 		const auto mIter = m_pending.find(response.GetId());
@@ -96,21 +109,21 @@ bool CWatchlistService::OnRequestReply(const CRequest& response)
 			return false;
 		}
 		m_pending.erase(mIter);
-	}
-	CWatchlistEvent event;
-	event.m_type = response.GetType();
-	std::optional<std::pair<int, std::string>> error = response.GetErrorInfo();
-	if (error.has_value())
-	{
-		event.m_strError = error->second;
-	}
-	else
-	{
-		std::istringstream stream(response.GetExtraData("securities"));
-		std::string strSecurity;
-		while (std::getline(stream, strSecurity))
+		event.m_type = response.GetType();
+		std::optional<std::pair<int, std::string>> error = response.GetErrorInfo();
+		if (error.has_value())
 		{
-			event.m_securities.emplace_back(strSecurity);
+			event.m_strError = error->second.empty() ? "自选操作失败" : error->second;
+		}
+		else
+		{
+			std::istringstream stream(response.GetExtraData("securities"));
+			std::string strSecurity;
+			while (std::getline(stream, strSecurity))
+			{
+				event.m_securities.emplace_back(strSecurity);
+			}
+			m_snapshot = event.m_securities;
 		}
 	}
 	m_events.Notify(event);

@@ -29,9 +29,11 @@ public:
 	void TriggerAction(const QModelIndex& index, const QString& actionId);
 
 signals:
+	void ContextMenuRequested(_TyDataRowId rowId, _TyTableColumnId columnId, const QPoint& globalPos);
 	void OperationRequested(CTableOperation operation);
 
 protected:
+	void contextMenuEvent(QContextMenuEvent* event) override;
 	void resizeEvent(QResizeEvent* event) override;
 	void keyPressEvent(QKeyEvent* event) override;
 	void mouseMoveEvent(QMouseEvent* event) override;

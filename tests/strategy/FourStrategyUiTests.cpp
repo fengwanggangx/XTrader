@@ -150,6 +150,11 @@ CHQService::CHQService() = default;
 
 CHQService::~CHQService() = default;
 
+std::vector<CSecurity> CHQService::GetSecurities() const
+{
+	return { CSecurity("600000", Exchange::sse) };
+}
+
 CAccountService::CAccountService() = default;
 
 CAccountService::~CAccountService() = default;
@@ -205,7 +210,35 @@ int main(int argc, char** argv)
 	Check(nullptr != types && 4 == types->count(),
 		"all four strategy choices are present");
 	dialog.findChild<QLineEdit*>("nameEdit")->setText("typed strategy");
-	dialog.findChild<QLineEdit*>("strategy_security")->setText("600000");
+	dialog.show();
+	QApplication::processEvents();
+	CUITable* subscriptions = dialog.findChild<CUITable*>("subscriptionTable");
+	QPushButton* addSubscription = dialog.findChild<QPushButton*>("addSubscriptionButton");
+	QPushButton* removeSubscription = dialog.findChild<QPushButton*>("removeSubscriptionButton");
+	addSubscription->click();
+	Check(1 == subscriptions->model()->rowCount(), "plus inserts a draft row directly");
+	QLineEdit* securityEditor = subscriptions->findChild<QLineEdit*>();
+	Check(nullptr != securityEditor, "new row immediately opens its code editor");
+	securityEditor->setText("600000");
+	QKeyEvent enter(QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier);
+	QApplication::sendEvent(securityEditor, &enter);
+	QApplication::processEvents();
+	Check("SSE" == dialog.GetStrategy().subscriptions(0).exchange(), "code editor fills exchange");
+	Check(0 == (subscriptions->model()->flags(subscriptions->model()->index(0, 1)) & Qt::ItemIsEditable),
+		"inferred exchange is read only");
+	for (const QString& code : { QString("000001"), QString("430047"), QString("920001") })
+	{
+		addSubscription->click();
+		QModelIndex index = subscriptions->currentIndex();
+		Check(subscriptions->model()->setData(index, code), "draft code can be edited");
+		request::StrategyInfo draft = dialog.GetStrategy();
+		Check((code.startsWith('0') ? "SZSE" : "BSE") == draft.subscriptions(2).exchange(),
+			"exchange inference works without cached security data");
+		removeSubscription->click();
+		QApplication::processEvents();
+		Check(1 == subscriptions->model()->rowCount(), "minus removes selected draft");
+	}
+	Check(nullptr == dialog.findChild<QLineEdit*>("strategy_security"), "standalone code input is removed");
 	std::string error;
 	Check(!dialog.GetStrategy().enabled() && !dialog.GetStrategy().auto_start(),
 		"new strategies are inactive");
@@ -241,13 +274,16 @@ int main(int argc, char** argv)
 			  3 == edit.GetStrategy().config_revision(),
 		"form round-trips configuration and revision");
 	Check(!edit.findChild<QComboBox*>("typeCombo")->isEnabled() &&
-			  !edit.findChild<QLineEdit*>("strategy_security")->isEnabled(),
+			  QAbstractItemView::NoEditTriggers == edit.findChild<CUITable*>("subscriptionTable")->editTriggers(),
 		"existing immutable binding is locked");
 	request::StrategyInfo multiple = saved;
 	multiple.add_subscriptions()->CopyFrom(multiple.subscriptions(0));
 	multiple.mutable_subscriptions(1)->set_security("600001");
+	Check(CStrategyService::ValidateStrategy(multiple, error),
+		"multiple distinct securities are supported");
+	multiple.mutable_subscriptions(1)->set_security("600000");
 	Check(!CStrategyService::ValidateStrategy(multiple, error),
-		"multi-security instances rejected");
+		"duplicate security subscriptions are rejected");
 	bool actionDelivered = false;
 	service.AddOperationHandler(
 		[&actionDelivered](const CStrategyService::COperationResult& result)

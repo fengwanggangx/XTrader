@@ -4,6 +4,7 @@
 #include "../../basic/TMessagePump.h"
 #include "../../request/request.h"
 #include <mutex>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -25,6 +26,7 @@ public:
 	_TyCallbackId Subscribe(std::function<void(const CWatchlistEvent&)>&& handler);
 	void Unsubscribe(_TyCallbackId token);
 	bool Query();
+	std::optional<bool> Contains(const std::string& security) const;
 	bool Add(const std::vector<std::string>& securities);
 	bool Remove(const std::vector<std::string>& securities);
 	bool OnRequestReply(const CRequest& response);
@@ -34,7 +36,8 @@ private:
 
 	CTraderCenter* m_pTraderCenter{ nullptr };
 	TMessagePump<CWatchlistEvent> m_events;
-	std::mutex m_mtx;
+	mutable std::mutex m_mtx;
+	std::optional<std::vector<std::string>> m_snapshot;
 	std::unordered_map<_TyRequestId, _TyRequest> m_pending;
 	bool m_bInitialized{ false };
 };

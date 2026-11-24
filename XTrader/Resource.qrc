@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/">
+        <file alias="market/info_circle.svg">images/info_circle.svg</file>
         <file alias="trade/chevron.svg">images/trade-chevron.svg</file>
         <file alias="trade/password-eye.svg">images/trade-password-eye.svg</file>
         <file alias="trade/add_record.svg">images/add_record.svg</file>

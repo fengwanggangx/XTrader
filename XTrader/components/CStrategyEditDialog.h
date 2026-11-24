@@ -77,8 +77,6 @@ private:
 	QLabel* m_pSellRequired{ nullptr };
 	int m_nFieldCount{ 0 };
 	int m_nLabelWidth{ 0 };
-	QLineEdit* m_securityEdit{ nullptr };
-	QComboBox* m_exchange{ nullptr };
 	std::map<std::string, QWidget*> m_fields;
 	std::uint64_t m_configRevision{ 0 };
 

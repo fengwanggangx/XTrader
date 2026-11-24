@@ -12,7 +12,10 @@
 #include <QDateTime>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QIcon>
+#include <QPainter>
 #include <QMenu>
+#include <QMessageBox>
 #include <QMetaObject>
 #include <QPushButton>
 #include <QPointer>
@@ -171,6 +174,13 @@ CMarketPageController::CMarketPageController(CTraderServices& services, MarketTa
 			EnsureSelection();
 		}
 	});
+	if (MarketTableMode::Watchlist != mode)
+	{
+		connect(m_table, &CUITable::ContextMenuRequested, this, [this](_TyDataRowId rowId, _TyTableColumnId, const QPoint& globalPos)
+		{
+			ShowSecurityMenu(rowId, globalPos);
+		});
+	}
 	BindService();
 	m_pHistoryTimer = new QTimer(this);
 	m_pHistoryTimer->setInterval(60000);
@@ -179,6 +189,40 @@ CMarketPageController::CMarketPageController(CTraderServices& services, MarketTa
 		RefreshMinuteHistory();
 	});
 	m_pHistoryTimer->start();
+}
+
+void CMarketPageController::ShowSecurityMenu(_TyDataRowId rowId, const QPoint& globalPos)
+{
+	CSecurity security = GetSecurity(rowId);
+	if (!security.IsValid())
+	{
+		return;
+	}
+	std::string key = security.String();
+	CWatchlistService& watchlist = m_pServices->m_watchlist;
+	std::optional<bool> included = watchlist.Contains(key);
+	QMenu menu;
+	QAction* add = menu.addAction("加入自选");
+	QAction* remove = menu.addAction("删除自选");
+	menu.addAction("股票详情")->setEnabled(false);
+	add->setEnabled(included.has_value() && !*included);
+	remove->setEnabled(included.value_or(false));
+	QPointer<CMarketPageController> self(this);
+	QAction* chosen = menu.exec(globalPos);
+	if (self.isNull() || (chosen != add && chosen != remove))
+	{
+		return;
+	}
+	if (included != watchlist.Contains(key) || !m_pServices->m_login.IsAuthenticated())
+	{
+		QMessageBox::warning(m_table, "自选股", "自选列表状态已变化，请重新打开菜单");
+		return;
+	}
+	bool sent = chosen == add ? watchlist.Add({ key }) : watchlist.Remove({ key });
+	if (!sent)
+	{
+		QMessageBox::warning(m_table, "自选股", "连接不可用，自选操作未发送");
+	}
 }
 
 CMarketPageController::~CMarketPageController()
@@ -206,10 +250,37 @@ void CMarketPageController::SetCharts(QLabel* pTitle, QLabel* pPrice, QLabel* pS
 	m_stockTitle = pTitle;
 	m_price = pPrice;
 	m_chartState = pState;
+	m_chartState->setTextFormat(Qt::PlainText);
+	m_chartState->setMinimumWidth(0);
+	m_chartState->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
+	m_chartErrorInfo = m_chartState->parentWidget()->findChild<QLabel*>("chartErrorInfo");
+	if (nullptr != m_chartErrorInfo)
+	{
+		m_chartErrorInfo->setFixedSize(16, 16);
+		QPixmap icon = QIcon(":/market/info_circle.svg").pixmap(16, 16);
+		QPainter painter(&icon);
+		painter.setCompositionMode(QPainter::CompositionMode_SourceIn);
+		painter.fillRect(icon.rect(), QColor("#7b91ac"));
+		painter.end();
+		m_chartErrorInfo->setPixmap(icon);
+		m_chartErrorInfo->setAccessibleName("错误详情");
+		m_chartErrorInfo->hide();
+	}
 	m_intraday = pIntraday;
 	m_candles = pCandles;
 	m_intraday->SetMode(CurveMode::Intraday);
 	RefreshSelection();
+}
+
+void CMarketPageController::SetChartState(const QString& text, const QString& detail)
+{
+	m_chartState->setText(text);
+	m_chartState->setToolTip(QString());
+	if (nullptr != m_chartErrorInfo)
+	{
+		m_chartErrorInfo->setToolTip(detail.isEmpty() ? QString() : QString("<qt>%1</qt>").arg(detail.toHtmlEscaped()));
+		m_chartErrorInfo->setVisible(!detail.isEmpty());
+	}
 }
 
 QWidget* CMarketPageController::CreateIntradayControls(QWidget* pParent)
@@ -403,7 +474,7 @@ void CMarketPageController::BindService()
 				}
 				else if (nullptr != safeThis->m_chartState)
 				{
-					safeThis->m_chartState->setText(QString::fromStdString(strMessage.empty() ? "连接不可用" : strMessage));
+					safeThis->SetChartState("连接不可用", QString::fromStdString(strMessage));
 					safeThis->m_minuteRequestId = 0;
 					safeThis->m_dayRequestId = 0;
 					safeThis->m_intraday->Clear();
@@ -563,7 +634,7 @@ void CMarketPageController::RefreshSelection()
 		m_stockTitle->setText("没有匹配的证券");
 		m_selectedSecurity.clear();
 		m_price->setText("--");
-		m_chartState->setText(m_pServices->m_login.IsAuthenticated() ? "暂无证券数据" : "连接不可用");
+		SetChartState(m_pServices->m_login.IsAuthenticated() ? "暂无证券数据" : "连接不可用");
 		m_intraday->Clear();
 		m_candles->Clear();
 		m_minuteBars.clear();
@@ -603,7 +674,7 @@ void CMarketPageController::RefreshSelection()
 	m_dayBars.clear();
 	m_minuteRequestId = 0;
 	m_dayRequestId = 0;
-	m_chartState->setText("正在查询历史行情");
+	SetChartState("正在查询历史行情");
 	RequestHistory(CurveMode::Intraday);
 	RequestHistory(m_candles->GetMode());
 }
@@ -647,7 +718,7 @@ void CMarketPageController::RequestHistory(CurveMode mode)
 	std::int64_t nBegin = now.addYears(-10).toMSecsSinceEpoch();
 	if (!m_pServices->m_hq.QueryHistory(security, MarketBarPeriod::Day, nBegin, now.toMSecsSinceEpoch(), &m_dayRequestId))
 	{
-		m_chartState->setText("历史查询未发送，请检查连接");
+		SetChartState("历史查询未发送，请检查连接");
 	}
 }
 
@@ -673,7 +744,7 @@ void CMarketPageController::RequestMinuteHistory(bool bIncremental)
 	{
 		m_minuteRequestId = 0;
 		m_bMinuteIncrementalRequest = false;
-		m_chartState->setText("历史查询未发送，请检查连接");
+		SetChartState("历史查询未发送，请检查连接");
 	}
 }
 
@@ -708,10 +779,10 @@ void CMarketPageController::UpdateIntradayState()
 	int nAvailable = m_intraday->AvailableTradingDays();
 	if (0 == nAvailable)
 	{
-		m_chartState->setText("暂无分时行情");
+		SetChartState("暂无分时行情");
 		return;
 	}
-	m_chartState->setText(nAvailable < m_nIntradayDays ? QString("仅有 %1 日数据").arg(nAvailable) : QString("%1 日分时已加载").arg(m_nIntradayDays));
+	SetChartState(nAvailable < m_nIntradayDays ? QString("仅有 %1 日数据").arg(nAvailable) : QString("%1 日分时已加载").arg(m_nIntradayDays));
 }
 
 void CMarketPageController::HandleHistory(std::uint64_t nId, const std::string& strSecurity, MarketBarPeriod period, const std::vector<CMarketBar>& bars, const std::string& strError)
@@ -737,12 +808,12 @@ void CMarketPageController::HandleHistory(std::uint64_t nId, const std::string& 
 		{
 			m_minuteRequestId = 0;
 			m_bMinuteIncrementalRequest = false;
-			m_chartState->setText(bIncremental ? "分时自动更新失败" : QString::fromStdString(strError));
+			SetChartState(bIncremental ? "分时自动更新失败" : "分时行情加载失败", QString::fromStdString(strError));
 		}
 		else
 		{
 			m_dayRequestId = 0;
-			m_chartState->setText(QString::fromStdString(strError));
+			SetChartState("K线行情加载失败", QString::fromStdString(strError));
 		}
 		return;
 	}

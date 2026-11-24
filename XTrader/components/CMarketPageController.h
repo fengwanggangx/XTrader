@@ -46,12 +46,14 @@ public:
 
 private:
 	void BindService();
+	void ShowSecurityMenu(_TyDataRowId rowId, const QPoint& globalPos);
 	void EnsureSelection();
 	void RefreshSelection();
 	void RequestMinuteHistory(bool bIncremental);
 	void RefreshMinuteHistory();
 	void UpdateMinuteCharts();
 	void UpdateIntradayState();
+	void SetChartState(const QString& text, const QString& detail = {});
 	void HandleHistory(std::uint64_t nRequestId, const std::string& strSecurity, MarketBarPeriod period, const std::vector<CMarketBar>& bars, const std::string& strError);
 	void OnQuoteTableUpdate(const CDataTableView& view, const CDataChangeSet& changes);
 	CSecurity GetSecurity(_TyDataRowId rowId) const;
@@ -69,6 +71,7 @@ private:
 	QLabel* m_stockTitle{ nullptr };
 	QLabel* m_price{ nullptr };
 	QLabel* m_chartState{ nullptr };
+	QLabel* m_chartErrorInfo{ nullptr };
 	std::uint64_t m_quoteTableToken{ 0 };
 	std::shared_ptr<class CQuoteTableUpdateState> m_quoteUpdateState;
 	std::uint64_t m_historyToken{ 0 };
