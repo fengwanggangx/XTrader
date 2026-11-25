@@ -122,9 +122,13 @@ void LoginWindow::ConnectSlots()
 	QObject::connect(m_ui->pushButton_settings, &QPushButton::clicked, this, &LoginWindow::OnSettingsBtnClicked);
 	QObject::connect(m_ui->comboBox_user, &QComboBox::currentIndexChanged, this, &LoginWindow::OnUserChanged);
 	QObject::connect(m_ui->comboBox_user->lineEdit(), &QLineEdit::textEdited, this, &LoginWindow::OnUserEdited);
-	QObject::connect(m_ui->checkBox_remember, &QCheckBox::toggled, this, [](bool bChecked)
+	QObject::connect(m_ui->checkBox_remember, &QCheckBox::toggled, this, [this](bool bChecked)
 					 {
 						 QSettings("Mary", "Mary").setValue("Login/RememberPassword", bChecked);
+						 if (!bChecked && !m_ui->lineEdit_passwd->isModified())
+						 {
+							 m_ui->lineEdit_passwd->clear();
+						 }
 					 });
 }
 
@@ -229,7 +233,7 @@ void LoginWindow::LoadUsers()
 void LoginWindow::FillPassword(int nIndex)
 {
 	m_ui->lineEdit_passwd->clear();
-	if ((0 > nIndex) || (static_cast<std::size_t>(nIndex) >= m_users.size()))
+	if (!m_ui->checkBox_remember->isChecked() || (0 > nIndex) || (static_cast<std::size_t>(nIndex) >= m_users.size()))
 	{
 		return;
 	}

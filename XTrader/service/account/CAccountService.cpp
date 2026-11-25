@@ -1,3 +1,4 @@
+#include <charconv>
 #include "CAccountService.h"
 #include "../../system/CTraderCenter.h"
 #include <algorithm>
@@ -28,6 +29,8 @@ void CAccountService::Initialize()
 				std::lock_guard<std::mutex> lock(m_mtx_state);
 				m_pending.clear();
 				m_accounts.clear();
+				m_pushedStates.clear();
+				m_statusRevision = 0;
 				m_supported = true;
 				result.m_generation = ++m_generation;
 			}
@@ -147,12 +150,12 @@ std::uint64_t CAccountService::Send(
 			if ((type == item.second.m_type) &&
 				(account == item.second.m_accountIndex))
 			{
-				return 0;
+				return _TyRequest::TRADE_FUNDS_QUERY == type ? item.first : 0;
 			}
 		}
 		m_pending.emplace(req.GetId(), CPending{ account, type,
 										   std::chrono::steady_clock::now() +
-											   std::chrono::seconds(_TyRequest::TRADE_ACCOUNT_LOGIN == type ? 75 : 20) });
+											   std::chrono::seconds(_TyRequest::TRADE_ACCOUNT_LOGIN == type ? 75 : 20), m_statusRevision });
 	}
 	if (SendRequest(req))
 	{
@@ -162,9 +165,82 @@ std::uint64_t CAccountService::Send(
 	m_pending.erase(req.GetId());
 	return 0;
 }
-bool CAccountService::OnRequestReply(const CRequest& response)
+bool CAccountService::OnPush(const CRequest& response)
 {
 	CResult result;
+	result.m_type = response.GetType();
+	const request::RequestData& data = response.GetData();
+	if (_TyRequest::TRADE_ACCOUNT_STATE_PUSH == result.m_type && data.has_account())
+	{
+		result.m_accountIndex = AccountIndex(data.account());
+	}
+	else
+	{
+		std::string broker = response.GetExtraData("broker_id");
+		const char* end = broker.data() + broker.size();
+		std::from_chars_result parsed = std::from_chars(broker.data(), end, result.m_accountIndex.first);
+		if (std::errc{} != parsed.ec || end != parsed.ptr)
+		{
+			return false;
+		}
+		result.m_accountIndex.second = response.GetExtraData("account");
+	}
+	if (!IsAccountValid(result.m_accountIndex))
+	{
+		return false;
+	}
+	std::string sequence = response.GetExtraData("sequence");
+	const char* sequenceEnd = sequence.data() + sequence.size();
+	std::from_chars_result parsedSequence = std::from_chars(sequence.data(), sequenceEnd, result.m_sequence);
+	if (std::errc{} != parsedSequence.ec || sequenceEnd != parsedSequence.ptr)
+	{
+		return false;
+	}
+	std::string fundsVersion = response.GetExtraData("funds_version");
+	const char* versionEnd = fundsVersion.data() + fundsVersion.size();
+	std::uint64_t version = 0;
+	std::from_chars_result parsedVersion = std::from_chars(fundsVersion.data(), versionEnd, version);
+	if (std::errc{} == parsedVersion.ec && versionEnd == parsedVersion.ptr)
+	{
+		result.m_fundsVersion = version;
+	}
+	{
+		std::lock_guard<std::mutex> lock(m_mtx_state);
+		result.m_generation = m_generation;
+		if (_TyRequest::TRADE_ACCOUNT_STATE_PUSH == result.m_type && data.has_account())
+		{
+			m_pushedStates.insert_or_assign(result.m_accountIndex, std::make_pair(++m_statusRevision, data.account()));
+			const auto account = std::ranges::find_if(m_accounts, [&result](const request::TradeAccountRecord& row)
+			{
+				return AccountIndex(row) == result.m_accountIndex;
+			});
+			if (m_accounts.end() != account)
+			{
+				account->set_state(data.account().state());
+				account->set_last_error(data.account().last_error());
+			}
+		}
+	}
+	result.m_data.CopyFrom(data);
+	m_results.Notify(result);
+	return true;
+}
+
+bool CAccountService::OnRequestReply(const CRequest& response)
+{
+	switch (response.GetType())
+	{
+	case _TyRequest::TRADE_ACCOUNT_STATE_PUSH:
+	case _TyRequest::TRADE_ORDER_PUSH:
+	case _TyRequest::TRADE_TRADE_PUSH:
+	case _TyRequest::TRADE_ACCOUNT_INFO_PUSH:
+	case _TyRequest::TRADE_POSITION_PUSH:
+		return (0 == response.GetId()) && OnPush(response);
+	default:
+		break;
+	}
+	CResult result;
+	std::optional<CResult> canceledFunds;
 	{
 		std::lock_guard<std::mutex> lock(m_mtx_state);
 		const auto mIter = m_pending.find(response.GetId());
@@ -180,6 +256,7 @@ bool CAccountService::OnRequestReply(const CRequest& response)
 		result.m_type = mIter->second.m_type;
 		result.m_requestId = response.GetId();
 		result.m_generation = m_generation;
+		std::uint64_t statusRevision = mIter->second.m_statusRevision;
 		m_pending.erase(mIter);
 		result.m_data.CopyFrom(response.GetData());
 		std::optional<std::pair<int, std::string>> error = response.GetErrorInfo();
@@ -209,17 +286,27 @@ bool CAccountService::OnRequestReply(const CRequest& response)
 			}
 			else if (0 != result.m_data.counter_reply().error_code())
 			{
-				result.m_error = result.m_data.counter_reply().error_message();
+				const request::TradeCounterReply& reply = result.m_data.counter_reply();
+				result.m_error = reply.error_message().empty() ? "资金查询失败，错误码：" + std::to_string(reply.error_code()) : reply.error_message();
 			}
 		}
 		else if (_TyRequest::TRADE_ACCOUNT_LOGIN == result.m_type ||
 				 _TyRequest::TRADE_ACCOUNT_DISCONNECT == result.m_type)
 		{
-			std::erase_if(m_pending, [](const auto& item)
+			const auto pending = std::ranges::find_if(m_pending, [&result](const auto& item)
 			{
-				return _TyRequest::TRADE_ACCOUNT_LIST_QUERY == item.second.m_type ||
-					   _TyRequest::TRADE_FUNDS_QUERY == item.second.m_type;
+				return _TyRequest::TRADE_FUNDS_QUERY == item.second.m_type && result.m_accountIndex == item.second.m_accountIndex;
 			});
+			if (m_pending.end() != pending)
+			{
+				CResult& canceled = canceledFunds.emplace();
+				canceled.m_requestId = pending->first;
+				canceled.m_type = pending->second.m_type;
+				canceled.m_accountIndex = result.m_accountIndex;
+				canceled.m_generation = result.m_generation;
+				canceled.m_error = "账户状态已变化，资金查询已取消";
+				m_pending.erase(pending);
+			}
 		}
 		else if (_TyRequest::TRADE_ACCOUNT_LIST_QUERY == result.m_type)
 		{
@@ -233,6 +320,15 @@ bool CAccountService::OnRequestReply(const CRequest& response)
 			{
 				m_accounts.assign(result.m_data.account_list().accounts().begin(),
 					result.m_data.account_list().accounts().end());
+				for (request::TradeAccountRecord& row : m_accounts)
+				{
+					const auto pushed = m_pushedStates.find(AccountIndex(row));
+					if (m_pushedStates.end() != pushed && statusRevision < pushed->second.first)
+					{
+						row.set_state(pushed->second.second.state());
+						row.set_last_error(pushed->second.second.last_error());
+					}
+				}
 				std::sort(m_accounts.begin(), m_accounts.end(),
 					[](const request::TradeAccountRecord& left,
 						const request::TradeAccountRecord& right)
@@ -241,6 +337,10 @@ bool CAccountService::OnRequestReply(const CRequest& response)
 				});
 			}
 		}
+	}
+	if (canceledFunds.has_value())
+	{
+		m_results.Notify(*canceledFunds);
 	}
 	m_results.Notify(result);
 	return true;

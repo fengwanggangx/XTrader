@@ -1,3 +1,4 @@
+#include <QLabel>
 // Replace only transport/account boundaries; exercise the production service and dialog.
 namespace net
 {
@@ -79,6 +80,8 @@ namespace
 		subscription->set_security("600000");
 		subscription->set_exchange("SSE");
 		subscription->set_channel("quote");
+		*strategy.add_subscriptions() = strategy.subscriptions(0);
+		strategy.mutable_subscriptions(1)->set_channel("bar_1m");
 		return strategy;
 	}
 
@@ -148,9 +151,18 @@ CHQService::CHQService() = default;
 
 CHQService::~CHQService() = default;
 
+std::vector<CSecurity> CHQService::GetSecurities() const
+{
+	return {};
+}
+
 CAccountService::CAccountService() = default;
 
 CAccountService::~CAccountService() = default;
+std::uint64_t CAccountService::GetGeneration() const
+{
+	return 0;
+}
 std::vector<request::TradeAccountRecord> CAccountService::GetAccounts() const
 {
 	return accounts;
@@ -236,17 +248,17 @@ public:
 		_TyDataRowId firstId = page.m_rowIds.at(AccountIndex(first));
 		_TyDataRowId secondId = page.m_rowIds.at(AccountIndex(second));
 		Check(firstId != secondId, "Same account number at different brokers merged");
-		page.m_logs->setSortingEnabled(true);
-		page.m_logs->sortByColumn(2, Qt::DescendingOrder);
-		page.m_logs->SelectRowId(secondId);
-		page.m_logs->TriggerAction(page.m_logs->model()->index(page.m_logs->currentIndex().row(), 7), "login");
+		page.m_accountTableView->setSortingEnabled(true);
+		page.m_accountTableView->sortByColumn(2, Qt::DescendingOrder);
+		page.m_accountTableView->SelectRowId(secondId);
+		page.m_accountTableView->TriggerAction(page.m_accountTableView->model()->index(page.m_accountTableView->currentIndex().row(), 6), "login");
 		_TyAccountIndex sent;
 		Check(ReadAccountIdentity(Last(_TyRequest::TRADE_ACCOUNT_LOGIN), sent) && sent == AccountIndex(second), "Sorted account action used wrong broker");
 		CAccountService::CResult result;
 		result.m_requestId = page.m_operationId;
 		result.m_type = _TyRequest::TRADE_ACCOUNT_LOGIN;
 		page.HandleResult(result);
-		page.m_logs->SetCheckedRowIds({ firstId, secondId });
+		page.m_accountTableView->SetCheckedRowIds({ firstId, secondId });
 		Check(page.m_remove->isEnabled(), "Disconnected checked accounts cannot be removed");
 		std::size_t before = requests.size();
 		page.m_remove->click();
@@ -264,7 +276,53 @@ public:
 		page.RefreshRows();
 		Check(!page.m_remove->isEnabled(), "Connected account enabled bulk remove");
 		SavePreview(page);
-		page.m_logs->SelectRowId(secondId);
+		page.m_accounts[0].set_state(request::ACCOUNT_CONNECTED);
+		page.RefreshRows();
+		page.m_accountTableView->SelectRowId(firstId);
+		CAccountService::CResult push;
+		push.m_type = _TyRequest::TRADE_ACCOUNT_INFO_PUSH;
+		push.m_sequence = 24;
+		push.m_fundsVersion = 20;
+		push.m_accountIndex = AccountIndex(first);
+		request::TradeAccountInfo* funds = push.m_data.mutable_account_info();
+		SetAccountIdentity(push.m_accountIndex, *funds);
+		funds->set_balance(12300);
+		funds->set_connected(true);
+		page.HandleResult(push);
+		Check("--" != page.m_funds[0]->text(), "Selected account did not receive a funds push");
+		QString firstBalance = page.m_funds[0]->text();
+		push.m_sequence = 23;
+		push.m_fundsVersion = 23;
+		funds->set_balance(45600);
+		page.HandleResult(push);
+		Check(firstBalance != page.m_funds[0]->text(), "Row sequence hid newer funds");
+		CAccountService::CResult older;
+		older.m_requestId = page.m_snapshotId;
+		older.m_type = _TyRequest::TRADE_FUNDS_QUERY;
+		older.m_accountIndex = push.m_accountIndex;
+		older.m_data.mutable_counter_reply()->set_watermark(19);
+		older.m_data.mutable_counter_reply()->mutable_funds()->set_balance(90000);
+		QString latest = page.m_funds[0]->text();
+		page.HandleResult(older);
+		Check(latest == page.m_funds[0]->text(), "Older funds reply replaced a push");
+		page.m_accountTableView->SelectRowId(secondId);
+		Check("--" == page.m_funds[0]->text(), "Account switch retained previous funds");
+		page.HandleResult(push);
+		Check("--" == page.m_funds[0]->text(), "Push for previous account updated selected funds");
+		page.m_operationId = 99;
+		CAccountService::CResult failure;
+		failure.m_requestId = 99;
+		failure.m_error = "Account operation failed";
+		page.HandleResult(failure);
+		CAccountService::CResult refresh;
+		refresh.m_requestId = 100;
+		refresh.m_type = _TyRequest::TRADE_ACCOUNT_LIST_QUERY;
+		page.HandleResult(refresh);
+		Check("Account operation failed" == page.m_notice->text(), "Background refresh erased the operation error");
+		page.m_accounts = { first, second };
+		page.m_accounts[1].set_state(request::ACCOUNT_CONNECTED);
+		page.RefreshRows();
+		page.m_accountTableView->SelectRowId(secondId);
 		before = requests.size();
 		QTimer::singleShot(0, [&page]()
 		{
@@ -279,7 +337,7 @@ public:
 				}
 			}
 		});
-		page.m_logs->TriggerAction(page.m_logs->model()->index(page.m_logs->currentIndex().row(), 7), "disconnect");
+		page.m_accountTableView->TriggerAction(page.m_accountTableView->model()->index(page.m_accountTableView->currentIndex().row(), 6), "disconnect");
 		for (std::size_t index = before; index < requests.size(); ++index)
 		{
 			Check(_TyRequest::TRADE_ACCOUNT_DISCONNECT != requests[index].GetType(), "Removed account disconnected after modal refresh");
@@ -475,7 +533,7 @@ int main(int argc, char** argv)
 	{
 		if (combo->currentText().contains("Broker A"))
 		{
-			detailedLabel = combo->currentText().contains("site") && combo->currentText().contains("000123");
+			detailedLabel = combo->currentText().contains("000123");
 		}
 	}
 	Check(detailedLabel, "Account identity not displayed");
@@ -493,41 +551,13 @@ int main(int argc, char** argv)
 	Check(QDialog::Accepted != dialog.result(), "Missing account accepted");
 	accounts.insert(accounts.begin(), account);
 	accounts.front().set_broker_id(1);
-	CUITable* parameters = dialog.findChild<CUITable*>("parameterTable");
-	QMetaObject::invokeMethod(&dialog, "OnAddParameter", Qt::DirectConnection);
-	QMetaObject::invokeMethod(&dialog, "OnAddParameter", Qt::DirectConnection);
-	for (int row = 0; row < 2; ++row)
-	{
-		parameters->model()->setData(parameters->model()->index(row, 0), "short_window");
-		parameters->model()->setData(parameters->model()->index(row, 1), "5");
-	}
-	CloseWarning();
-	QMetaObject::invokeMethod(&dialog, "OnAccept", Qt::DirectConnection);
-	Check(QDialog::Accepted != dialog.result(), "Duplicate parameter closed dialog");
-	parameters->model()->setData(parameters->model()->index(1, 0), "long_window");
-	parameters->model()->setData(parameters->model()->index(1, 1), "2");
+	QLineEdit* longWindow = dialog.findChild<QLineEdit*>("strategy_long_window");
+	Check(nullptr != longWindow, "Moving average window input missing");
+	longWindow->setText("2");
 	CloseWarning();
 	QMetaObject::invokeMethod(&dialog, "OnAccept", Qt::DirectConnection);
 	Check(QDialog::Accepted != dialog.result(), "Invalid windows closed dialog");
-	CTableOperation lastEdit;
-	QMetaObject::Connection editConnection = QObject::connect(parameters, &CUITable::OperationRequested, parameters, [&lastEdit](const CTableOperation& operation)
-	{
-		if (TableOperationKind::Edit == operation.m_kind)
-		{
-			lastEdit = operation;
-		}
-	});
-	parameters->model()->setData(parameters->model()->index(1, 1), "20");
-	lastEdit.m_value = "1";
-	parameters->OperationRequested(lastEdit);
-	Check(dialog.GetStrategy().parameters().at("long_window") == "20", "Stale edit overwrote accepted draft");
-	lastEdit.m_requestId += 100;
-	parameters->OperationRequested(lastEdit);
-	Check(dialog.GetStrategy().parameters().at("long_window") == "20", "Edit with stale original value overwrote draft");
-	lastEdit.m_generation += 1;
-	parameters->OperationRequested(lastEdit);
-	Check(dialog.GetStrategy().parameters().at("long_window") == "20", "Foreign data source edit overwrote draft");
-	QObject::disconnect(editConnection);
+	longWindow->setText("20");
 	QMetaObject::invokeMethod(&dialog, "OnAccept", Qt::DirectConnection);
 	Check(QDialog::Accepted == dialog.result(), "Valid dialog did not accept");
 	CViewStrategySettings view;

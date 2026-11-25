@@ -3,7 +3,10 @@
 
 #include "../../basic/TMessagePump.h"
 #include "../../request/request.h"
+#include <chrono>
+#include <condition_variable>
 #include <mutex>
+#include <thread>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -38,8 +41,15 @@ private:
 	TMessagePump<CWatchlistEvent> m_events;
 	mutable std::mutex m_mtx;
 	std::optional<std::vector<std::string>> m_snapshot;
-	std::unordered_map<_TyRequestId, _TyRequest> m_pending;
+	struct CPending
+	{
+		_TyRequest m_type;
+		std::chrono::steady_clock::time_point m_deadline;
+	};
+	std::unordered_map<_TyRequestId, CPending> m_pending;
 	bool m_bInitialized{ false };
+	std::condition_variable_any m_wake;
+	std::jthread m_timeouts;
 };
 
 #endif

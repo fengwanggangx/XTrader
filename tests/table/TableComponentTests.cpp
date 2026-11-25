@@ -67,13 +67,13 @@ namespace
 	void TestHeaderConfig()
 	{
 		CHeaderConfigDatabase db;
-		db.m_result.m_columns.resize(7);
+		db.m_result.m_columns.resize(8);
 		db.m_result.m_rows =
 		{
-			{ std::string("accounts"), std::string("Custom"), std::int64_t(1), std::int64_t(0), std::int64_t(1), std::string("fixed"), std::int64_t(89) },
-			{ std::string("accounts"), std::string(""), static_cast<std::int64_t>(TableCheckColumn), std::int64_t(1), std::int64_t(0), std::string("fixed"), std::int64_t(44) },
-			{ std::string("accounts"), std::string("Actions"), static_cast<std::int64_t>(TableActionColumn), std::int64_t(2), std::int64_t(1), std::string("contents"), std::monostate() },
-			{ std::string("accounts"), std::string("Unknown"), std::int64_t(999), std::int64_t(0), std::int64_t(1), std::string("stretch"), std::monostate() }
+			{ std::string("accounts"), std::string("Custom"), std::int64_t(1), std::int64_t(0), std::int64_t(1), std::string("fixed"), std::int64_t(89), std::int64_t(1) },
+			{ std::string("accounts"), std::string(""), static_cast<std::int64_t>(TableCheckColumn), std::int64_t(1), std::int64_t(0), std::string("fixed"), std::int64_t(44), std::int64_t(1) },
+			{ std::string("accounts"), std::string("Actions"), static_cast<std::int64_t>(TableActionColumn), std::int64_t(2), std::int64_t(1), std::string("contents"), std::monostate(), std::int64_t(1) },
+			{ std::string("accounts"), std::string("Unknown"), std::int64_t(999), std::int64_t(0), std::int64_t(1), std::string("stretch"), std::monostate(), std::int64_t(1) }
 		};
 		Require(CDataTableModel::LoadHeaderConfig(db), "load header configuration");
 

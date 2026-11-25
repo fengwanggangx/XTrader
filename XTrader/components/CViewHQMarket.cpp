@@ -245,6 +245,7 @@ void CViewHQMarket::RefreshSectors(const CSectorListEvent& ev)
 	PublishTable(m_rankingData, *m_ui->rankingTable, {});
 	if (!ev.m_strError.empty())
 	{
+		m_bOverviewRequested = false;
 		m_ui->sectorState->setText(QString::fromStdString(ev.m_strError));
 		return;
 	}

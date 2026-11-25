@@ -12,6 +12,39 @@ void CWatchlistService::SetTraderCenter(CTraderCenter* pCenter)
 		return;
 	}
 	m_bInitialized = true;
+	m_timeouts = std::jthread([this](std::stop_token stop)
+	{
+		while (!stop.stop_requested())
+		{
+			std::vector<CRequest> expired;
+			{
+				std::unique_lock<std::mutex> lock(m_mtx);
+				m_wake.wait_for(lock, stop, std::chrono::seconds(1), []()
+				{
+					return false;
+				});
+				if (stop.stop_requested())
+				{
+					return;
+				}
+				std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+				for (const auto& [id, pending] : m_pending)
+				{
+					if (pending.m_deadline <= now)
+					{
+						CRequest& response = expired.emplace_back();
+						response.SetId(id);
+						response.SetType(pending.m_type);
+						response.SetErrorInfo(1, "自选请求超时，请刷新确认操作结果");
+					}
+				}
+			}
+			for (const CRequest& response : expired)
+			{
+				OnRequestReply(response);
+			}
+		}
+	});
 	pCenter->RegisterStateHandler([this](SessionState state, const std::string&)
 	{
 		if (SessionState::Ready == state)
@@ -87,7 +120,7 @@ bool CWatchlistService::Send(_TyRequest type, const std::vector<std::string>& se
 	request.SetExtraData("securities", strList);
 	{
 		std::lock_guard<std::mutex> lock(m_mtx);
-		m_pending.emplace(request.GetId(), type);
+		m_pending.emplace(request.GetId(), CPending{ type, std::chrono::steady_clock::now() + std::chrono::seconds(20) });
 	}
 	if (m_pTraderCenter->SendRequest(request))
 	{
@@ -104,7 +137,7 @@ bool CWatchlistService::OnRequestReply(const CRequest& response)
 	{
 		std::lock_guard<std::mutex> lock(m_mtx);
 		const auto mIter = m_pending.find(response.GetId());
-		if ((m_pending.end() == mIter) || (response.GetType() != mIter->second))
+		if ((m_pending.end() == mIter) || (response.GetType() != mIter->second.m_type))
 		{
 			return false;
 		}

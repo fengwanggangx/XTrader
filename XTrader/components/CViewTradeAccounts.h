@@ -28,6 +28,8 @@ private:
 	void RefreshRows();
 	void RefreshSelection();
 	void ClearDetails();
+	void ClearFunds();
+	void ShowFunds(const request::TradeAccountInfo& funds, std::uint64_t version);
 	void RefreshButtons();
 	void RefreshChecks();
 	void RemoveCheckedAccounts();
@@ -55,6 +57,7 @@ private:
 	_TyAccountIndex m_selectedIndex{};
 	std::uint64_t m_operationId{ 0 };
 	std::uint64_t m_snapshotId{ 0 };
+	std::uint64_t m_fundsVersion{ 0 };
 	_TyCallbackId m_accountToken{ 0 };
 	std::function<void(std::uint64_t)> m_navigate;
 

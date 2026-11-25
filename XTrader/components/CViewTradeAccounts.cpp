@@ -319,19 +319,26 @@ void CViewTradeAccounts::RefreshSelection()
 		RefreshButtons();
 		return;
 	}
-	m_selectedIndex = AccountIndex(*account);
+	_TyAccountIndex selectedAccount = AccountIndex(*account);
+	if (m_selectedIndex != selectedAccount)
+	{
+		m_snapshotId = 0;
+		ClearFunds();
+		m_selectedIndex = std::move(selectedAccount);
+	}
 	m_heading->setText(QString::fromStdString(account->broker_name() + " / " + account->site() + " / " + account->account()));
 	if (request::ACCOUNT_CONNECTED == account->state())
 	{
-		m_snapshotId = m_pServices->m_account.Send(_TyRequest::TRADE_FUNDS_QUERY, m_selectedIndex);
+		std::uint64_t requestId = m_pServices->m_account.Send(_TyRequest::TRADE_FUNDS_QUERY, m_selectedIndex);
+		if (0 != requestId)
+		{
+			m_snapshotId = requestId;
+		}
 	}
 	else
 	{
 		m_snapshotId = 0;
-		for (QLabel* label : m_funds)
-		{
-			label->setText("--");
-		}
+		ClearFunds();
 	}
 	RefreshStrategies();
 	RefreshButtons();
@@ -340,11 +347,17 @@ void CViewTradeAccounts::RefreshSelection()
 void CViewTradeAccounts::ClearDetails()
 {
 	m_heading->setText("请选择账户");
+	ClearFunds();
+	PublishTable(m_strategyTable, *m_strategies, {});
+}
+
+void CViewTradeAccounts::ClearFunds()
+{
+	m_fundsVersion = 0;
 	for (QLabel* label : m_funds)
 	{
 		label->setText("--");
 	}
-	PublishTable(m_strategyTable, *m_strategies, {});
 }
 
 void CViewTradeAccounts::RefreshButtons()
@@ -408,6 +421,10 @@ void CViewTradeAccounts::RefreshChecks()
 void CViewTradeAccounts::HandleResult(
 	const CAccountService::CResult& result)
 {
+	if (result.m_generation != m_pServices->m_account.GetGeneration())
+	{
+		return;
+	}
 	if (result.m_bSessionReset)
 	{
 		m_accounts.clear();
@@ -415,10 +432,14 @@ void CViewTradeAccounts::HandleResult(
 		m_selectedIndex = {};
 		m_operationId = 0;
 		m_removeIds.clear();
+		m_snapshotId = 0;
+		m_notice->clear();
 		RefreshRows();
 		return;
 	}
-	if (0 != m_removeIds.erase(result.m_requestId))
+	bool removal = 0 != m_removeIds.erase(result.m_requestId);
+	bool operation = 0 != m_operationId && result.m_requestId == m_operationId;
+	if (removal)
 	{
 		if (result.m_error.empty())
 		{
@@ -429,7 +450,7 @@ void CViewTradeAccounts::HandleResult(
 			Refresh();
 		}
 	}
-	if (result.m_requestId == m_operationId)
+	if (operation)
 	{
 		m_operationId = 0;
 		Refresh();
@@ -440,23 +461,64 @@ void CViewTradeAccounts::HandleResult(
 		m_accounts = m_pServices->m_account.GetAccounts();
 		RefreshRows();
 	}
-	if (m_selectedIndex == result.m_accountIndex &&
-		result.m_requestId == m_snapshotId && result.m_error.empty() &&
-		result.m_data.has_counter_reply() &&
-		result.m_data.counter_reply().has_funds())
+	if (0 == result.m_requestId)
 	{
-		const request::TradeAccountInfo& funds =
-			result.m_data.counter_reply().funds();
-		m_funds[0]->setText("余额 " +
-							QLocale().toString(funds.balance() / 100.0, 'f', 2));
-		m_funds[1]->setText("可用 " +
-							(funds.extended_fields() && !funds.funds_valid() ? QString("失效") : QLocale().toString(funds.available() / 100.0, 'f', 2)));
-		m_funds[2]->setText("冻结 " +
-							(funds.extended_fields() && !funds.frozen_known() ? QString("未知") : QLocale().toString(funds.frozen() / 100.0, 'f', 2)));
-		m_funds[3]->setText(funds.connected() ? "已连接" : "未连接");
+		if (_TyRequest::TRADE_ACCOUNT_STATE_PUSH == result.m_type)
+		{
+			m_accounts = m_pServices->m_account.GetAccounts();
+			RefreshRows();
+		}
+		else if (m_selectedIndex == result.m_accountIndex && result.m_fundsVersion.has_value())
+		{
+			const request::TradeAccountInfo* funds = nullptr;
+			if (result.m_data.has_event_account())
+			{
+				funds = &result.m_data.event_account();
+			}
+			else if (_TyRequest::TRADE_ACCOUNT_INFO_PUSH == result.m_type && result.m_data.has_account_info())
+			{
+				funds = &result.m_data.account_info();
+			}
+			if (nullptr != funds && m_selectedIndex == AccountIndex(*funds))
+			{
+				ShowFunds(*funds, *result.m_fundsVersion);
+			}
+		}
+		return;
 	}
-	m_notice->setText(QString::fromStdString(result.m_error));
+	if (m_selectedIndex == result.m_accountIndex && result.m_requestId == m_snapshotId)
+	{
+		m_snapshotId = 0;
+		if (result.m_error.empty() && result.m_data.has_counter_reply() && result.m_data.counter_reply().has_funds())
+		{
+			ShowFunds(result.m_data.counter_reply().funds(), result.m_data.counter_reply().watermark());
+		}
+		else if (0 == m_fundsVersion)
+		{
+			ClearFunds();
+		}
+	}
+	if (!result.m_error.empty() && (removal || operation || m_notice->text().isEmpty()))
+	{
+		m_notice->setText(QString::fromStdString(result.m_error));
+	}
 	RefreshButtons();
+}
+
+void CViewTradeAccounts::ShowFunds(const request::TradeAccountInfo& funds, std::uint64_t version)
+{
+	if (version < m_fundsVersion)
+	{
+		return;
+	}
+	m_fundsVersion = version;
+	m_funds[0]->setText("余额 " +
+						QLocale().toString(funds.balance() / 100.0, 'f', 2));
+	m_funds[1]->setText("可用 " +
+						(funds.extended_fields() && !funds.funds_valid() ? QString("失效") : QLocale().toString(funds.available() / 100.0, 'f', 2)));
+	m_funds[2]->setText("冻结 " +
+						(funds.extended_fields() && !funds.frozen_known() ? QString("未知") : QLocale().toString(funds.frozen() / 100.0, 'f', 2)));
+	m_funds[3]->setText(funds.connected() ? "已连接" : "未连接");
 }
 
 void CViewTradeAccounts::RefreshStrategies()
@@ -496,8 +558,12 @@ void CViewTradeAccounts::RemoveCheckedAccounts()
 
 void CViewTradeAccounts::Operate(_TyRequest type, const _TyAccountIndex& account)
 {
-	m_operationId =
-		m_pServices->m_account.Send(type, account);
+	m_notice->clear();
+	m_operationId = m_pServices->m_account.Send(type, account);
+	if (0 == m_operationId)
+	{
+		m_notice->setText("账户操作未发送，请稍后重试");
+	}
 	RefreshButtons();
 }
 

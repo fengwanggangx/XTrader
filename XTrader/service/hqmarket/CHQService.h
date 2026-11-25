@@ -7,6 +7,7 @@
 #include "defines_hqmarket.h"
 
 #include <atomic>
+#include <chrono>
 #include <condition_variable>
 #include <cstdint>
 #include <functional>
@@ -107,6 +108,7 @@ private:
 
 	void EnqueueQuote(const CQuote& quote);
 	void QuoteWorkerLoop();
+	void ExpireHistoryRequests(bool disconnected);
 	void FlushQuotes(std::unordered_map<std::string, CQuote>& quotes);
 
 private:
@@ -122,12 +124,18 @@ private:
 	mutable std::shared_mutex m_mtx_history;
 	std::unordered_map<std::string, std::vector<CMarketBar>> m_history; // 各证券历史 K 线
 	std::mutex m_mtx_historyRequests;
-	std::unordered_map<_TyRequestId, CMarketHistoryEvent> m_historyRequests;
+	struct CHistoryRequest
+	{
+		CMarketHistoryEvent m_event;
+		std::chrono::steady_clock::time_point m_deadline;
+	};
+	std::unordered_map<_TyRequestId, CHistoryRequest> m_historyRequests;
 
 	std::mutex m_mtx_subscriptions;
 	std::unordered_map<std::string, request::_TyParams> m_subscriptions; // 当前有效订阅
 	std::unordered_set<std::string> m_confirmedSubscriptions;
-	std::unordered_set<std::string> m_failedSubscriptions;
+	std::unordered_set<std::string> m_cancelingSubscriptions;
+	std::unordered_map<std::string, _TyRequestId> m_subscriptionRequests;
 
 	mutable std::shared_mutex m_mtx_securities;
 	std::vector<CSecurity> m_securities; // 当前证券列表

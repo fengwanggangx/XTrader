@@ -197,6 +197,13 @@ void CHQService::Initialize()
 		}
 		else if ((SessionState::Disconnected == state) || (SessionState::Reconnecting == state) || (SessionState::Stopping == state))
 		{
+			{
+				std::lock_guard<std::mutex> lock(m_mtx_subscriptions);
+				m_confirmedSubscriptions.clear();
+				m_cancelingSubscriptions.clear();
+				m_subscriptionRequests.clear();
+			}
+			ExpireHistoryRequests(true);
 			std::vector<CQuote> quotes;
 			{
 				std::unique_lock lock(m_mtx_quotes);
@@ -356,16 +363,17 @@ bool CHQService::SubscribeQuotes(const std::vector<CSecurity>& securities)
 	{
 		return true;
 	}
+	CRequest req = request::Subscription(securities, std::vector<Channel>{ Channel::quote });
+	std::lock_guard<std::mutex> lock(m_mtx_subscriptions);
+	for (const CSecurity& security : securities)
 	{
-		std::lock_guard<std::mutex> lock(m_mtx_subscriptions);
-		for (const CSecurity& security : securities)
-		{
-			std::string strKey = "watchlist:" + security.String();
-			m_subscriptions.insert_or_assign(strKey, request::_TyParams{ { "security", security.String() }, { "channel", "quote" } });
-			m_failedSubscriptions.erase(strKey);
-		}
+		std::string strKey = "watchlist:" + security.String();
+		m_subscriptions.insert_or_assign(strKey, request::_TyParams{ { "security", security.String() }, { "channel", "quote" } });
+		m_cancelingSubscriptions.erase(strKey);
+		m_confirmedSubscriptions.erase(strKey);
+		m_subscriptionRequests.insert_or_assign(strKey, req.GetId());
 	}
-	return SendRequest(request::Subscription(securities, std::vector<Channel>{ Channel::quote }));
+	return SendRequest(req);
 }
 
 bool CHQService::UnsubscribeQuotes(const std::vector<CSecurity>& securities)
@@ -374,17 +382,17 @@ bool CHQService::UnsubscribeQuotes(const std::vector<CSecurity>& securities)
 	{
 		return true;
 	}
+	CRequest req = request::UnSubscription(securities, std::vector<Channel>{ Channel::quote });
+	std::lock_guard<std::mutex> lock(m_mtx_subscriptions);
+	for (const CSecurity& security : securities)
 	{
-		std::lock_guard<std::mutex> lock(m_mtx_subscriptions);
-		for (const CSecurity& security : securities)
-		{
-			std::string strKey = "watchlist:" + security.String();
-			m_subscriptions.erase(strKey);
-			m_confirmedSubscriptions.erase(strKey);
-			m_failedSubscriptions.erase(strKey);
-		}
+		std::string strKey = "watchlist:" + security.String();
+		m_subscriptions.erase(strKey);
+		m_cancelingSubscriptions.emplace(strKey);
+		m_confirmedSubscriptions.erase(strKey);
+		m_subscriptionRequests.insert_or_assign(strKey, req.GetId());
 	}
-	return SendRequest(request::UnSubscription(securities, std::vector<Channel>{ Channel::quote }));
+	return SendRequest(req);
 }
 
 bool CHQService::SubscribeDepth(const CSecurity& info)
@@ -416,7 +424,7 @@ bool CHQService::QueryHistory(const CSecurity& info, MarketBarPeriod period, std
 	}
 	{
 		std::lock_guard<std::mutex> lock(m_mtx_historyRequests);
-		m_historyRequests.emplace(request.GetId(), CMarketHistoryEvent{ request.GetId(), info.String(), period });
+		m_historyRequests.emplace(request.GetId(), CHistoryRequest{ { request.GetId(), info.String(), period }, std::chrono::steady_clock::now() + std::chrono::seconds(20) });
 	}
 	if (SendRequest(request))
 	{
@@ -464,40 +472,40 @@ bool CHQService::Subscribe(const std::string& strKey, const request::_TyParams& 
 	{
 		return false;
 	}
+	std::lock_guard<std::mutex> lock(m_mtx_subscriptions);
+	const auto mIter = m_subscriptions.find(strKey);
+	if (m_subscriptions.end() != mIter && param == mIter->second && m_confirmedSubscriptions.contains(strKey))
 	{
-		std::lock_guard<std::mutex> lock(m_mtx_subscriptions);
-		const auto mIter = m_subscriptions.find(strKey);
-		if ((m_subscriptions.end() != mIter) && (param == mIter->second))
-		{
-			return IsAuthenticated();
-		}
-		m_subscriptions.insert_or_assign(strKey, param);
+		return IsAuthenticated();
 	}
-	return SendRequest(request::Subscription(param));
+	CRequest req = request::Subscription(param);
+	m_subscriptions.insert_or_assign(strKey, param);
+	m_confirmedSubscriptions.erase(strKey);
+	m_cancelingSubscriptions.erase(strKey);
+	m_subscriptionRequests.insert_or_assign(strKey, req.GetId());
+	return SendRequest(req);
 }
 
 bool CHQService::Unsubscribe(const std::string& strKey, const request::_TyParams& param)
 {
+	std::lock_guard<std::mutex> lock(m_mtx_subscriptions);
+	if (0 == m_subscriptions.erase(strKey) && !m_cancelingSubscriptions.contains(strKey))
 	{
-		std::lock_guard<std::mutex> lock(m_mtx_subscriptions);
-		if (0 == m_subscriptions.erase(strKey))
-		{
-			return false;
-		}
+		return false;
 	}
-	return SendRequest(request::UnSubscription(param));
+	CRequest req = request::UnSubscription(param);
+	m_confirmedSubscriptions.erase(strKey);
+	m_cancelingSubscriptions.emplace(strKey);
+	m_subscriptionRequests.insert_or_assign(strKey, req.GetId());
+	return SendRequest(req);
 }
 
 void CHQService::RestoreSubscriptions()
 {
-	std::unordered_map<std::string, request::_TyParams> subscriptions;
-	{
-		std::lock_guard<std::mutex> lock(m_mtx_subscriptions);
-		subscriptions = m_subscriptions;
-	}
+	std::lock_guard<std::mutex> lock(m_mtx_subscriptions);
 	std::vector<CSecurity> quoteSubscriptions;
-	quoteSubscriptions.reserve(subscriptions.size());
-	for (const auto& v : subscriptions)
+	quoteSubscriptions.reserve(m_subscriptions.size());
+	for (const auto& v : m_subscriptions)
 	{
 		const std::string& strSecurity = container::vfind(v.second, "security");
 		const std::string& strChannel = container::vfind(v.second, "channel");
@@ -508,7 +516,9 @@ void CHQService::RestoreSubscriptions()
 		}
 		else
 		{
-			SendRequest(request::Subscription(v.second));
+			CRequest req = request::Subscription(v.second);
+			m_subscriptionRequests.insert_or_assign(v.first, req.GetId());
+			SendRequest(req);
 		}
 	}
 	constexpr std::size_t BatchSize = 200;
@@ -516,7 +526,12 @@ void CHQService::RestoreSubscriptions()
 	{
 		std::size_t nEnd = (std::min)(quoteSubscriptions.size(), nOffset + BatchSize);
 		std::vector<CSecurity> batch(quoteSubscriptions.begin() + nOffset, quoteSubscriptions.begin() + nEnd);
-		SendRequest(request::Subscription(batch, std::vector<Channel>{ Channel::quote }));
+		CRequest req = request::Subscription(batch, std::vector<Channel>{ Channel::quote });
+		for (const CSecurity& security : batch)
+		{
+			m_subscriptionRequests.insert_or_assign("watchlist:" + security.String(), req.GetId());
+		}
+		SendRequest(req);
 	}
 }
 
@@ -663,6 +678,7 @@ void CHQService::EnqueueQuote(const CQuote& quote)
 
 void CHQService::QuoteWorkerLoop()
 {
+	std::chrono::steady_clock::time_point nextExpiry = std::chrono::steady_clock::now();
 	while (!m_bStopping.load())
 	{
 		decltype(m_pendingQuotes) quotes;
@@ -674,10 +690,42 @@ void CHQService::QuoteWorkerLoop()
 			});
 			quotes.swap(m_pendingQuotes);
 		}
+		std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+		if (nextExpiry <= now)
+		{
+			ExpireHistoryRequests(false);
+			nextExpiry = now + std::chrono::seconds(1);
+		}
 		if (!quotes.empty())
 		{
 			FlushQuotes(quotes);
 		}
+	}
+}
+
+void CHQService::ExpireHistoryRequests(bool disconnected)
+{
+	std::vector<CMarketHistoryEvent> expired;
+	{
+		std::lock_guard<std::mutex> lock(m_mtx_historyRequests);
+		std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+		for (auto request = m_historyRequests.begin(); m_historyRequests.end() != request;)
+		{
+			if (disconnected || request->second.m_deadline <= now)
+			{
+				expired.emplace_back(std::move(request->second.m_event));
+				request = m_historyRequests.erase(request);
+			}
+			else
+			{
+				++request;
+			}
+		}
+	}
+	for (auto& event : expired)
+	{
+		event.m_strError = disconnected ? "行情连接已断开，历史查询已取消" : "历史行情查询超时";
+		m_pump_history.Notify(event);
 	}
 }
 
@@ -770,7 +818,8 @@ bool CHQService::OnRequestReply(const CRequest& req)
 
 bool CHQService::OnSectorListReply(const CRequest& req)
 {
-	if (req.GetId() != m_nLatestSectorListRequest.load())
+	std::uint64_t requestId = req.GetId();
+	if (0 == requestId || !m_nLatestSectorListRequest.compare_exchange_strong(requestId, 0))
 	{
 		return false;
 	}
@@ -807,7 +856,8 @@ bool CHQService::OnSectorListReply(const CRequest& req)
 
 bool CHQService::OnSectorConstituentsReply(const CRequest& req)
 {
-	if (req.GetId() != m_nLatestSectorConstituentsRequest.load())
+	std::uint64_t requestId = req.GetId();
+	if (0 == requestId || !m_nLatestSectorConstituentsRequest.compare_exchange_strong(requestId, 0))
 	{
 		return false;
 	}
@@ -941,7 +991,7 @@ bool CHQService::OnHistoryReply(const CRequest& req)
 		{
 			return false;
 		}
-		ev = std::move(mIter->second);
+		ev = std::move(mIter->second.m_event);
 		m_historyRequests.erase(mIter);
 	}
 	std::optional<std::pair<int, std::string>> err = req.GetErrorInfo();
@@ -1026,26 +1076,36 @@ bool CHQService::OnSubscriptionAck(const CRequest& req)
 	std::lock_guard<std::mutex> lock(m_mtx_subscriptions);
 	for (const auto& result : ack.results())
 	{
-		if (hqmarket::market::v1::CHANNEL_QUOTE != result.channel())
+		if (hqmarket::market::v1::CHANNEL_QUOTE != result.channel() && hqmarket::market::v1::CHANNEL_DEPTH != result.channel())
 		{
 			continue;
 		}
 		CSecurity security(result.security().symbol(), ToExchange(result.security().exchange()));
-		std::string strKey = "watchlist:" + security.String();
-		if ((_TyRequest::MARKET_UNSUBSCRIBE == req.GetType()) && result.accepted() && !req.GetErrorInfo().has_value())
+		std::string strKey = (hqmarket::market::v1::CHANNEL_QUOTE == result.channel() ? "watchlist:" : "depth:") + security.String();
+		const auto pending = m_subscriptionRequests.find(strKey);
+		if (m_subscriptionRequests.end() == pending || req.GetId() != pending->second)
 		{
-			m_confirmedSubscriptions.erase(strKey);
-			m_failedSubscriptions.erase(strKey);
+			continue;
 		}
-		else if (result.accepted() && !req.GetErrorInfo().has_value())
+		m_subscriptionRequests.erase(pending);
+		bool accepted = result.accepted() && !req.GetErrorInfo().has_value();
+		if (_TyRequest::MARKET_UNSUBSCRIBE == req.GetType())
 		{
-			m_confirmedSubscriptions.emplace(strKey);
-			m_failedSubscriptions.erase(strKey);
+			if (accepted && !m_subscriptions.contains(strKey))
+			{
+				m_cancelingSubscriptions.erase(strKey);
+			}
 		}
-		else
+		else if (m_subscriptions.contains(strKey))
 		{
-			m_confirmedSubscriptions.erase(strKey);
-			m_failedSubscriptions.emplace(strKey);
+			if (accepted)
+			{
+				m_confirmedSubscriptions.emplace(strKey);
+			}
+			else
+			{
+				m_confirmedSubscriptions.erase(strKey);
+			}
 		}
 	}
 	return true;

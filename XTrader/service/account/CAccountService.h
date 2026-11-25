@@ -4,7 +4,9 @@
 #include "../../request/request.pb.h"
 #include <chrono>
 #include <condition_variable>
+#include <map>
 #include <mutex>
+#include <optional>
 #include <thread>
 #include <unordered_map>
 #include <vector>
@@ -29,6 +31,8 @@ public:
 		std::uint64_t m_requestId{ 0 };
 		_TyAccountIndex m_accountIndex{};
 		std::uint64_t m_generation{ 0 };
+		std::uint64_t m_sequence{ 0 };
+		std::optional<std::uint64_t> m_fundsVersion;
 		_TyRequest m_type{ _TyRequest::UNKNOWN };
 		std::string m_error;
 		request::RequestData m_data;
@@ -45,16 +49,20 @@ public:
 private:
 	bool SendRequest(const CRequest& request);
 	bool OnRequestReply(const CRequest& response);
+	bool OnPush(const CRequest& response);
 	struct CPending
 	{
 		_TyAccountIndex m_accountIndex{};
 		_TyRequest m_type{ _TyRequest::UNKNOWN };
 		std::chrono::steady_clock::time_point m_deadline;
+		std::uint64_t m_statusRevision{ 0 };
 	};
 	std::once_flag m_initializeFlag;
 	mutable std::mutex m_mtx_state;
 	std::unordered_map<std::uint64_t, CPending> m_pending;
 	std::vector<request::TradeAccountRecord> m_accounts;
+	std::uint64_t m_statusRevision{ 0 };
+	std::map<_TyAccountIndex, std::pair<std::uint64_t, request::TradeAccountRecord>> m_pushedStates;
 	bool m_supported{ true };
 	std::uint64_t m_generation{ 0 };
 	TMessagePump<CResult> m_results;
