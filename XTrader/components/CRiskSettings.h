@@ -12,11 +12,11 @@ QT_END_NAMESPACE
 
 class CRiskSettings final : public QWidget
 {
-	public:
+public:
 	explicit CRiskSettings(QWidget* pParent = nullptr);
 	~CRiskSettings() override;
 
-	private:
+private:
 	Ui::CRiskSettingsClass* ui{ nullptr };
 };
 

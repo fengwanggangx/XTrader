@@ -22,7 +22,7 @@ namespace
 {
 	class CUserItemDelegate final : public QStyledItemDelegate
 	{
-	  public:
+	public:
 		using _TyDeleteCallback = std::function<void(int)>;
 
 		CUserItemDelegate(_TyDeleteCallback&& callback, QObject* pParent) : QStyledItemDelegate(pParent), m_callback(std::move(callback))
@@ -50,13 +50,13 @@ namespace
 			return QStyledItemDelegate::editorEvent(pEvent, pModel, option, index);
 		}
 
-	  private:
+	private:
 		QRect DeleteRect(const QRect& rect) const
 		{
 			return QRect(rect.right() - 23, rect.top(), 24, rect.height());
 		}
 
-	  private:
+	private:
 		_TyDeleteCallback m_callback;
 	};
 } // namespace
@@ -123,13 +123,13 @@ void LoginWindow::ConnectSlots()
 	QObject::connect(m_ui->comboBox_user, &QComboBox::currentIndexChanged, this, &LoginWindow::OnUserChanged);
 	QObject::connect(m_ui->comboBox_user->lineEdit(), &QLineEdit::textEdited, this, &LoginWindow::OnUserEdited);
 	QObject::connect(m_ui->checkBox_remember, &QCheckBox::toggled, this, [this](bool bChecked)
-					 {
-						 QSettings("Mary", "Mary").setValue("Login/RememberPassword", bChecked);
-						 if (!bChecked && !m_ui->lineEdit_passwd->isModified())
-						 {
-							 m_ui->lineEdit_passwd->clear();
-						 }
-					 });
+	{
+		QSettings("Mary", "Mary").setValue("Login/RememberPassword", bChecked);
+		if (!bChecked && !m_ui->lineEdit_passwd->isModified())
+		{
+			m_ui->lineEdit_passwd->clear();
+		}
+	});
 }
 
 void LoginWindow::mousePressEvent(QMouseEvent* event)

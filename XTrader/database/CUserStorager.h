@@ -16,10 +16,10 @@ struct CUserInfo
 
 class CUserStorager final
 {
-  public:
-	  std::vector<CUserInfo> LoadUsers() const;
-	  bool SaveUser(const std::string& strUser, const std::vector<std::uint8_t>& password, std::int64_t nTimestamp) const;
-	  bool DeleteUser(const std::string& strUser) const;
+public:
+	std::vector<CUserInfo> LoadUsers() const;
+	bool SaveUser(const std::string& strUser, const std::vector<std::uint8_t>& password, std::int64_t nTimestamp) const;
+	bool DeleteUser(const std::string& strUser) const;
 };
 
 #endif

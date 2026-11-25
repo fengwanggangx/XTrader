@@ -1,14 +1,14 @@
 #include "XmlNode.h"
 #include "Xml.h"
 #include "rapidxml_print.hpp"
-#include <sstream> 
+#include <sstream>
 #include "XmlAttribute.h"
 #include "../defines.h"
 
 namespace xml
 {
 	// XmlNode方法实现
-	XmlAttribute XmlNode::GetFirstAttribute(const std::string& strName) const 
+	XmlAttribute XmlNode::GetFirstAttribute(const std::string& strName) const
 	{
 		if (!m_pNode)
 		{
@@ -17,7 +17,7 @@ namespace xml
 		return XmlAttribute(xml::GetPtr(m_pNode->first_attribute(strName.c_str())));
 	}
 
-	std::vector<XmlAttribute> XmlNode::GetAttributes() const 
+	std::vector<XmlAttribute> XmlNode::GetAttributes() const
 	{
 		std::vector<XmlAttribute> result;
 		if (!m_pNode)
@@ -34,12 +34,12 @@ namespace xml
 		return result;
 	}
 
+	XmlNode::XmlNode(rapidxml::xml_node<>* pNode) : m_pNode(pNode)
+	{
+	}
 
-
-	XmlNode::XmlNode(rapidxml::xml_node<>* pNode) : m_pNode(pNode) {}
-
-	bool XmlNode::IsValid() const 
-	{ 
+	bool XmlNode::IsValid() const
+	{
 		return IS_NOT_NULLPTR(m_pNode);
 	}
 
@@ -63,7 +63,7 @@ namespace xml
 		m_pNode->value(str);
 	}
 
-	XmlNode XmlNode::GetFirstChild(const std::string& strName) const 
+	XmlNode XmlNode::GetFirstChild(const std::string& strName) const
 	{
 		RETURN_EMTPTY_IFNULLPTR(m_pNode);
 
@@ -73,7 +73,7 @@ namespace xml
 	XmlNode XmlNode::GetNextSibling(const std::string& strName) const
 	{
 		RETURN_EMTPTY_IFNULLPTR(m_pNode);
-		return  XmlNode(xml::GetPtr(m_pNode->next_sibling(strName.c_str())));
+		return XmlNode(xml::GetPtr(m_pNode->next_sibling(strName.c_str())));
 	}
 
 	XmlNode XmlNode::GetParent() const
@@ -112,7 +112,7 @@ namespace xml
 	}
 
 	// 创建子节点
-	XmlNode XmlNode::CreateChild(const std::string& strName, const std::string& strValue) 
+	XmlNode XmlNode::CreateChild(const std::string& strName, const std::string& strValue)
 	{
 		RETURN_EMTPTY_IFNULLPTR(m_pNode);
 
@@ -143,8 +143,7 @@ namespace xml
 		node.m_pNode = nullptr;
 	}
 
-
-	inline void XmlNode::AddAttribute(const std::string& strName, const std::string& strValue) 
+	inline void XmlNode::AddAttribute(const std::string& strName, const std::string& strValue)
 	{
 		RETURN_IFNULLPTR(m_pNode);
 
@@ -155,7 +154,7 @@ namespace xml
 		m_pNode->append_attribute(pAttr);
 	}
 
-	inline XmlAttribute XmlNode::FindAttribute(const std::string& strName) const 
+	inline XmlAttribute XmlNode::FindAttribute(const std::string& strName) const
 	{
 		RETURN_EMTPTY_IFNULLPTR(m_pNode);
 
@@ -163,13 +162,13 @@ namespace xml
 		return XmlAttribute(attr);
 	}
 
-	inline void XmlNode::RemoveAttribute(XmlAttribute& attr) 
+	inline void XmlNode::RemoveAttribute(XmlAttribute& attr)
 	{
-		if (m_pNode && attr.m_pAttr && attr.m_pAttr->parent() == m_pNode) 
+		if (m_pNode && attr.m_pAttr && attr.m_pAttr->parent() == m_pNode)
 		{
 			m_pNode->remove_attribute(attr.m_pAttr);
 			attr.m_pAttr = nullptr;
 		}
 	}
 
-}
+} // namespace xml

@@ -12,11 +12,11 @@ QT_END_NAMESPACE
 
 class CSystemSettings final : public QWidget
 {
-	public:
+public:
 	explicit CSystemSettings(QWidget* pParent = nullptr);
 	~CSystemSettings() override;
 
-	private:
+private:
 	Ui::CSystemSettingsClass* ui{ nullptr };
 };
 

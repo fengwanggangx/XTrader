@@ -5,7 +5,9 @@
 namespace xml
 {
 
-	XmlAttribute::XmlAttribute(rapidxml::xml_attribute<>* pAttr) : m_pAttr(pAttr) {}
+	XmlAttribute::XmlAttribute(rapidxml::xml_attribute<>* pAttr) : m_pAttr(pAttr)
+	{
+	}
 
 	bool XmlAttribute::IsValid() const
 	{
@@ -34,4 +36,4 @@ namespace xml
 		m_pAttr->value(str);
 	}
 
-}
+} // namespace xml

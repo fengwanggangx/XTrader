@@ -25,7 +25,7 @@ namespace ini
 	{
 		DECLARE_SINGLE_DFAULT(CINIHandler)
 
-	  public:
+	public:
 		int GetInt(Config config, const std::string& strSection, const std::string& strKey) const
 		{
 			return GetValue(config, strSection, strKey, -1);
@@ -73,7 +73,7 @@ namespace ini
 		std::vector<std::pair<std::string, std::string>> GetSection(Config config, const std::string& strSection) const;
 		bool UpdateEntry(Config config, const std::string& strSection, const std::string& strKey, const std::optional<std::string>& value, const std::string& oldKey = {});
 
-	  private:
+	private:
 		std::unordered_map<Config, std::unique_ptr<CIniFile>> m_iniFiles;
 	};
 } // namespace ini

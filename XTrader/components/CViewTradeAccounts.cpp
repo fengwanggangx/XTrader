@@ -38,7 +38,7 @@ namespace
 		painter.end();
 		return QIcon(pixmap);
 	}
-}
+} // namespace
 
 CViewTradeAccounts::CViewTradeAccounts(CTraderServices& services, QWidget* parent) : QWidget(parent)
 {
@@ -377,7 +377,8 @@ void CViewTradeAccounts::RefreshButtons()
 		{
 			CTableCell& cell = presentation.m_cells[{ id, 5 }];
 			bool enabled = 0 == m_operationId && m_removeIds.empty();
-			cell.m_tooltip = connected ? "已连接" : request::ACCOUNT_ERROR == account.state() ? "错误" : "未连接";
+			cell.m_tooltip = connected ? "已连接" : request::ACCOUNT_ERROR == account.state() ? "错误"
+																							  : "未连接";
 			if (enabled)
 			{
 				cell.m_tooltip += connected ? " · 点击断开" : " · 点击登录";

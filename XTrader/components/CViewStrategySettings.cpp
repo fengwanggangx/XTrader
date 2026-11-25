@@ -483,10 +483,10 @@ void CViewStrategySettings::RefreshDetails()
 	_TyDataValue securities;
 	m_instanceTable.GetView().GetValueById(m_selectedStrategyId, 4, securities);
 	m_pDetails->setText(QString("%1 · %2 · %3\n配置%4；运行状态由服务器快照提供")
-							.arg(QString::fromStdString(m_strategies[nRow].strategy_name()),
-								 QString::fromStdString(m_strategies[nRow].strategy_type()),
-								 QString::fromStdString(std::get<std::string>(securities)),
-								 m_bConfigStale ? "已过期" : "已加载"));
+			.arg(QString::fromStdString(m_strategies[nRow].strategy_name()),
+				QString::fromStdString(m_strategies[nRow].strategy_type()),
+				QString::fromStdString(std::get<std::string>(securities)),
+				m_bConfigStale ? "已过期" : "已加载"));
 	std::vector<CTableRow> rows;
 	for (const auto& [name, value] : m_strategies[nRow].parameters())
 	{

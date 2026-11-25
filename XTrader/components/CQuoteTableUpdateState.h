@@ -8,7 +8,7 @@
 
 class CQuoteTableUpdateState final
 {
-	public:
+public:
 	void Publish(const CDataTableView& view, const CDataChangeSet& changes)
 	{
 		std::lock_guard<std::mutex> lock(m_mtx_state);
@@ -30,7 +30,7 @@ class CQuoteTableUpdateState final
 		return true;
 	}
 
-	private:
+private:
 	std::mutex m_mtx_state;
 	CDataTableView m_view;
 	CDataChangeSet m_changes;

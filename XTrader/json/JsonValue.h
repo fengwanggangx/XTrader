@@ -65,6 +65,6 @@ namespace json
 		_TyValue* m_pValue{ nullptr };
 		_TyAllocator* m_pAllocator{ nullptr };
 	};
-}
+} // namespace json
 
 #endif

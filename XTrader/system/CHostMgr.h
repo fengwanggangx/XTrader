@@ -28,7 +28,7 @@ class CHostMgr final : public ISingleton<CHostMgr>
 {
 	DECLARE_SINGLE_DFAULT(CHostMgr)
 
-	public:
+public:
 	std::string Key() const;
 	const std::map<std::string, CHostInfo>& GetHosts() const;
 	std::optional<CHostInfo> GetActiveHost() const;
@@ -40,10 +40,10 @@ class CHostMgr final : public ISingleton<CHostMgr>
 	bool SetConnectFast(bool enabled);
 	bool IsConnectFast() const;
 
-	private:
+private:
 	void Initialize();
 
-	private:
+private:
 	bool m_bConnectFast{ false };
 	std::map<std::string, CHostInfo> m_hosts;
 };

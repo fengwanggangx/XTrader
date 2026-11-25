@@ -38,11 +38,12 @@ namespace xml
 		XmlNode GetRoot() const;
 		// 清除文档
 		void Clear();
+
 	private:
 		std::unique_ptr<rapidxml::xml_document<>> m_document;
 		std::unique_ptr<char[]> m_xmlData;
 	};
 
-}
+} // namespace xml
 
 #endif

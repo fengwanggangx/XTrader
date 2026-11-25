@@ -11,7 +11,7 @@ namespace json
 		m_document.SetObject();
 	}
 
-	JsonDocument::JsonDocument(const std::string& strJson) : m_bError(false) 
+	JsonDocument::JsonDocument(const std::string& strJson) : m_bError(false)
 	{
 		Parse(strJson);
 	}
@@ -22,7 +22,7 @@ namespace json
 		m_strErrorMsg.clear();
 
 		rapidjson::ParseResult ret = m_document.Parse(strJson.c_str());
-		if (!ret.IsError()) 
+		if (!ret.IsError())
 		{
 			m_bError = true;
 			m_strErrorMsg = std::string("JSON parse error: ") + rapidjson::GetParseError_En(ret.Code()) + " at offset " + std::to_string(ret.Offset());
@@ -39,7 +39,7 @@ namespace json
 			rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
 			m_document.Accept(writer);
 		}
-		else 
+		else
 		{
 			rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
 			m_document.Accept(writer);
@@ -51,4 +51,4 @@ namespace json
 	{
 		return JsonValue(&m_document, &m_document.GetAllocator());
 	}
-}
+} // namespace json

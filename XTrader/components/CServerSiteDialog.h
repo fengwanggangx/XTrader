@@ -14,13 +14,13 @@ QT_END_NAMESPACE
 
 class CServerSiteDialog final : public QDialog
 {
-	public:
+public:
 	explicit CServerSiteDialog(const CHostInfo& site, bool readOnly, QWidget* pParent = nullptr);
 	~CServerSiteDialog() override;
 
 	const CHostInfo& GetSite() const;
 
-	private:
+private:
 	void AcceptSite();
 
 	Ui::CServerSiteDialogClass* ui{ nullptr };

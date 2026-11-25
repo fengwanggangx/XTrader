@@ -40,7 +40,6 @@ int CPrint(lua_State* pState)
 	return 0;
 }
 
-
 CLuaVM::CLuaVM()
 {
 	m_loader = CLuaLoader::Instance();
@@ -57,12 +56,12 @@ CLuaVM::CLuaVM()
 
 CLuaVM::~CLuaVM()
 {
-	if (nullptr != m_pState) 
+	if (nullptr != m_pState)
 	{
 		if (nullptr != func_lua_close)
 		{
 			func_lua_close(m_pState);
-		}	
+		}
 	}
 }
 
@@ -101,9 +100,9 @@ int CLuaVM::Execute(int nType, CLuaParam* pParam)
 
 	if (nType == -1)
 	{
-		return func_lua_gc(m_pState, LUA_GCCOLLECT, 0);	
+		return func_lua_gc(m_pState, LUA_GCCOLLECT, 0);
 	}
-	
+
 	func_lua_settop(m_pState, 0);
 	func_lua_getglobal(m_pState, cs_entry_point);
 	if (!func_lua_isfunction(m_pState, -1))
@@ -160,7 +159,6 @@ void CLuaVM::Regist()
 	func_lua_setglobal(m_pState, "vm_instance");
 	func_lua_register(m_pState, "CExecute", CExecute);
 	func_lua_register(m_pState, "CPrint", CPrint);
-
 
 	func_luaL_newmetatable(m_pState, "CLuaParam");
 	func_lua_pushvalue(m_pState, -1);

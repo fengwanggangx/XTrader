@@ -86,11 +86,16 @@ namespace
 	{
 		switch (mode)
 		{
-		case CurveMode::Minute5: return 5;
-		case CurveMode::Minute15: return 15;
-		case CurveMode::Minute30: return 30;
-		case CurveMode::Minute60: return 60;
-		default: return 0;
+		case CurveMode::Minute5:
+			return 5;
+		case CurveMode::Minute15:
+			return 15;
+		case CurveMode::Minute30:
+			return 30;
+		case CurveMode::Minute60:
+			return 60;
+		default:
+			return 0;
 		}
 	}
 
@@ -109,7 +114,7 @@ namespace
 
 	class CBarCandleSeriesData final : public QwtSeriesData<QwtOHLCSample>
 	{
-	  public:
+	public:
 		explicit CBarCandleSeriesData(const std::shared_ptr<const std::vector<CMarketBar>>& bars) : m_bars(bars)
 		{
 		}
@@ -140,13 +145,14 @@ namespace
 			// QwtPlotTradingCurve exchanges the rectangle axes in vertical orientation.
 			return QRectF(fLow, -0.5, fHigh - fLow, static_cast<double>(m_bars->size()));
 		}
-	  private:
+
+	private:
 		std::shared_ptr<const std::vector<CMarketBar>> m_bars;
 	};
 
 	class CBarVolumeSeriesData final : public QwtSeriesData<QwtIntervalSample>
 	{
-	  public:
+	public:
 		explicit CBarVolumeSeriesData(const std::shared_ptr<const std::vector<CMarketBar>>& bars) : m_bars(bars)
 		{
 		}
@@ -173,13 +179,14 @@ namespace
 			}
 			return QRectF(-0.38, 0.0, static_cast<double>(m_bars->size()), static_cast<double>(nMaximumVolume));
 		}
-	  private:
+
+	private:
 		std::shared_ptr<const std::vector<CMarketBar>> m_bars;
 	};
 
 	class CFinancialTradingCurve final : public QwtPlotTradingCurve
 	{
-	  public:
+	public:
 		explicit CFinancialTradingCurve(const QString& strTitle) : QwtPlotTradingCurve(strTitle)
 		{
 			setSymbolStyle(static_cast<SymbolStyle>(UserSymbol));
@@ -191,7 +198,7 @@ namespace
 			m_falling = falling;
 		}
 
-	  protected:
+	protected:
 		void drawUserSymbol(QPainter* pPainter, SymbolStyle, const QwtOHLCSample& sample, Qt::Orientation orientation, bool, double fSymbolWidth) const override
 		{
 			bool bRising = sample.close < sample.open;
@@ -202,14 +209,14 @@ namespace
 			pPainter->restore();
 		}
 
-	  private:
+	private:
 		QColor m_rising{ RisingColor };
 		QColor m_falling{ FallingColor };
 	};
 
 	class CColoredHistogram final : public QwtPlotHistogram
 	{
-	  public:
+	public:
 		void SetColors(const QColor& rising, const QColor& falling)
 		{
 			m_risingColor = rising;
@@ -256,7 +263,8 @@ namespace
 				previousDate = date;
 			}
 		}
-	  protected:
+
+	protected:
 		void drawColumn(QPainter* pPainter, const QwtColumnRect& rect, const QwtIntervalSample& sample) const override
 		{
 			int nIndex = qRound((sample.interval.minValue() + sample.interval.maxValue()) * 0.5);
@@ -271,7 +279,8 @@ namespace
 			pPainter->drawRect(rect.toRect());
 			pPainter->restore();
 		}
-	  private:
+
+	private:
 		std::vector<bool> m_rising;
 		QColor m_risingColor{ RisingColor };
 		QColor m_fallingColor{ FallingColor };
@@ -279,7 +288,7 @@ namespace
 
 	class CTimeScaleDraw final : public QwtScaleDraw
 	{
-	  public:
+	public:
 		void SetBars(const std::shared_ptr<const std::vector<CMarketBar>>& bars, CurveMode mode, int nDays)
 		{
 			m_bars = bars;
@@ -315,7 +324,8 @@ namespace
 			}
 			return QwtText(IsMinuteCurveMode(m_mode) ? value.toString("MM-dd HH:mm") : value.date().toString("MM-dd"));
 		}
-	  private:
+
+	private:
 		std::shared_ptr<const std::vector<CMarketBar>> m_bars;
 		CurveMode m_mode{ CurveMode::Day };
 		int m_nDays{ 1 };
@@ -324,7 +334,7 @@ namespace
 
 	class CPercentScaleDraw final : public QwtScaleDraw
 	{
-	  public:
+	public:
 		QwtText label(double fValue) const override
 		{
 			QwtText text(QString("%1%2%").arg(0.0 < fValue ? "+" : "").arg(fValue, 0, 'f', 2));
@@ -335,7 +345,7 @@ namespace
 
 	class CPriceScaleDraw final : public QwtScaleDraw
 	{
-	  public:
+	public:
 		void SetReferencePrice(double fReferencePrice, bool bColorize)
 		{
 			m_fReferencePrice = fReferencePrice;
@@ -349,14 +359,14 @@ namespace
 			return text;
 		}
 
-	  private:
+	private:
 		double m_fReferencePrice{ 0.0 };
 		bool m_bColorize{ false };
 	};
 
 	class CCurvePicker final : public QwtPlotPicker
 	{
-	  public:
+	public:
 		explicit CCurvePicker(QWidget* pCanvas) : QwtPlotPicker(QwtAxis::XBottom, QwtAxis::YLeft, CrossRubberBand, ActiveOnly, pCanvas)
 		{
 			setStateMachine(new QwtPickerTrackerMachine());
@@ -383,8 +393,12 @@ namespace
 			else
 			{
 				strText = QString("%1\n开 %2  高 %3\n低 %4  收 %5\n成交量 %6")
-					.arg(time.toString(IsMinuteCurveMode(m_mode) ? "yyyy-MM-dd HH:mm" : "yyyy-MM-dd"))
-					.arg(bar.m_fOpen, 0, 'f', 2).arg(bar.m_fHigh, 0, 'f', 2).arg(bar.m_fLow, 0, 'f', 2).arg(bar.m_fClose, 0, 'f', 2).arg(bar.m_nVolume);
+							  .arg(time.toString(IsMinuteCurveMode(m_mode) ? "yyyy-MM-dd HH:mm" : "yyyy-MM-dd"))
+							  .arg(bar.m_fOpen, 0, 'f', 2)
+							  .arg(bar.m_fHigh, 0, 'f', 2)
+							  .arg(bar.m_fLow, 0, 'f', 2)
+							  .arg(bar.m_fClose, 0, 'f', 2)
+							  .arg(bar.m_nVolume);
 			}
 			QPalette palette = qApp->palette();
 			QColor background = palette.color(QPalette::Base);
@@ -395,7 +409,8 @@ namespace
 			text.setColor(palette.color(QPalette::Text));
 			return text;
 		}
-	  private:
+
+	private:
 		std::shared_ptr<const std::vector<CMarketBar>> m_bars;
 		CurveMode m_mode{ CurveMode::Day };
 	};
@@ -504,7 +519,8 @@ void CUICurve::SetBars(const std::vector<CMarketBar>& bars)
 		values->erase(std::remove_if(values->begin(), values->end(), [](const CMarketBar& bar)
 		{
 			return 0 > SessionMinute(BarDateTime(bar).time());
-		}), values->end());
+		}),
+			values->end());
 	}
 	std::sort(values->begin(), values->end(), [](const CMarketBar& left, const CMarketBar& right)
 	{

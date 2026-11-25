@@ -57,7 +57,6 @@ namespace net
 			}
 		}
 
-		
 		bufferevent* pBuffer = CNetPool::InstancePtr()->RegisterAConnection(fd, pEvent, &addr);
 	}
 
@@ -110,7 +109,7 @@ namespace net
 		{
 			nOptions |= BEV_OPT_THREADSAFE;
 		}
-		struct bufferevent* pEvent  = bufferevent_socket_new(GetNet(), -1, nOptions);
+		struct bufferevent* pEvent = bufferevent_socket_new(GetNet(), -1, nOptions);
 
 		// 连接服务器
 		struct sockaddr_in svr;
@@ -121,7 +120,7 @@ namespace net
 			return -1;
 		}
 		int nRet = bufferevent_socket_connect(pEvent, (struct sockaddr*)&svr, sizeof(svr));
-		if (nRet != 0)
+		if (0 != nRet)
 		{
 			bufferevent_free(pEvent);
 			return nRet;
@@ -129,7 +128,7 @@ namespace net
 
 		bufferevent_setcb(pEvent, CNetClient::Read_Callback, nullptr, CNetClient::Event_Callback, this);
 		nRet = bufferevent_enable(pEvent, EV_READ | EV_WRITE);
-		if (nRet != 0)
+		if (0 != nRet)
 		{
 			bufferevent_free(pEvent);
 			return nRet;
@@ -141,4 +140,4 @@ namespace net
 	{
 		m_dispatcher->RegisterHandler(std::move(func));
 	}
-}
+} // namespace net

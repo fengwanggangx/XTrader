@@ -6,7 +6,6 @@ struct lua_State;
 class CLuaParam
 {
 public:
-
 	static CLuaParam* GetParamPtr(lua_State* pState);
 	static int SetIntCallBack(lua_State* pState);
 	static int GetIntCallBack(lua_State* pState);

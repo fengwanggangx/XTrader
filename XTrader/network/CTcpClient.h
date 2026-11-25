@@ -22,7 +22,7 @@ namespace net
 		using _TyHandler = std::function<int(const CNetEvent&)>;
 		using _TyDistributor = CDistributor<true, std::vector<CNetEvent>, _TyHandler>;
 
-		public:
+	public:
 		explicit CTcpClient(const std::string& strAddr, int nPort);
 		~CTcpClient() override;
 		int Initialize();
@@ -39,13 +39,13 @@ namespace net
 
 		net::_TyConnectionId GetId() const;
 
-		private:
+	private:
 		bool Send(const void* pData, std::size_t nLength);
 		void OnConnected(bufferevent* pEvent) override;
 		std::size_t OnRead(bufferevent* pEvent) override;
 		void OnEvent(bufferevent* pEvent, short events) override;
 
-		private:
+	private:
 		struct CBufferEventDeleter
 		{
 			void operator()(bufferevent* pEvent) const;
@@ -55,7 +55,7 @@ namespace net
 		std::atomic_bool m_bConnected{ false };
 		std::unique_ptr<_TyDistributor> m_dispatcher;
 
-		private:
+	private:
 		std::string m_strAddr;
 		int m_nPort{ -1 };
 

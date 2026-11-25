@@ -116,4 +116,4 @@ namespace net
 		SetError(response, request, code, message);
 		SendRequest(id, response);
 	}
-}
+} // namespace net

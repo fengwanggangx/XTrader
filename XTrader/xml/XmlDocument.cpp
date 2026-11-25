@@ -8,7 +8,9 @@
 
 namespace xml
 {
-	XmlDocument::XmlDocument() :m_document(std::make_unique<rapidxml::xml_document<>>()) {}
+	XmlDocument::XmlDocument() : m_document(std::make_unique<rapidxml::xml_document<>>())
+	{
+	}
 
 	bool XmlDocument::Parse(const std::string& xml)
 	{
@@ -25,12 +27,12 @@ namespace xml
 		}
 	}
 
-	bool XmlDocument::LoadFromFile(const std::string& filename) 
+	bool XmlDocument::LoadFromFile(const std::string& filename)
 	{
 		try
 		{
 			std::ifstream file(filename.c_str());
-			if (!file.is_open()) 
+			if (!file.is_open())
 			{
 				return false;
 			}
@@ -47,19 +49,19 @@ namespace xml
 
 	bool XmlDocument::SaveToFile(const std::string& filename, bool formatted) const
 	{
-		try 
+		try
 		{
 			std::ofstream file(filename);
-			if (!file.is_open()) 
+			if (!file.is_open())
 			{
 				return false;
 			}
 
-			if (formatted) 
+			if (formatted)
 			{
-				//file << rapidxml::pretty_print(m_document.get());
+				// file << rapidxml::pretty_print(m_document.get());
 			}
-			else 
+			else
 			{
 				file << *m_document;
 			}
@@ -75,9 +77,9 @@ namespace xml
 	std::string XmlDocument::ToString(bool formatted) const
 	{
 		std::stringstream ss;
-		if (formatted) 
+		if (formatted)
 		{
-			//ss << rapidxml::pretty_print(m_document.get());
+			// ss << rapidxml::pretty_print(m_document.get());
 		}
 		else
 		{
@@ -112,4 +114,4 @@ namespace xml
 		m_xmlData.reset();
 	}
 
-}
+} // namespace xml

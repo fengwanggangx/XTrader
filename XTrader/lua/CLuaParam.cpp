@@ -22,7 +22,6 @@ int CLuaParam::GetInt() const
 	return m_nValue;
 }
 
-
 CLuaParam* CLuaParam::GetParamPtr(lua_State* pState)
 {
 	if (!func_lua_islightuserdata(pState, 1))

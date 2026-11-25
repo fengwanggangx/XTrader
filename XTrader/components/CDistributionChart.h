@@ -10,7 +10,7 @@ class CDistributionChart final : public QWidget
 	Q_OBJECT
 	Q_PROPERTY(QColor risingColor READ GetRisingColor WRITE SetRisingColor)
 	Q_PROPERTY(QColor fallingColor READ GetFallingColor WRITE SetFallingColor)
-	public:
+public:
 	explicit CDistributionChart(QWidget* pParent = nullptr);
 	void SetValues(const QVector<int>& values);
 	const QColor& GetRisingColor() const;
@@ -18,10 +18,10 @@ class CDistributionChart final : public QWidget
 	void SetRisingColor(const QColor& color);
 	void SetFallingColor(const QColor& color);
 
-	protected:
+protected:
 	void paintEvent(QPaintEvent* pEvent) override;
 
-	private:
+private:
 	QVector<int> m_values;
 	QColor m_risingColor{ Qt::red };
 	QColor m_fallingColor{ Qt::green };

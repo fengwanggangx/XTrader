@@ -30,10 +30,7 @@ namespace net
 		std::size_t offset = 0;
 		while (sizeof(std::uint32_t) <= m_receiveBuffer.size() - offset)
 		{
-			std::uint32_t frameLength = (static_cast<std::uint32_t>(m_receiveBuffer[offset]) << 24)
-				| (static_cast<std::uint32_t>(m_receiveBuffer[offset + 1]) << 16)
-				| (static_cast<std::uint32_t>(m_receiveBuffer[offset + 2]) << 8)
-				| static_cast<std::uint32_t>(m_receiveBuffer[offset + 3]);
+			std::uint32_t frameLength = (static_cast<std::uint32_t>(m_receiveBuffer[offset]) << 24) | (static_cast<std::uint32_t>(m_receiveBuffer[offset + 1]) << 16) | (static_cast<std::uint32_t>(m_receiveBuffer[offset + 2]) << 8) | static_cast<std::uint32_t>(m_receiveBuffer[offset + 3]);
 			if ((0 == frameLength) || (MaxFrameSize < frameLength))
 			{
 				m_hasError = true;
@@ -80,4 +77,4 @@ namespace net
 		frame.append(strPayload);
 		return frame;
 	}
-}
+} // namespace net

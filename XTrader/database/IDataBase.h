@@ -16,10 +16,10 @@ namespace db
 
 	class IDataBase
 	{
-	  public:
+	public:
 		virtual ~IDataBase() = default;
 
-	  public:
+	public:
 		virtual int Connect(const CConnectParam& param) = 0;
 		virtual int Close() = 0;
 
@@ -36,7 +36,7 @@ namespace db
 		virtual int ExecScript(const std::string& strSQL);
 		virtual int ExecSqlFile(const std::filesystem::path& filePath);
 
-	  public:
+	public:
 		db::status m_status{ db::status::free };
 	};
 } // namespace db

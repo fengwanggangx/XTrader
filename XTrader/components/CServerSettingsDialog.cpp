@@ -18,7 +18,7 @@ namespace
 		QString siteText = QStringLiteral("%1 (%2:%3)").arg(QString::fromStdString(site.m_strName), QString::fromStdString(site.m_strHost)).arg(site.m_nPort);
 		return siteText;
 	}
-}
+} // namespace
 
 CServerSettingsDialog::CServerSettingsDialog(QWidget* pParent) : QDialog(pParent), ui(new Ui::CServerSettingsDialogClass())
 {

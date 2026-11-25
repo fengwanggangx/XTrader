@@ -31,8 +31,7 @@ bool CDataTableModel::LoadHeaderConfig(db::IDataBase& db)
 		const std::string* mode = std::get_if<std::string>(&row[5]);
 		const std::int64_t* width = std::get_if<std::int64_t>(&row[6]);
 		const std::int64_t* alignment = std::get_if<std::int64_t>(&row[7]);
-		if (nullptr == name || nullptr == title || nullptr == id || nullptr == position || nullptr == visible || nullptr == mode
-			|| nullptr == alignment || 0 > *alignment || 3 <= *alignment)
+		if (nullptr == name || nullptr == title || nullptr == id || nullptr == position || nullptr == visible || nullptr == mode || nullptr == alignment || 0 > *alignment || 3 <= *alignment)
 		{
 			continue;
 		}

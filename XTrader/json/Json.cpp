@@ -10,7 +10,6 @@ namespace json
 
 	Parser::~Parser()
 	{
-
 	}
 
 	bool Parser::LoadFromFile(const std::string& strFileName)
@@ -30,9 +29,9 @@ namespace json
 
 		if (doc.HasParseError())
 		{
-			//std::string strErr = "Parse error at offset " + std::to_string(m_pDoc->GetErrorOffset()) + ": " + GetParseError_En(m_pDoc->GetParseError());
+			// std::string strErr = "Parse error at offset " + std::to_string(m_pDoc->GetErrorOffset()) + ": " + GetParseError_En(m_pDoc->GetParseError());
 			return false;
 		}
 		return true;
 	}
-}
+} // namespace json

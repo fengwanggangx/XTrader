@@ -127,8 +127,7 @@ namespace
 				cell.text.clear();
 				m_table->style()->drawControl(QStyle::CE_ItemViewItem, &cell, painter, m_table);
 				QRect rect = ActionRect(option.rect, actions, 0);
-				bool hovered = action.m_enabled && 0 != (index.flags() & Qt::ItemIsEnabled)
-					&& rect.contains(m_table->viewport()->mapFromGlobal(QCursor::pos()));
+				bool hovered = action.m_enabled && 0 != (index.flags() & Qt::ItemIsEnabled) && rect.contains(m_table->viewport()->mapFromGlobal(QCursor::pos()));
 				if (hovered && action.m_hoverBorder.isValid())
 				{
 					painter->save();
@@ -180,15 +179,13 @@ namespace
 		}
 		bool editorEvent(QEvent* event, QAbstractItemModel* model, const QStyleOptionViewItem& option, const QModelIndex& index) override
 		{
-			if (TableCheckColumn == index.data(TableColumnIdRole).toULongLong()
-				&& (QEvent::MouseButtonPress == event->type() || QEvent::MouseButtonRelease == event->type() || QEvent::MouseButtonDblClick == event->type()))
+			if (TableCheckColumn == index.data(TableColumnIdRole).toULongLong() && (QEvent::MouseButtonPress == event->type() || QEvent::MouseButtonRelease == event->type() || QEvent::MouseButtonDblClick == event->type()))
 			{
 				QStyleOptionViewItem check(option);
 				initStyleOption(&check, index);
 				QMouseEvent* mouse = static_cast<QMouseEvent*>(event);
 				Qt::ItemFlags flags = index.flags();
-				if (0 == (flags & Qt::ItemIsUserCheckable) || 0 == (flags & Qt::ItemIsEnabled)
-					|| Qt::LeftButton != mouse->button() || !CheckRect(check).contains(mouse->position().toPoint()))
+				if (0 == (flags & Qt::ItemIsUserCheckable) || 0 == (flags & Qt::ItemIsEnabled) || Qt::LeftButton != mouse->button() || !CheckRect(check).contains(mouse->position().toPoint()))
 				{
 					return false;
 				}

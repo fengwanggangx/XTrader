@@ -17,15 +17,15 @@ namespace net
 
 		int m_nPort{ -1 };
 		std::string m_strAddress;
-		struct sockaddr_storage m_addr { 0 };
+		struct sockaddr_storage m_addr{ 0 };
 		struct bufferevent* m_pEvent{ nullptr };
-		
+
 		CFrameBuffer m_frames;
 
 		void Empty()
 		{
 			m_fd = -1;
-			if (m_pEvent != nullptr)
+			if (nullptr != m_pEvent)
 			{
 				bufferevent_free(m_pEvent);
 				m_pEvent = nullptr;
@@ -34,7 +34,7 @@ namespace net
 			m_nPort = -1;
 			m_strAddress.clear();
 			memset(&m_addr, 0, sizeof(m_addr));
-			
+
 			m_frames.Reset();
 		}
 
@@ -189,7 +189,7 @@ namespace net
 
 	net::_TyConnectionId CNetPool::CloseAConnection(struct bufferevent* pEvent)
 	{
-		if (pEvent == nullptr)
+		if (nullptr == pEvent)
 		{
 			return -1;
 		}

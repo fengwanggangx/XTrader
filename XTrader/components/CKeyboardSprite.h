@@ -17,18 +17,18 @@ class CKeyboardSprite final : public QWidget
 {
 	Q_OBJECT
 
-	public:
+public:
 	explicit CKeyboardSprite(QWidget* pParent = nullptr);
 	void SetSecurities(const std::vector<CSecurity>& securities);
 	void Open(const QString& strInitial = QString());
 
-	signals:
+signals:
 	void SecuritySelected(const CSecurity& security);
 
-	protected:
+protected:
 	bool eventFilter(QObject* pObject, QEvent* pEvent) override;
 
-	private:
+private:
 	struct CSearchEntry
 	{
 		QStringList m_values;

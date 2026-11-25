@@ -175,7 +175,7 @@ namespace
 		std::chrono::milliseconds elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - begin);
 		std::cout << "CDataTable 100000 updates: " << elapsed.count() << " ms\n";
 	}
-}
+} // namespace
 
 int main()
 {

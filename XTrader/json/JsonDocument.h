@@ -7,7 +7,8 @@
 
 namespace json
 {
-	class JsonDocument {
+	class JsonDocument
+	{
 	public:
 		JsonDocument();
 		JsonDocument(const std::string& strJson);
@@ -18,16 +19,25 @@ namespace json
 
 		JsonValue Root();
 
-		bool IsWithError() const { return m_bError; }
-		std::string GetErrorMsg() const { return m_strErrorMsg; }
-		_TyDocument* GetDocument() { return &m_document; }
+		bool IsWithError() const
+		{
+			return m_bError;
+		}
+		std::string GetErrorMsg() const
+		{
+			return m_strErrorMsg;
+		}
+		_TyDocument* GetDocument()
+		{
+			return &m_document;
+		}
 
 	private:
 		_TyDocument m_document;
-		bool m_bError{false};
+		bool m_bError{ false };
 		std::string m_strErrorMsg;
 	};
 
-}
+} // namespace json
 
 #endif

@@ -6,10 +6,12 @@
 namespace net
 {
 
-	std::string GetErrorString(int errorCode) {
+	std::string GetErrorString(int errorCode)
+	{
 #ifdef _MSC_VER
 		char buffer[256];
-		if (strerror_s(buffer, sizeof(buffer), errorCode) != 0) {
+		if (strerror_s(buffer, sizeof(buffer), errorCode) != 0)
+		{
 			return "Unknown error";
 		}
 		return buffer;
@@ -27,7 +29,8 @@ namespace net
 			return false;
 		}
 #else
-		if (evthread_use_pthreads() != 0) {
+		if (evthread_use_pthreads() != 0)
+		{
 			std::cerr << "Failed to enable pthreads support" << std::endl;
 			return -1;
 		}
@@ -49,7 +52,7 @@ namespace net
 		return bThreadEnable.load();
 	}
 
-	bool FmtAddress(struct sockaddr_in& addr, int nPort, const std::string& strAddr/* = ""*/)
+	bool FmtAddress(struct sockaddr_in& addr, int nPort, const std::string& strAddr /* = ""*/)
 	{
 		memset(&addr, 0, sizeof(addr));
 		addr.sin_family = AF_INET;
@@ -103,7 +106,7 @@ namespace net
 		// 根据地址族判断类型
 		if (AF_INET == addr.ss_family)
 		{
-			char buffer[INET_ADDRSTRLEN] = {0};
+			char buffer[INET_ADDRSTRLEN] = { 0 };
 			const auto* pAddr = reinterpret_cast<const struct sockaddr_in*>(&addr);
 			if (!inet_ntop(AF_INET, &pAddr->sin_addr, buffer, INET_ADDRSTRLEN))
 			{
@@ -131,38 +134,36 @@ namespace net
 		return "unkown sa_family";
 	}
 
-
 	bool CheckSockAddress(struct sockaddr* pAddr, int nLength)
 	{
 		if (nullptr == pAddr)
 		{
 			return false;
 		}
-		//IPv4地址
-		if ((pAddr->sa_family == AF_INET) && (nLength == sizeof(struct sockaddr_in))) 
+		// IPv4地址
+		if ((pAddr->sa_family == AF_INET) && (nLength == sizeof(struct sockaddr_in)))
 		{
 			return true;
 		}
-		
-		//IPv6地址
-		if (pAddr->sa_family == AF_INET6 && nLength == sizeof(struct sockaddr_in6)) 
+
+		// IPv6地址
+		if (pAddr->sa_family == AF_INET6 && nLength == sizeof(struct sockaddr_in6))
 		{
 			return true;
 		}
 		return false;
 	}
 
-
 	bool SockAddrSafeCopy(struct sockaddr& dst, const struct sockaddr& src)
 	{
 		memset(&dst, 0, sizeof(dst));
-		if (src.sa_family == AF_INET) 
+		if (src.sa_family == AF_INET)
 		{
 			memcpy(&dst, &src, sizeof(struct sockaddr_in));
 			return true;
 		}
-		
-		if (src.sa_family == AF_INET6) 
+
+		if (src.sa_family == AF_INET6)
 		{
 			memcpy(&dst, &src, sizeof(struct sockaddr_in6));
 			return true;
@@ -189,4 +190,4 @@ namespace net
 		return false;
 	}
 
-}
+} // namespace net

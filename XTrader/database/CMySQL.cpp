@@ -25,14 +25,17 @@ namespace db
 		if (nullptr == m_pDB)
 		{
 			m_pDB = mysql_init(nullptr);
-			if (m_pDB == nullptr) return 1;
+			if (nullptr == m_pDB)
+			{
+				return 1;
+			}
 		}
 
 		mysql_options(m_pDB, MYSQL_SET_CHARSET_NAME, param.m_strCharset.c_str());
 		bool bReconnect = true;
 		mysql_options(m_pDB, MYSQL_OPT_RECONNECT, &bReconnect);
 		if (!mysql_real_connect(m_pDB, param.m_strHost.c_str(), param.m_strAccount.c_str(), param.m_strPasswd.c_str(),
-								param.m_strDataBase.c_str(), param.m_nPort, nullptr, 0))
+				param.m_strDataBase.c_str(), param.m_nPort, nullptr, 0))
 		{
 			mysql_close(m_pDB);
 			m_pDB = nullptr;
@@ -44,7 +47,7 @@ namespace db
 	void CMySQL::DisConnect()
 	{
 		std::lock_guard<std::mutex> lock(m_mtx);
-		if (m_pDB != nullptr)
+		if (nullptr != m_pDB)
 		{
 			mysql_close(m_pDB);
 		}
@@ -84,13 +87,13 @@ namespace db
 		}
 
 		std::unique_ptr<MYSQL_RES, void (*)(MYSQL_RES*)> result(mysql_store_result(m_pDB),
-																[](MYSQL_RES* p)
-																{
-																	if (nullptr != p)
-																	{
-																		mysql_free_result(p);
-																	}
-																});
+			[](MYSQL_RES* p)
+		{
+			if (nullptr != p)
+			{
+				mysql_free_result(p);
+			}
+		});
 		if (nullptr == result.get())
 		{
 			//(0 == mysql_field_count(m_pDB))

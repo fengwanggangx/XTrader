@@ -14,11 +14,11 @@ QT_END_NAMESPACE
 
 class CServerSettingsDialog final : public QDialog
 {
-	public:
+public:
 	explicit CServerSettingsDialog(QWidget* pParent = nullptr);
 	~CServerSettingsDialog() override;
 
-	private:
+private:
 	void LoadSites();
 	void UpdateButtons();
 	void ViewSite();

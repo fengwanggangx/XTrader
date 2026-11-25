@@ -23,7 +23,7 @@ namespace request
 			req.SetExtraData("subscriptions", rows);
 			return req;
 		}
-	}
+	} // namespace
 	CRequest Auth(AuthAction action, const std::string& strUser, const std::string& strPassword)
 	{
 		CRequest req;

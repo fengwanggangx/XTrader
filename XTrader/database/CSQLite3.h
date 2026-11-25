@@ -7,11 +7,11 @@ namespace db
 {
 	class CSQLite3 : public IDataBase
 	{
-	  public:
+	public:
 		CSQLite3();
 		~CSQLite3();
 
-	  public:
+	public:
 		int Connect(const CConnectParam& param) override;
 		int Close() override;
 
@@ -22,7 +22,7 @@ namespace db
 		bool EndTransaction() override;
 		bool RollBackTransaction() override;
 
-	  private:
+	private:
 		void* m_pDB{ nullptr };
 	};
 } // namespace db

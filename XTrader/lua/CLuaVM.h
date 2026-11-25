@@ -17,6 +17,7 @@ public:
 	int Execute(lua_State* pState, int nType);
 	int Execute(int nType, CLuaParam* pParam);
 	bool LoadScript(const std::string& strPath);
+
 private:
 	void Regist();
 

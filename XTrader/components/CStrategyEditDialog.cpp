@@ -59,7 +59,7 @@ namespace
 		}
 		CSinglePixelBorder::Install(*combo.view());
 	}
-}
+} // namespace
 
 CStrategyEditDialog::CStrategyEditDialog(CTraderServices& services, QWidget* pParent)
 	: QDialog(pParent), m_ui(std::make_unique<Ui::CStrategyEditDialogClass>())

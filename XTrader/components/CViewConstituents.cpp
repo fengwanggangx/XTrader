@@ -21,9 +21,13 @@ void CViewConstituents::Initialize(CTraderServices& services)
 	m_ui->table->SetSearchColumns({ 0, 1 });
 	connect(m_ui->searchEdit, &QLineEdit::textChanged, m_ui->table, &CUITable::Search);
 	connect(m_ui->searchEdit, &QLineEdit::returnPressed, this, [this]()
-			{ m_ui->table->Search(m_ui->searchEdit->text()); });
+	{
+		m_ui->table->Search(m_ui->searchEdit->text());
+	});
 	connect(m_ui->searchButton, &QPushButton::clicked, this, [this]()
-			{ m_ui->table->Search(m_ui->searchEdit->text()); });
+	{
+		m_ui->table->Search(m_ui->searchEdit->text());
+	});
 	connect(m_ui->table, &CUITable::OperationRequested, this, [this](const CTableOperation& operation)
 	{
 		if (TableOperationKind::ResultsChanged != operation.m_kind)

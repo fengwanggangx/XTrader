@@ -11,7 +11,7 @@ namespace net
 {
 	class CFrameBuffer final
 	{
-		public:
+	public:
 		CFrameBuffer();
 
 		void Reset();
@@ -19,7 +19,7 @@ namespace net
 		static std::optional<std::string> Encode(const std::string& strPayload);
 		std::optional<std::vector<std::string>> Decode(const void* pData, std::size_t nLength);
 
-		private:
+	private:
 		static constexpr std::size_t MaxFrameSize{ 8U * 1024U * 1024U };
 		std::vector<std::uint8_t> m_receiveBuffer;
 		bool m_hasError{ false };

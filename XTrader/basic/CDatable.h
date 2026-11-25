@@ -80,7 +80,7 @@ struct CDataTableStorage
 
 class CDataTableView final
 {
-	public:
+public:
 	CDataTableView() = default;
 	bool IsValid() const noexcept;
 	_TyDataVersion GetVersion() const noexcept;
@@ -93,7 +93,7 @@ class CDataTableView final
 	bool GetValue(_TyDataRowIndex row, _TyDataColumnId columnId, _TyDataValue& result) const;
 	bool GetValueById(_TyDataRowId rowId, _TyDataColumnId columnId, _TyDataValue& result) const;
 
-	private:
+private:
 	explicit CDataTableView(std::shared_ptr<const CDataTableStorage> storage);
 	std::shared_ptr<const CDataTableStorage> m_storage;
 	friend class CDataTable;
@@ -104,7 +104,7 @@ class CDataTable;
 
 class CDataTableWriter final
 {
-	public:
+public:
 	CDataTableWriter(CDataTableWriter&& arg) noexcept;
 	CDataTableWriter& operator=(CDataTableWriter&& arg) noexcept;
 	~CDataTableWriter();
@@ -118,7 +118,7 @@ class CDataTableWriter final
 	std::pair<CDataTableView, CDataChangeSet> Commit();
 	void Cancel() noexcept;
 
-	private:
+private:
 	CDataTableWriter(CDataTable& table, std::unique_lock<std::mutex>&& writerLock, std::shared_ptr<CDataTableStorage>&& storage);
 	void EnsureRowsWritable();
 	void EnsureColumnWritable(std::size_t column);
@@ -136,7 +136,7 @@ class CDataTableWriter final
 
 class CDataTable final
 {
-	public:
+public:
 	CDataTable();
 	CDataTable(const CDataTable&) = delete;
 	CDataTable& operator=(const CDataTable&) = delete;
@@ -145,7 +145,7 @@ class CDataTable final
 	CDataTableView GetView() const;
 	bool FindRow(_TyDataRowId rowId, _TyDataRowIndex& result) const;
 
-	private:
+private:
 	void Publish(std::shared_ptr<CDataTableStorage>&& storage);
 	mutable std::mutex m_mtx_writer;
 	std::atomic<std::shared_ptr<const CDataTableStorage>> m_currentStorage;

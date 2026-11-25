@@ -20,17 +20,25 @@ namespace
 	{
 		switch (nIndex)
 		{
-		case 0: return CurveMode::Day;
-		case 1: return CurveMode::Week;
-		case 2: return CurveMode::Month;
-		case 3: return CurveMode::Minute5;
-		case 4: return CurveMode::Minute15;
-		case 5: return CurveMode::Minute30;
-		case 6: return CurveMode::Minute60;
-		default: return CurveMode::Day;
+		case 0:
+			return CurveMode::Day;
+		case 1:
+			return CurveMode::Week;
+		case 2:
+			return CurveMode::Month;
+		case 3:
+			return CurveMode::Minute5;
+		case 4:
+			return CurveMode::Minute15;
+		case 5:
+			return CurveMode::Minute30;
+		case 6:
+			return CurveMode::Minute60;
+		default:
+			return CurveMode::Day;
 		}
 	}
-}
+} // namespace
 
 CViewWatchlist::CViewWatchlist(QWidget* pParent) : QWidget(pParent), m_ui(std::make_unique<Ui::CViewWatchlistClass>())
 {

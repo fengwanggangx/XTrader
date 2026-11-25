@@ -10,18 +10,26 @@ namespace
 		switch (t)
 		{
 		case DataType::Int64:
-		case DataType::Timestamp: return std::vector<std::int64_t>();
-		case DataType::UInt64: return std::vector<std::uint64_t>();
-		case DataType::Double: return std::vector<double>();
-		case DataType::Bool: return std::vector<bool>();
-		case DataType::String: return std::vector<std::uint32_t>();
+		case DataType::Timestamp:
+			return std::vector<std::int64_t>();
+		case DataType::UInt64:
+			return std::vector<std::uint64_t>();
+		case DataType::Double:
+			return std::vector<double>();
+		case DataType::Bool:
+			return std::vector<bool>();
+		case DataType::String:
+			return std::vector<std::uint32_t>();
 		}
 		return std::vector<std::uint32_t>();
 	}
 
 	void ReserveColumn(_TyDataColumnStorage& column, std::size_t count)
 	{
-		std::visit([count](auto& values) { values.reserve(count); }, column);
+		std::visit([count](auto& values)
+		{
+			values.reserve(count);
+		}, column);
 	}
 
 	void RemoveRow(_TyDataColumnStorage& column, _TyDataRowIndex row)
@@ -54,7 +62,7 @@ namespace
 		}
 		return true;
 	}
-}
+} // namespace
 
 bool CDataCellChange::operator<(const CDataCellChange& arg) const noexcept
 {
@@ -138,10 +146,18 @@ bool CDataTableView::GetValue(_TyDataRowIndex row, _TyDataColumnId columnId, _Ty
 	switch (m_storage->m_schema[columnIndex].m_type)
 	{
 	case DataType::Int64:
-	case DataType::Timestamp: result = std::get<std::vector<std::int64_t>>(column)[row]; return true;
-	case DataType::UInt64: result = std::get<std::vector<std::uint64_t>>(column)[row]; return true;
-	case DataType::Double: result = std::get<std::vector<double>>(column)[row]; return true;
-	case DataType::Bool: result = std::get<std::vector<bool>>(column)[row]; return true;
+	case DataType::Timestamp:
+		result = std::get<std::vector<std::int64_t>>(column)[row];
+		return true;
+	case DataType::UInt64:
+		result = std::get<std::vector<std::uint64_t>>(column)[row];
+		return true;
+	case DataType::Double:
+		result = std::get<std::vector<double>>(column)[row];
+		return true;
+	case DataType::Bool:
+		result = std::get<std::vector<bool>>(column)[row];
+		return true;
 	case DataType::String:
 	{
 		std::uint32_t index = std::get<std::vector<std::uint32_t>>(column)[row];
@@ -202,7 +218,10 @@ bool CDataTableWriter::AddRow(_TyDataRowId rowId, const std::vector<_TyDataValue
 		{
 			for (std::size_t rollback = 0; rollback < column; ++rollback)
 			{
-				std::visit([](auto& data) { data.pop_back(); }, *m_storage->m_columns[rollback]);
+				std::visit([](auto& data)
+				{
+					data.pop_back();
+				}, *m_storage->m_columns[rollback]);
 			}
 			return false;
 		}
@@ -398,7 +417,10 @@ bool CDataTable::AddColumn(const CDataColumnSchema& schema)
 	ReserveColumn(column, storage->m_rows->m_rowIds.size());
 	for (std::size_t row = 0; row < storage->m_rows->m_rowIds.size(); ++row)
 	{
-		std::visit([](auto& values) { values.emplace_back(); }, column);
+		std::visit([](auto& values)
+		{
+			values.emplace_back();
+		}, column);
 	}
 	std::size_t index = storage->m_schema.size();
 	storage->m_schema.emplace_back(schema);

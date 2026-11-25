@@ -1,5 +1,5 @@
 #include "CNetServer.h"
-#include <event2/buffer.h>  // 主要头文件
+#include <event2/buffer.h> // 主要头文件
 #include "CNetTools.h"
 #include <iostream>
 #include <event2/thread.h>
@@ -10,7 +10,6 @@
 #include "CNetPool.h"
 #include "../request/request.h"
 #include "../basic/CDistributor.h"
-
 
 namespace net
 {
@@ -23,7 +22,6 @@ namespace net
 
 	void CNetServer::OnListenerError(struct evconnlistener* pListener)
 	{
-
 	}
 
 	void CNetServer::OnConnAccept(struct evconnlistener* pListener, evutil_socket_t fd, struct sockaddr* pAddr, int nLength)
@@ -64,7 +62,7 @@ namespace net
 			bufferevent_free(pEvent);
 			pEvent = nullptr;
 		}
-		//BEV_EVENT_EOF:onnection closed   BEV_EVENT_ERROR:some other error  BEV_EVENT_TIMEOUT:
+		// BEV_EVENT_EOF:onnection closed   BEV_EVENT_ERROR:some other error  BEV_EVENT_TIMEOUT:
 		CNetPool::InstancePtr()->CloseAConnection(fd);
 	}
 
@@ -77,15 +75,15 @@ namespace net
 		struct sockaddr_in svr;
 		bool bRet = FmtAddress(svr, m_nPort);
 		struct evconnlistener* pListener = evconnlistener_new_bind(
-			GetNet(), 
+			GetNet(),
 			CNetServer::ConnAccept_Callback,
 			this,
 			LEV_OPT_CLOSE_ON_FREE | LEV_OPT_REUSEABLE,
 			-1,
-			(struct sockaddr*)&svr, 
+			(struct sockaddr*)&svr,
 			sizeof(svr));
 
-		//evconnlistener_set_error_cb(pListener, ListenerErrorCallback);
+		// evconnlistener_set_error_cb(pListener, ListenerErrorCallback);
 		return 0;
 	}
 
@@ -93,4 +91,4 @@ namespace net
 	{
 		m_dispatcher->RegisterHandler(std::move(func));
 	}
-}
+} // namespace net

@@ -14,5 +14,5 @@ namespace json
 	public:
 		bool LoadFromFile(const std::string& strFileName);
 	};
-}
+} // namespace json
 #endif

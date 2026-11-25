@@ -6,7 +6,7 @@
 #include <functional>
 #include "CNet.h"
 #include "CNetRouter.h"
-template<bool bAsyn, class _Ty, class _TyHandler>
+template <bool bAsyn, class _Ty, class _TyHandler>
 class CDistributor;
 
 class CRequest;
@@ -18,6 +18,7 @@ namespace net
 		using _TyData = std::unique_ptr<CRequest>;
 		using _TyHandler = std::function<int(const _TyData&)>;
 		using _TyDistributor = CDistributor<true, std::vector<_TyData>, _TyHandler>;
+
 	public:
 		explicit CNetServer(int nPort);
 		~CNetServer() = default;
@@ -35,10 +36,10 @@ namespace net
 		void OnEvent(struct bufferevent* pEvent, short events) override;
 
 	private:
-		int	m_nPort{ -1 };
+		int m_nPort{ -1 };
 		std::vector<char> m_buffer_recv;
 		std::vector<char> m_buffer_send;
 		std::unique_ptr<_TyDistributor> m_dispatcher;
 	};
-}
+} // namespace net
 #endif

@@ -68,7 +68,7 @@ namespace json
 		return m_pValue->IsObject();
 	}
 
-	bool JsonValue::GetBool() const 
+	bool JsonValue::GetBool() const
 	{
 		RETURN_VALUE_IFNULLPTR(m_pValue, false);
 		if (!IsBool())
@@ -91,7 +91,7 @@ namespace json
 	unsigned JsonValue::GetUint() const
 	{
 		RETURN_VALUE_IFNULLPTR(m_pValue, 0);
-		if (!IsUint()) 
+		if (!IsUint())
 		{
 			throw std::runtime_error("Value is not an unsigned integer");
 		}
@@ -381,4 +381,4 @@ namespace json
 		m_pValue->PushBack(v, *m_pAllocator);
 		return JsonValue(&((*m_pValue)[m_pValue->Size() - 1]), m_pAllocator);
 	}
-}
+} // namespace json

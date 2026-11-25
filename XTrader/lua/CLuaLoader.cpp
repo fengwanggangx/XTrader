@@ -5,7 +5,10 @@
 
 std::shared_ptr<CLuaLoader> CLuaLoader::Instance()
 {
-	static std::shared_ptr<CLuaLoader> instance(new CLuaLoader(), [](CLuaLoader* p) { delete p; });
+	static std::shared_ptr<CLuaLoader> instance(new CLuaLoader(), [](CLuaLoader* p)
+	{
+		delete p;
+	});
 	return instance;
 }
 
@@ -107,7 +110,7 @@ void CLuaLoader::InitFunctionPtr()
 	BIND_DLL_FUNC(func_lua_rawget, lua_rawget, m_handle);
 	BIND_DLL_FUNC(func_lua_rawgeti, lua_rawgeti, m_handle);
 	BIND_DLL_FUNC(func_lua_rawgetp, lua_rawgetp, m_handle);
-	
+
 	BIND_DLL_FUNC(func_luaL_newmetatable, luaL_newmetatable, m_handle);
 
 	BIND_DLL_FUNC(func_lua_pcallk, lua_pcallk, m_handle);
@@ -147,7 +150,6 @@ void CLuaLoader::InitFunctionPtr()
 	BIND_DLL_FUNC(func_lua_pushlightuserdata, lua_pushlightuserdata, m_handle);
 	BIND_DLL_FUNC(func_lua_pushthread, lua_pushthread, m_handle);
 
-
 	BIND_DLL_FUNC(func_lua_gc, lua_gc, m_handle);
 
 	BIND_DLL_FUNC(func_lua_setglobal, lua_setglobal, m_handle);
@@ -173,5 +175,4 @@ void CLuaLoader::InitFunctionPtr()
 	BIND_DLL_FUNC(func_luaL_openlibs, luaL_openlibs, m_handle);
 	BIND_DLL_FUNC(func_lua_isinteger, lua_isinteger, m_handle);
 	BIND_DLL_FUNC(func_lua_isstring, lua_isstring, m_handle);
-
 }

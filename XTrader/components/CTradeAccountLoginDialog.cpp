@@ -32,7 +32,7 @@ namespace
 	private:
 		QComboBox& m_combo;
 	};
-}
+} // namespace
 
 CTradeAccountLoginDialog::CTradeAccountLoginDialog(CTraderServices& services, QWidget* pParent)
 	: QDialog(pParent), m_ui(std::make_unique<Ui::CTradeAccountLoginDialog>())

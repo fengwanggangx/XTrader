@@ -8,7 +8,7 @@
 // A mouse-transparent Qt-owned overlay draws in device pixels, independently of DPI.
 class CSinglePixelBorder final : public QWidget
 {
-	public:
+public:
 	explicit CSinglePixelBorder(QWidget& widget, qreal fRadius = 0.0, Qt::Edges edges = Qt::TopEdge | Qt::BottomEdge | Qt::LeftEdge | Qt::RightEdge) : QWidget(&widget), m_fRadius(fRadius), m_edges(edges)
 	{
 		setObjectName("singlePixelBorder");
@@ -26,7 +26,7 @@ class CSinglePixelBorder final : public QWidget
 		border.release(); // The QWidget parent owns and destroys the overlay.
 	}
 
-	protected:
+protected:
 	bool eventFilter(QObject* pObject, QEvent* pEvent) override
 	{
 		if (parentWidget() == pObject)
@@ -85,7 +85,7 @@ class CSinglePixelBorder final : public QWidget
 		painter.drawRoundedRect(QRectF(0.5, 0.5, nWidth - 1.0, nHeight - 1.0), m_fRadius * fScale, m_fRadius * fScale);
 	}
 
-	private:
+private:
 	qreal m_fRadius{ 0.0 };
 	Qt::Edges m_edges;
 };

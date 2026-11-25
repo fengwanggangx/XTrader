@@ -7,7 +7,7 @@
 #include <memory>
 #include <functional>
 
-template<bool bAsyn, class _Ty, class _TyHandler>
+template <bool bAsyn, class _Ty, class _TyHandler>
 class CDistributor;
 
 class CRequest;
@@ -18,14 +18,16 @@ namespace net
 		using _TyData = std::unique_ptr<CRequest>;
 		using _TyHandler = std::function<int(const _TyData&)>;
 		using _TyDistributor = CDistributor<true, std::vector<_TyData>, _TyHandler>;
+
 	public:
 		explicit CNetClient(const std::string& strAddr, int nPort);
 		~CNetClient() = default;
 
 	public:
 		int Initialize();
-	
+
 		void RegisterHandler(_TyHandler&& func);
+
 	public:
 		std::size_t OnRead(struct bufferevent* pEvent) override;
 		void OnEvent(struct bufferevent* pEvent, short events) override;
@@ -33,7 +35,7 @@ namespace net
 
 	private:
 		std::string m_strAddr;
-		int	m_nPort{ -1 };
+		int m_nPort{ -1 };
 
 		std::vector<char> m_buffer_recv;
 		std::vector<char> m_buffer_send;
@@ -42,5 +44,5 @@ namespace net
 
 		evutil_socket_t m_fd{ -1 };
 	};
-}
+} // namespace net
 #endif

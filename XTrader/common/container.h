@@ -1,9 +1,9 @@
 #pragma once
 /**********************************************************
-* @Date   : 2025.12.26
-* @Author : fengwanggang
-* @desc   : 主要用于容器操作
-**********************************************************/
+ * @Date   : 2025.12.26
+ * @Author : fengwanggang
+ * @desc   : 主要用于容器操作
+ **********************************************************/
 
 #ifndef _CONTAINER_UTILITY_H_
 #define _CONTAINER_UTILITY_H_
@@ -16,15 +16,15 @@
 
 namespace container
 {
-	//删除容器索引数据
+	// 删除容器索引数据
 	template <class _TyContainer, class _TyIdx, typename std::enable_if_t<traits::is_sequence_container<_TyIdx>::value, int> = 0>
 	void remove_idx(_TyContainer& container, const _TyIdx& idx)
 	{
 		using _TyItem = _TyContainer::value_type;
 		const auto& vIter = std::remove_if(container.begin(), container.end(), [&, i = 0](const _TyItem&) mutable
-			{
-				return std::find(idx.begin(), idx.end(), i++) != idx.end();
-			});
+		{
+			return std::find(idx.begin(), idx.end(), i++) != idx.end();
+		});
 		container.erase(vIter, container.end());
 	}
 
@@ -33,9 +33,9 @@ namespace container
 	{
 		using _TyItem = _TyContainer::value_type;
 		const auto& vIter = std::remove_if(container.begin(), container.end(), [&, i = 0](const _TyItem&) mutable
-			{
-				return idx.find(i++) != idx.end();
-			});
+		{
+			return idx.find(i++) != idx.end();
+		});
 		container.erase(vIter, container.end());
 	}
 
@@ -142,7 +142,7 @@ namespace container
 		return false;
 	}
 
-	template <class _TyContainer, class _TyKey, class  _TyVal = typename _TyContainer::value_type, typename std::enable_if_t<traits::is_sequence_container<_TyContainer>::value, int> = 0>
+	template <class _TyContainer, class _TyKey, class _TyVal = typename _TyContainer::value_type, typename std::enable_if_t<traits::is_sequence_container<_TyContainer>::value, int> = 0>
 	bool try_vfind(const _TyContainer& container, const _TyKey& key, _TyVal& val)
 	{
 		const auto& mIter = std::find(container.begin(), container.end(), key);
@@ -156,7 +156,7 @@ namespace container
 		return false;
 	}
 
-	template <class _TyContainer, class _TyKey, class _Creator, typename std::enable_if_t<traits::is_associative_container<_TyContainer>::value&& traits::is_invocable_v<typename _TyContainer::mapped_type, _Creator>, int> = 0>
+	template <class _TyContainer, class _TyKey, class _Creator, typename std::enable_if_t<traits::is_associative_container<_TyContainer>::value && traits::is_invocable_v<typename _TyContainer::mapped_type, _Creator>, int> = 0>
 	const auto& vfind(_TyContainer& container, const _TyKey& key, _Creator&& creator)
 	{
 		const auto& mIter = container.find(key);
@@ -165,13 +165,13 @@ namespace container
 			return mIter->second;
 		}
 
-		//using _TyItem = typename _TyContainer::mapped_type;
+		// using _TyItem = typename _TyContainer::mapped_type;
 		//_vTy v = std::forward<_Creator>(creator)();
 		container.emplace(key, std::forward<_Creator>(creator)());
 		return vfind(container, key);
 	}
 
-	template <class _TyContainer, class _TyKey, class _Creator, typename std::enable_if_t<traits::is_sequence_container<_TyContainer>::value&& traits::is_invocable_v<typename _TyContainer::mapped_type, _Creator>, int> = 0>
+	template <class _TyContainer, class _TyKey, class _Creator, typename std::enable_if_t<traits::is_sequence_container<_TyContainer>::value && traits::is_invocable_v<typename _TyContainer::mapped_type, _Creator>, int> = 0>
 	auto& vfind(_TyContainer& container, const _TyKey& key, _Creator&& creator)
 	{
 		auto iter = std::find(container.begin(), container.end(), key);
@@ -180,7 +180,7 @@ namespace container
 			return iter->second;
 		}
 
-		//using _TyItem = typename _TyContainer::value_type;
+		// using _TyItem = typename _TyContainer::value_type;
 		//_vTy v = std::forward<_Creator>(creator)();
 		container.push_back(std::forward<_Creator>(creator)());
 		return vfind(container, key);
@@ -199,7 +199,7 @@ namespace container
 		}
 	}
 
-	template <class _TyContainer0, class _TyContainer1, typename std::enable_if_t<traits::is_sequence_container<_TyContainer0>::value&& traits::is_associative_container<_TyContainer1>::value, int> = 0>
+	template <class _TyContainer0, class _TyContainer1, typename std::enable_if_t<traits::is_sequence_container<_TyContainer0>::value && traits::is_associative_container<_TyContainer1>::value, int> = 0>
 	void vcopy(_TyContainer0& dest, const _TyContainer1& src, bool bCopyKey)
 	{
 		for (const auto& v : src)
@@ -240,6 +240,6 @@ namespace container
 			return static_cast<const typename _TyContainer::value_type&>(*container.emplace(std::forward<_Args>(args)...));
 		}
 	}
-};
+}; // namespace container
 
 #endif

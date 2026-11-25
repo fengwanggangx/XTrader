@@ -40,6 +40,6 @@ namespace xml
 		friend class XmlDocument;
 	};
 
-}
+} // namespace xml
 
 #endif
